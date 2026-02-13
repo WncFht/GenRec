@@ -9,7 +9,7 @@
 
 **MIMIGenRec** (Modular, Integrated, Mutable, Interchangeable GenRec) is a flexible training framework for **generative recommendation** models.
 
-**🌟 Highlights**
+**<img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Glowing%20Star.png" alt="Glowing Star" width="25" height="25" />Highlights**
 
 - **LlamaFactory integration**: SFT and LoRA for a wide range of custom models via simple YAML configs; support for backends such as [Unsloth](https://github.com/unslothai/unsloth); built-in experiment monitors (e.g. WandB) for logging and comparison.
 - **TRL integration**: Tight integration with [TRL](https://github.com/huggingface/trl) and the Hugging Face ecosystem; multi-GPU and multi-node training with [Accelerate](https://github.com/huggingface/accelerate), flexible [DeepSpeed](https://github.com/microsoft/DeepSpeed) configs (ZeRO-2/3, etc.), and easy to design custom rewards (e.g. NDCG, HR) for policy optimization.
