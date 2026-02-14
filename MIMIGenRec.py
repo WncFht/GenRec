@@ -25,7 +25,6 @@ def _make_mimigenrec_generate(
 
     def generate(*args, **kwargs):
         kwargs.pop("token_type_ids", None)
-        # 优先级: 本次调用传入的 kwargs > 模型上设置的 _logits_processor > from_pretrained 时的默认值
         proc = kwargs.get("logits_processor")
         if proc is None:
             proc = getattr(model, "_logits_processor", None)
