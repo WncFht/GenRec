@@ -17,7 +17,7 @@ Amazon 原始评论/元数据
   -> (外部 SID 构建流程，例如 MiniOneRec) 生成 *.index.json
   -> preprocess_data_sft_rl.py
        - 提取 SID 词表 new_tokens.json
-       - 导出 item_id -> [sid1,sid2,sid3] 的 id2sid.json
+       - 导出 item_id -> [sid1,sid2,...] 的 id2sid.json
        - 生成 SFT: task1/task2/task3
        - 生成 RL : task1/task4/task5
   -> data/<CATEGORY>/{sft,rl,...}
@@ -54,13 +54,13 @@ Amazon 原始评论/元数据
 
 - `item.json` -> `id2title`（带标题过滤）和 `id2title_full`（缺失标题用 `Item_<id>` 回退）
 - `index.json` ->
-  - `id2sid`（拼接后的 `<a_x><b_y><c_z>`）
-  - `index_raw`（三段 token 数组）
+  - `id2sid`（拼接后的 SID 字符串，支持 3/4/... 层）
+  - `index_raw`（SID token 数组）
 
 并额外导出：
 
 - `new_tokens.json`：从 `index.json` 抽取全部 SID token 并排序
-- `id2sid.json`：保留 `item_id -> [sid1, sid2, sid3]` 原始结构
+- `id2sid.json`：保留 `item_id -> [sid1, sid2, ...]` 原始结构
 
 ### 4.2 解析交互序列
 
@@ -161,6 +161,7 @@ python3 preprocess_data_sft_rl.py \
   --output_dir data/Industrial_and_Scientific \
   --seq_sample 10000 \
   --seed 42 \
+  --sid_levels -1 \
   --data_source Industrial_and_Scientific
 ```
 

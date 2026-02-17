@@ -32,6 +32,7 @@ num_beams=50
 temperature=1.0
 do_sample=False
 length_penalty=0.0
+sid_levels=-1  # <=0 means auto(all levels), supports both 3-level and 4-level SIDs
 
 # main
 exp_name_clean=$(basename "$exp_name")
@@ -78,6 +79,7 @@ if [[ -z "$cuda_list" ]] || [[ "$cuda_list" == "0" ]]; then
         --temperature $temperature \
         --do_sample $do_sample \
         --length_penalty $length_penalty \
+        --sid_levels $sid_levels \
         --compute_metrics_flag True
 
     if [[ -f "$temp_dir/result.json" ]]; then
@@ -112,6 +114,7 @@ if [[ ! -f "split_json.py" ]]; then
         --temperature $temperature \
         --do_sample $do_sample \
         --length_penalty $length_penalty \
+        --sid_levels $sid_levels \
         --compute_metrics_flag True
     cp "$temp_dir/result.json" "$output_dir/final_result.json"
     if [[ -f "$temp_dir/metrics.json" ]]; then
@@ -143,6 +146,7 @@ for i in $cuda_list; do
             --temperature $temperature \
             --do_sample $do_sample \
             --length_penalty $length_penalty \
+            --sid_levels $sid_levels \
             --compute_metrics_flag False &
     fi
 done

@@ -7,6 +7,7 @@ export OUTPUT_DIR="data/${CATEGORY}"
 
 export TASK4_SAMPLE=10000 # sample all if -1
 export SEED=42
+export SID_LEVELS=-1 # <=0 means auto(all levels), e.g. set 3 to force <a><b><c>
 
 python preprocess_data_sft_rl.py \
     --data_dir $DATA_DIR \
@@ -14,4 +15,5 @@ python preprocess_data_sft_rl.py \
     --output_dir $OUTPUT_DIR \
     --seq_sample $TASK4_SAMPLE \
     --seed $SEED \
+    --sid_levels $SID_LEVELS \
     --data_source $CATEGORY

@@ -34,10 +34,16 @@ def build_constrained_logits_processor(
     tokenizer: AutoTokenizer,
     prefix: Optional[str] = None,
     num_beams: int = 50,
+    sid_levels: int = -1,
 ) -> LogitsProcessorList:
     """Build Trie from index and return a LogitsProcessorList with ConstrainedLogitsProcessor."""
     print(f"Building Trie from {index_path}...")
-    trie, prompt_suffix_ids, prefix_index = build_trie_from_index(index_path, tokenizer, prefix=prefix)
+    trie, prompt_suffix_ids, prefix_index = build_trie_from_index(
+        index_path,
+        tokenizer,
+        prefix=prefix,
+        sid_levels=sid_levels,
+    )
     print(f"Trie built: prefix_index={prefix_index}, num_items={len(trie)}")
 
     prefix_allowed_tokens_fn = create_prefix_allowed_tokens_fn(trie, prompt_suffix_ids)

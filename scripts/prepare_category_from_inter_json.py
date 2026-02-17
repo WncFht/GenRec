@@ -176,6 +176,7 @@ def main() -> None:
     )
     parser.add_argument("--seq-sample", type=int, default=10000, help="Forwarded to preprocess_data_sft_rl.py --seq_sample")
     parser.add_argument("--seed", type=int, default=42, help="Forwarded to preprocess_data_sft_rl.py --seed")
+    parser.add_argument("--sid-levels", type=int, default=-1, help="Forwarded to preprocess_data_sft_rl.py --sid_levels. <=0 means auto(all levels).")
     parser.add_argument("--data-source", default=None, help="Forwarded to preprocess_data_sft_rl.py --data_source")
     parser.add_argument("--python-bin", default=sys.executable or "python3", help="Python executable to run preprocess_data_sft_rl.py")
     parser.add_argument("--prepare-only", action="store_true", help="Only prepare staging files, skip preprocess_data_sft_rl.py")
@@ -232,6 +233,7 @@ def main() -> None:
     print(f"[INFO] split_strategy={args.split_strategy}")
     if args.split_strategy == "mimionerec":
         print(f"[INFO] split_ratio train/valid/test={args.train_ratio}/{args.valid_ratio}/{1.0 - args.train_ratio - args.valid_ratio}")
+    print(f"[INFO] sid_levels={args.sid_levels}")
     print(f"[INFO] staging_category_dir={staging_category_dir}")
     print(f"[INFO] output_dir={output_dir}")
     print(f"[INFO] generated rows: train={len(train_rows)}, valid={len(valid_rows)}, test={len(test_rows)}")
@@ -258,6 +260,8 @@ def main() -> None:
         str(args.seq_sample),
         "--seed",
         str(args.seed),
+        "--sid_levels",
+        str(args.sid_levels),
         "--data_source",
         data_source,
     ]

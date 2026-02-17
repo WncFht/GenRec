@@ -17,6 +17,7 @@ from util import build_constrained_logits_processor
 def main(
     model: str = "saves/qwen2.5-0.5b/full/Industrial_and_Scientific-sft-dsz0",
     index_path: str = "data/Industrial_and_Scientific/Industrial_and_Scientific.index.json",
+    sid_levels: int = -1,
     prefix: Optional[str] = None,
     num_beams: int = 16,
     # num_beams: int = 2,
@@ -88,7 +89,13 @@ def main(
     )
 
     tokenizer = AutoTokenizer.from_pretrained(model)
-    logits_processor = build_constrained_logits_processor(index_path, tokenizer, prefix=prefix, num_beams=num_beams)
+    logits_processor = build_constrained_logits_processor(
+        index_path,
+        tokenizer,
+        prefix=prefix,
+        num_beams=num_beams,
+        sid_levels=sid_levels,
+    )
 
     model = MIMIGenRec.from_pretrained(
         model,

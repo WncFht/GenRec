@@ -44,16 +44,35 @@ def get_assistant_prefix_from_tokenizer(tokenizer: AutoTokenizer) -> str:
         raise ValueError("Failed to get assistant prefix from tokenizer.")
 
 
+def normalize_sid_tokens(raw_tokens) -> list[str]:
+    if isinstance(raw_tokens, list):
+        return [str(tok).strip() for tok in raw_tokens if str(tok).strip()]
+    if isinstance(raw_tokens, str):
+        token = raw_tokens.strip()
+        return [token] if token else []
+    return []
+
+
+def select_sid_tokens(tokens: list[str], sid_levels: int) -> list[str]:
+    if sid_levels <= 0:
+        return tokens
+    return tokens[:sid_levels]
+
+
 def build_trie_from_index(
     index_path: str,
     tokenizer: AutoTokenizer,
     prefix: Optional[str] = None,
+    sid_levels: int = -1,
 ) -> tuple[Trie, list[int], int]:
     with open(index_path, encoding="utf-8") as f:
         index_data = json.load(f)
 
     item_strs = set()
-    for tokens in index_data.values():
+    for raw_tokens in index_data.values():
+        tokens = select_sid_tokens(normalize_sid_tokens(raw_tokens), sid_levels)
+        if not tokens:
+            continue
         item_str = "".join(tokens)
         item_strs.add(item_str)
 
@@ -204,6 +223,7 @@ def main(
     top_k: int = None,
     gen_config_path: str = None,
     prefix: Optional[str] = None,
+    sid_levels: int = -1,
 ):
     if metrics_only:
         with open(result_json_path, encoding="utf-8") as f:
@@ -243,7 +263,12 @@ def main(
 
     # Build Trie from index
     print(f"Building Trie from {index_path}...")
-    trie, prompt_suffix_ids, prefix_index = build_trie_from_index(index_path, tokenizer, prefix=prefix)
+    trie, prompt_suffix_ids, prefix_index = build_trie_from_index(
+        index_path,
+        tokenizer,
+        prefix=prefix,
+        sid_levels=sid_levels,
+    )
     print(f"Trie built: prefix_index={prefix_index}, num_items={len(trie)}")
 
     prefix_allowed_tokens_fn = create_prefix_allowed_tokens_fn(trie, prompt_suffix_ids)

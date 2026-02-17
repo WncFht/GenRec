@@ -20,6 +20,7 @@ PYTHON_BIN="${PYTHON_BIN:-python3}"
 OUTPUT_DIR="${OUTPUT_DIR:-${GENREC_ROOT}/data/${CATEGORY}}"
 SEQ_SAMPLE="${SEQ_SAMPLE:-10000}"
 SEED="${SEED:-42}"
+SID_LEVELS="${SID_LEVELS:--1}"
 SPLIT_STRATEGY="${SPLIT_STRATEGY:-mimionerec}"
 TRAIN_RATIO="${TRAIN_RATIO:-0.8}"
 VALID_RATIO="${VALID_RATIO:-0.1}"
@@ -40,7 +41,7 @@ Examples:
 
 Override env vars if needed:
   GENREC_ROOT DATA_ROOT CATEGORY INDEX_PATH OUTPUT_DIR PYTHON_BIN SEQ_SAMPLE SEED
-  SPLIT_STRATEGY TRAIN_RATIO VALID_RATIO
+  SID_LEVELS SPLIT_STRATEGY TRAIN_RATIO VALID_RATIO
 EOF
 }
 
@@ -55,6 +56,7 @@ print_config() {
   echo "[INFO] PYTHON_BIN=${PYTHON_BIN}"
   echo "[INFO] SEQ_SAMPLE=${SEQ_SAMPLE}"
   echo "[INFO] SEED=${SEED}"
+  echo "[INFO] SID_LEVELS=${SID_LEVELS}"
   echo "[INFO] SPLIT_STRATEGY=${SPLIT_STRATEGY}"
   echo "[INFO] TRAIN_RATIO=${TRAIN_RATIO}"
   echo "[INFO] VALID_RATIO=${VALID_RATIO}"
@@ -130,6 +132,7 @@ step_prepare() {
     --valid-ratio "${VALID_RATIO}" \
     --seq-sample "${SEQ_SAMPLE}" \
     --seed "${SEED}" \
+    --sid-levels "${SID_LEVELS}" \
     --python-bin "${PYTHON_BIN}" \
     --prepare-only
 
@@ -149,6 +152,7 @@ step_build() {
     --valid-ratio "${VALID_RATIO}" \
     --seq-sample "${SEQ_SAMPLE}" \
     --seed "${SEED}" \
+    --sid-levels "${SID_LEVELS}" \
     --python-bin "${PYTHON_BIN}"
 
   echo "[DONE] Output directory: ${OUTPUT_DIR}"

@@ -25,6 +25,7 @@ Config overrides:
   --port <n>
   --ds-config <path>
   --num-beams <n>
+  --sid-levels <n>      Number of SID levels used by constraints/reward labels; <=0 means auto(all levels)
   --train-bsz <n>
   --eval-bsz <n>
   --grad-acc <n>
@@ -99,6 +100,7 @@ NUM_PROCESSES=4
 MAIN_PORT=29503
 DS_CONFIG="config/zero2.yaml"
 NUM_BEAMS=16
+SID_LEVELS=-1
 PER_DEVICE_TRAIN_BSZ=64
 PER_DEVICE_EVAL_BSZ=64
 GRAD_ACC=4
@@ -191,6 +193,11 @@ while [[ $# -gt 0 ]]; do
     --num-beams)
       NUM_BEAMS="$2"
       FORWARD_ARGS+=("--num-beams" "$2")
+      shift 2
+      ;;
+    --sid-levels)
+      SID_LEVELS="$2"
+      FORWARD_ARGS+=("--sid-levels" "$2")
       shift 2
       ;;
     --train-bsz)
@@ -328,6 +335,7 @@ TRAIN_CMD=(
   --index_path "$INDEX_PATH"
   --output_dir "$OUTPUT_DIR"
   --num_beams "$NUM_BEAMS"
+  --sid_levels "$SID_LEVELS"
   --per_device_train_batch_size "$PER_DEVICE_TRAIN_BSZ"
   --per_device_eval_batch_size "$PER_DEVICE_EVAL_BSZ"
   --gradient_accumulation_steps "$GRAD_ACC"
@@ -369,5 +377,6 @@ echo "[INFO] NUM_PROCESSES=$NUM_PROCESSES"
 echo "[INFO] MAIN_PORT=$MAIN_PORT"
 echo "[INFO] RUN_NAME=$WANDB_RUN_NAME"
 echo "[INFO] RESUME_FROM_CHECKPOINT=$RESUME_FROM_CHECKPOINT"
+echo "[INFO] SID_LEVELS=$SID_LEVELS"
 
 "${TRAIN_CMD[@]}"

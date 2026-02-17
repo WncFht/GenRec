@@ -28,46 +28,80 @@ def load_items_with_desc(item_json_path: str) -> dict[str, dict]:
         return json.load(f)
 
 
-def load_index(index_path: str) -> dict[str, str]:
-    """Load index.json, return item_id -> combined_sid mapping (e.g. <a_20><b_188><c_134>)."""
+def _normalize_sid_tokens(raw_sids) -> list[str]:
+    if isinstance(raw_sids, list):
+        return [str(tok).strip() for tok in raw_sids if str(tok).strip()]
+    if isinstance(raw_sids, str):
+        token = raw_sids.strip()
+        return [token] if token else []
+    return []
+
+
+def _select_sid_tokens(tokens: list[str], sid_levels: int) -> list[str]:
+    if sid_levels is None or sid_levels <= 0:
+        return tokens
+    return tokens[:sid_levels]
+
+
+def load_index(index_path: str, sid_levels: int = -1) -> dict[str, str]:
+    """Load index.json and return item_id -> combined sid string.
+
+    - sid_levels <= 0: use all levels in index (auto; supports 3/4/... levels)
+    - sid_levels > 0 : keep the first `sid_levels` tokens only
+    """
     with open(index_path, encoding="utf-8") as f:
         indices = json.load(f)
     id2sid = {}
-    for item_id, sids in indices.items():
-        if len(sids) >= 3:
-            id2sid[str(item_id)] = sids[0] + sids[1] + sids[2]
+    for item_id, raw_sids in indices.items():
+        tokens = _select_sid_tokens(_normalize_sid_tokens(raw_sids), sid_levels)
+        if not tokens:
+            continue
+        id2sid[str(item_id)] = "".join(tokens)
     return id2sid
 
 
-def load_index_raw(index_path: str) -> dict[str, list[str]]:
-    """Load index.json raw structure: item_id -> [sid1, sid2, sid3]."""
+def load_index_raw(index_path: str, sid_levels: int = -1) -> dict[str, list[str]]:
+    """Load index.json as item_id -> [sid1, sid2, ...].
+
+    - sid_levels <= 0: use all levels in index (auto; supports 3/4/... levels)
+    - sid_levels > 0 : keep the first `sid_levels` tokens only
+    """
     with open(index_path, encoding="utf-8") as f:
-        return json.load(f)
+        raw = json.load(f)
+    out: dict[str, list[str]] = {}
+    for item_id, raw_sids in raw.items():
+        tokens = _select_sid_tokens(_normalize_sid_tokens(raw_sids), sid_levels)
+        if not tokens:
+            continue
+        out[str(item_id)] = tokens
+    return out
 
 
-def extract_new_tokens(index_path: str) -> list[str]:
+def extract_new_tokens(index_path: str, sid_levels: int = -1) -> list[str]:
     """Extract all semantic ID tokens (e.g. <a_20>, <b_188>) from index.json, consistent with sft.py TokenExtender."""
     with open(index_path, encoding="utf-8") as f:
         indices = json.load(f)
     tokens = set()
-    for sids in indices.values():
-        for token in sids:
+    for raw_sids in indices.values():
+        sid_tokens = _select_sid_tokens(_normalize_sid_tokens(raw_sids), sid_levels)
+        for token in sid_tokens:
             tokens.add(token)
     return sorted(tokens)
 
 
-def build_sid_trie(indices: dict[str, list[str]]) -> dict:
-    """Build trie from index.json item_id -> [sid1, sid2, sid3].
+def build_sid_trie(indices: dict[str, list[str]], sid_levels: int = -1) -> dict:
+    """Build trie from index.json item_id -> [sid1, sid2, ...].
 
     Each path is a token sequence, leaf nodes store item_id list (supports multiple items per semantic ID).
     Returns JSON-serializable nested dict.
     """
     trie: dict = {}
-    for item_id, sids in indices.items():
-        if len(sids) < 3:
+    for item_id, raw_sids in indices.items():
+        tokens = _select_sid_tokens(_normalize_sid_tokens(raw_sids), sid_levels)
+        if not tokens:
             continue
         node = trie
-        for i, token in enumerate(sids[:3]):  # use first 3 levels only
+        for token in tokens:
             if token not in node:
                 node[token] = {}
             node = node[token]
@@ -387,6 +421,7 @@ def main(
     only_task5: bool = False,
     seq_sample: int = 10000,
     seed: int = 42,
+    sid_levels: int = -1,
     data_source: str = "",
 ):
     """Build LlamaFactory dataset (with semantic ID) from data_dir/category (e.g. Amazon18/Industrial_and_Scientific)."""
@@ -414,11 +449,12 @@ def main(
     id2title = load_items(item_path)
     id2title_full = load_items_full(item_path)  # with fallback, for task4 title2sid
     items_with_desc = load_items_with_desc(item_path)  # with title+description, for task5
-    id2sid = load_index(index_path)
-    index_raw = load_index_raw(index_path)  # item_id -> ["<a_*>", "<b_*>", "<c_*>"]
-    print(f"Loaded {len(id2title)} items, {len(id2sid)} semantic ID mappings")
+    id2sid = load_index(index_path, sid_levels=sid_levels)
+    index_raw = load_index_raw(index_path, sid_levels=sid_levels)
+    sid_level_desc = "all" if sid_levels <= 0 else str(sid_levels)
+    print(f"Loaded {len(id2title)} items, {len(id2sid)} semantic ID mappings (sid_levels={sid_level_desc})")
 
-    new_tokens = extract_new_tokens(index_path)
+    new_tokens = extract_new_tokens(index_path, sid_levels=sid_levels)
     os.makedirs(output_dir, exist_ok=True)
     new_tokens_path = os.path.join(output_dir, "new_tokens.json")
     with open(new_tokens_path, "w", encoding="utf-8") as f:
@@ -428,7 +464,7 @@ def main(
     id2sid_path = os.path.join(output_dir, "id2sid.json")
     with open(id2sid_path, "w", encoding="utf-8") as f:
         json.dump(index_raw, f, ensure_ascii=False, indent=4)
-    print(f"Saved id2sid (item_id -> [sid1, sid2, sid3]) to {id2sid_path}")
+    print(f"Saved id2sid (item_id -> [sid1, sid2, ...], sid_levels={sid_level_desc}) to {id2sid_path}")
 
     train_rows = parse_inter_file(train_path)
     valid_rows = parse_inter_file(valid_path)

@@ -18,6 +18,7 @@ NUM_BEAMS="${NUM_BEAMS:-50}"
 TEMPERATURE="${TEMPERATURE:-1.0}"
 DO_SAMPLE="${DO_SAMPLE:-False}"
 LENGTH_PENALTY="${LENGTH_PENALTY:-0.0}"
+SID_LEVELS="${SID_LEVELS:--1}"  # <=0 means auto(all levels), supports both 3-level and 4-level SIDs
 
 resolve_model_path() {
   local input_path="$1"
@@ -84,6 +85,7 @@ run_single_gpu_eval() {
     --temperature "$TEMPERATURE" \
     --do_sample "$DO_SAMPLE" \
     --length_penalty "$LENGTH_PENALTY" \
+    --sid_levels "$SID_LEVELS" \
     --compute_metrics_flag True
 
   cp "$TEMP_DIR/result.json" "$OUTPUT_DIR/final_result.json"
@@ -129,6 +131,7 @@ for gpu_id in "${GPU_ARR[@]}"; do
       --temperature "$TEMPERATURE" \
       --do_sample "$DO_SAMPLE" \
       --length_penalty "$LENGTH_PENALTY" \
+      --sid_levels "$SID_LEVELS" \
       --compute_metrics_flag False &
   fi
 done

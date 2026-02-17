@@ -124,7 +124,7 @@ Then we got:
 ```
 data/Industrial_and_Scientific/
 ├── new_tokens.json      # SID vocabulary for LlamaFactory add_tokens_list
-├── id2sid.json          # item_id -> [sid1, sid2, sid3] (same format as source index)
+├── id2sid.json          # item_id -> [sid1, sid2, ...] (same format as source index)
 ├── sft/
 │   ├── train.json
 │   ├── valid.json
@@ -188,7 +188,7 @@ You must **first convert items to SIDs** (e.g. via [MiniOneRec](https://github.c
 ```
 data/Industrial_and_Scientific/
 ├── new_tokens.json      # SID vocabulary
-├── id2sid.json          # item_id -> [sid1, sid2, sid3]
+├── id2sid.json          # item_id -> [sid1, sid2, ...]
 ├── sft/
 │   ├── train.json       # SFT training set
 │   ├── valid.json       # SFT validation set
@@ -223,7 +223,7 @@ Example:
 
 #### 1.2 `id2sid.json`
 
-This is used to build Trie for constrained beam search. Each candidate (item) is represented by SID: the value is the concatenation of the three tokens in the array (e.g. `<a_102><b_178><c_228>`).
+This is used to build Trie for constrained beam search. Each candidate (item) is represented by SID: the value is the concatenation of all tokens in the array (e.g. `<a_102><b_178><c_228>` for 3-level, `<a_102><b_178><c_228><d_17>` for 4-level).
 
 Example:
 ```json
