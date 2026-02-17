@@ -5,10 +5,11 @@ import argparse
 import glob
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 
 def read_json(path: str) -> Any:
@@ -59,7 +60,7 @@ def resolve_index_path(category_dir: str, category: str, index_path: Optional[st
     raise FileNotFoundError(f"No index candidates found under {category_dir}")
 
 
-def user_sort_key(uid: str) -> Tuple[int, Union[int, str]]:
+def user_sort_key(uid: str) -> tuple[int, Union[int, str]]:
     """Sort numeric user IDs numerically, fallback to string order."""
     u = str(uid)
     if u.isdigit():
@@ -90,7 +91,9 @@ def build_rows_mimionerec(inter_data: dict[str, Any], history_max: int) -> list[
     return rows
 
 
-def split_rows_by_ratio(rows: list[tuple[str, list[str], str]], train_ratio: float, valid_ratio: float) -> tuple[list, list, list]:
+def split_rows_by_ratio(
+    rows: list[tuple[str, list[str], str]], train_ratio: float, valid_ratio: float
+) -> tuple[list, list, list]:
     total = len(rows)
     train_end = int(total * train_ratio)
     valid_end = int(total * (train_ratio + valid_ratio))
@@ -150,15 +153,83 @@ def run(cmd: list[str], dry_run: bool) -> None:
     subprocess.run(cmd, check=True)
 
 
+def infer_dataset_subdir(genrec_root: str, output_dir: str, dataset_subdir: Optional[str]) -> str:
+    if dataset_subdir:
+        return dataset_subdir.strip("/\\")
+    data_root = os.path.abspath(os.path.join(genrec_root, "data"))
+    rel = os.path.relpath(os.path.abspath(output_dir), data_root)
+    if not rel.startswith(".."):
+        return rel.replace("\\", "/").strip("/\\")
+    return os.path.basename(os.path.abspath(output_dir))
+
+
+def sanitize_dataset_key_prefix(name: str) -> str:
+    key = re.sub(r"[^0-9A-Za-z_]+", "_", name)
+    key = re.sub(r"_+", "_", key).strip("_")
+    return key or "dataset"
+
+
+def upsert_dataset_info(dataset_info_path: str, dataset_key_prefix: str, dataset_subdir: str) -> tuple[str, str]:
+    if os.path.isfile(dataset_info_path):
+        with open(dataset_info_path, encoding="utf-8") as f:
+            dataset_info = json.load(f)
+    else:
+        dataset_info = {}
+
+    train_key = f"{dataset_key_prefix}_train"
+    valid_key = f"{dataset_key_prefix}_valid"
+    columns = {
+        "prompt": "instruction",
+        "query": "input",
+        "response": "output",
+        "system": "system",
+    }
+
+    dataset_info[train_key] = {
+        "file_name": f"{dataset_subdir}/sft/train.json",
+        "columns": columns,
+    }
+    dataset_info[valid_key] = {
+        "file_name": f"{dataset_subdir}/sft/valid.json",
+        "columns": columns,
+    }
+
+    os.makedirs(os.path.dirname(dataset_info_path), exist_ok=True)
+    with open(dataset_info_path, "w", encoding="utf-8") as f:
+        json.dump(dataset_info, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+
+    return train_key, valid_key
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Build .train/.valid/.test.inter from .inter.json, then run preprocess_data_sft_rl.py."
     )
     parser.add_argument("--genrec-root", default=".", help="Path to GenRec repo root.")
-    parser.add_argument("--category-dir", required=True, help="Path to raw category dir, e.g. /path/to/data/Instruments")
+    parser.add_argument(
+        "--category-dir", required=True, help="Path to raw category dir, e.g. /path/to/data/Instruments"
+    )
     parser.add_argument("--category", default=None, help="Category name. Defaults to basename(category-dir).")
     parser.add_argument("--index-path", default=None, help="Path to selected index json.")
-    parser.add_argument("--output-dir", default=None, help="Where SFT/RL outputs are written. Default: <genrec-root>/data/<category>")
+    parser.add_argument(
+        "--output-dir", default=None, help="Where SFT/RL outputs are written. Default: <genrec-root>/data/<category>"
+    )
+    parser.add_argument(
+        "--dataset-subdir",
+        default=None,
+        help="Subdir under <genrec-root>/data for dataset_info file_name (default: infer from output-dir).",
+    )
+    parser.add_argument(
+        "--dataset-key-prefix",
+        default=None,
+        help="Prefix for dataset_info keys, e.g. <prefix>_train/<prefix>_valid (default: sanitize dataset-subdir).",
+    )
+    parser.add_argument(
+        "--dataset-info-path",
+        default=None,
+        help="Path to dataset_info.json (default: <genrec-root>/data/dataset_info.json).",
+    )
     parser.add_argument(
         "--staging-root",
         default=None,
@@ -174,12 +245,28 @@ def main() -> None:
         choices=["mimionerec", "grec"],
         help="How to build train/valid/test rows from <category>.inter.json.",
     )
-    parser.add_argument("--seq-sample", type=int, default=10000, help="Forwarded to preprocess_data_sft_rl.py --seq_sample")
+    parser.add_argument(
+        "--seq-sample", type=int, default=10000, help="Forwarded to preprocess_data_sft_rl.py --seq_sample"
+    )
     parser.add_argument("--seed", type=int, default=42, help="Forwarded to preprocess_data_sft_rl.py --seed")
-    parser.add_argument("--sid-levels", type=int, default=-1, help="Forwarded to preprocess_data_sft_rl.py --sid_levels. <=0 means auto(all levels).")
+    parser.add_argument(
+        "--sid-levels",
+        type=int,
+        default=-1,
+        help="Forwarded to preprocess_data_sft_rl.py --sid_levels. <=0 means auto(all levels).",
+    )
     parser.add_argument("--data-source", default=None, help="Forwarded to preprocess_data_sft_rl.py --data_source")
-    parser.add_argument("--python-bin", default=sys.executable or "python3", help="Python executable to run preprocess_data_sft_rl.py")
-    parser.add_argument("--prepare-only", action="store_true", help="Only prepare staging files, skip preprocess_data_sft_rl.py")
+    parser.add_argument(
+        "--python-bin", default=sys.executable or "python3", help="Python executable to run preprocess_data_sft_rl.py"
+    )
+    parser.add_argument(
+        "--prepare-only", action="store_true", help="Only prepare staging files, skip preprocess_data_sft_rl.py"
+    )
+    parser.add_argument(
+        "--skip-dataset-info-update",
+        action="store_true",
+        help="Skip auto-updating dataset_info.json with variant train/valid entries.",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Print command only and skip executing preprocess.")
     args = parser.parse_args()
 
@@ -187,11 +274,20 @@ def main() -> None:
     category_dir = os.path.abspath(args.category_dir)
     category = resolve_category(category_dir, args.category)
     output_dir = os.path.abspath(args.output_dir or os.path.join(genrec_root, "data", category))
+    dataset_subdir = infer_dataset_subdir(genrec_root, output_dir, args.dataset_subdir)
+    dataset_key_prefix = args.dataset_key_prefix or sanitize_dataset_key_prefix(dataset_subdir)
+    dataset_info_path = os.path.abspath(
+        args.dataset_info_path or os.path.join(genrec_root, "data", "dataset_info.json")
+    )
     staging_root = os.path.abspath(args.staging_root or os.path.join(genrec_root, "data", "_preprocess_input"))
     staging_category_dir = os.path.join(staging_root, category)
 
     if args.split_strategy == "mimionerec":
-        if not (0.0 < args.train_ratio < 1.0 and 0.0 <= args.valid_ratio < 1.0 and args.train_ratio + args.valid_ratio < 1.0):
+        if not (
+            0.0 < args.train_ratio < 1.0
+            and 0.0 <= args.valid_ratio < 1.0
+            and args.train_ratio + args.valid_ratio < 1.0
+        ):
             raise ValueError(
                 "Invalid split ratios. Require 0 < train_ratio < 1, 0 <= valid_ratio < 1, train_ratio + valid_ratio < 1."
             )
@@ -232,11 +328,20 @@ def main() -> None:
     print(f"[INFO] index_src={index_src}")
     print(f"[INFO] split_strategy={args.split_strategy}")
     if args.split_strategy == "mimionerec":
-        print(f"[INFO] split_ratio train/valid/test={args.train_ratio}/{args.valid_ratio}/{1.0 - args.train_ratio - args.valid_ratio}")
+        print(
+            f"[INFO] split_ratio train/valid/test={args.train_ratio}/{args.valid_ratio}/{1.0 - args.train_ratio - args.valid_ratio}"
+        )
     print(f"[INFO] sid_levels={args.sid_levels}")
     print(f"[INFO] staging_category_dir={staging_category_dir}")
     print(f"[INFO] output_dir={output_dir}")
+    print(f"[INFO] dataset_subdir={dataset_subdir}")
+    print(f"[INFO] dataset_key_prefix={dataset_key_prefix}")
+    print(f"[INFO] dataset_info_path={dataset_info_path}")
     print(f"[INFO] generated rows: train={len(train_rows)}, valid={len(valid_rows)}, test={len(test_rows)}")
+
+    if not args.skip_dataset_info_update:
+        train_key, valid_key = upsert_dataset_info(dataset_info_path, dataset_key_prefix, dataset_subdir)
+        print(f"[INFO] Updated dataset_info: {train_key}, {valid_key}")
 
     if args.prepare_only:
         print("[INFO] prepare-only mode, skip preprocess_data_sft_rl.py")

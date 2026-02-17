@@ -17,7 +17,6 @@ INDEX_BASENAME_DEFAULT="Instruments.index_emb-qwen3-embedding-4B_rq4_cb256-256-2
 INDEX_PATH="${INDEX_PATH:-${DATA_ROOT}/${CATEGORY}/${INDEX_BASENAME_DEFAULT}}"
 
 PYTHON_BIN="${PYTHON_BIN:-python3}"
-OUTPUT_DIR="${OUTPUT_DIR:-${GENREC_ROOT}/data/${CATEGORY}}"
 SEQ_SAMPLE="${SEQ_SAMPLE:-10000}"
 SEED="${SEED:-42}"
 SID_LEVELS="${SID_LEVELS:--1}"
@@ -27,6 +26,17 @@ VALID_RATIO="${VALID_RATIO:-0.1}"
 MODE="${1:-check}"
 
 CATEGORY_DIR="${DATA_ROOT}/${CATEGORY}"
+INDEX_FILE_NAME="$(basename "${INDEX_PATH}")"
+INDEX_STEM="${INDEX_FILE_NAME%.json}"
+if [[ "${INDEX_STEM}" == "${CATEGORY}."* ]]; then
+  INDEX_STEM="${INDEX_STEM#${CATEGORY}.}"
+fi
+
+DATA_VARIANT="${DATA_VARIANT:-${CATEGORY}_${SPLIT_STRATEGY}_${INDEX_STEM}}"
+OUTPUT_DIR="${OUTPUT_DIR:-${GENREC_ROOT}/data/${DATA_VARIANT}}"
+DATASET_SUBDIR="${DATASET_SUBDIR:-${DATA_VARIANT}}"
+DATASET_INFO_PATH="${DATASET_INFO_PATH:-${GENREC_ROOT}/data/dataset_info.json}"
+DATASET_KEY_PREFIX="${DATASET_KEY_PREFIX:-$(echo "${DATA_VARIANT}" | sed -E 's/[^A-Za-z0-9_]+/_/g; s/_+/_/g; s/^_+//; s/_+$//')}"
 
 usage() {
   cat <<EOF
@@ -42,6 +52,7 @@ Examples:
 Override env vars if needed:
   GENREC_ROOT DATA_ROOT CATEGORY INDEX_PATH OUTPUT_DIR PYTHON_BIN SEQ_SAMPLE SEED
   SID_LEVELS SPLIT_STRATEGY TRAIN_RATIO VALID_RATIO
+  DATA_VARIANT DATASET_SUBDIR DATASET_KEY_PREFIX DATASET_INFO_PATH
 EOF
 }
 
@@ -52,7 +63,12 @@ print_config() {
   echo "[INFO] CATEGORY=${CATEGORY}"
   echo "[INFO] CATEGORY_DIR=${CATEGORY_DIR}"
   echo "[INFO] INDEX_PATH=${INDEX_PATH}"
+  echo "[INFO] INDEX_STEM=${INDEX_STEM}"
+  echo "[INFO] DATA_VARIANT=${DATA_VARIANT}"
   echo "[INFO] OUTPUT_DIR=${OUTPUT_DIR}"
+  echo "[INFO] DATASET_SUBDIR=${DATASET_SUBDIR}"
+  echo "[INFO] DATASET_KEY_PREFIX=${DATASET_KEY_PREFIX}"
+  echo "[INFO] DATASET_INFO_PATH=${DATASET_INFO_PATH}"
   echo "[INFO] PYTHON_BIN=${PYTHON_BIN}"
   echo "[INFO] SEQ_SAMPLE=${SEQ_SAMPLE}"
   echo "[INFO] SEED=${SEED}"
@@ -127,6 +143,9 @@ step_prepare() {
     --category "${CATEGORY}" \
     --index-path "${INDEX_PATH}" \
     --output-dir "${OUTPUT_DIR}" \
+    --dataset-subdir "${DATASET_SUBDIR}" \
+    --dataset-key-prefix "${DATASET_KEY_PREFIX}" \
+    --dataset-info-path "${DATASET_INFO_PATH}" \
     --split-strategy "${SPLIT_STRATEGY}" \
     --train-ratio "${TRAIN_RATIO}" \
     --valid-ratio "${VALID_RATIO}" \
@@ -134,6 +153,7 @@ step_prepare() {
     --seed "${SEED}" \
     --sid-levels "${SID_LEVELS}" \
     --python-bin "${PYTHON_BIN}" \
+    --skip-dataset-info-update \
     --prepare-only
 
   echo "[DONE] Prepared staging inter files under ${GENREC_ROOT}/data/_preprocess_input/${CATEGORY}"
@@ -147,6 +167,9 @@ step_build() {
     --category "${CATEGORY}" \
     --index-path "${INDEX_PATH}" \
     --output-dir "${OUTPUT_DIR}" \
+    --dataset-subdir "${DATASET_SUBDIR}" \
+    --dataset-key-prefix "${DATASET_KEY_PREFIX}" \
+    --dataset-info-path "${DATASET_INFO_PATH}" \
     --split-strategy "${SPLIT_STRATEGY}" \
     --train-ratio "${TRAIN_RATIO}" \
     --valid-ratio "${VALID_RATIO}" \
@@ -156,6 +179,10 @@ step_build() {
     --python-bin "${PYTHON_BIN}"
 
   echo "[DONE] Output directory: ${OUTPUT_DIR}"
+  echo "[DONE] Dataset keys: ${DATASET_KEY_PREFIX}_train, ${DATASET_KEY_PREFIX}_valid"
+  echo "[DONE] SFT train: ${OUTPUT_DIR}/sft/train.json"
+  echo "[DONE] RL train: ${OUTPUT_DIR}/rl/train.json"
+  echo "[DONE] New tokens: ${OUTPUT_DIR}/new_tokens.json"
 }
 
 if [[ "${MODE}" == "-h" || "${MODE}" == "--help" || "${MODE}" == "help" ]]; then
