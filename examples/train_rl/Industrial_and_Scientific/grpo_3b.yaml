@@ -1,0 +1,36 @@
+category: Industrial_and_Scientific
+
+model:
+  model_path: saves/qwen2.5-3b/full/Industrial_and_Scientific-sft-dsz0-4gpu-eq8/checkpoint-260
+
+data:
+  data_dir: data/Industrial_and_Scientific/rl
+  index_path: data/Industrial_and_Scientific/id2sid.json
+
+output:
+  output_dir: rl_outputs/Industrial_and_Scientific-qwen2.5-3b-instruct-grpo
+  report_to: wandb
+  save_total_limit: 1
+
+wandb:
+  project: MIMIGenRec-GRPO
+  run_name: Industrial_and_Scientific-qwen2.5-3b-instruct
+  mode: offline
+
+runtime:
+  num_processes: 4
+  port: 29503
+  ds_config: config/zero2.yaml
+  cuda_visible_devices: 0,1,2,3
+
+train:
+  num_beams: 16
+  per_device_train_batch_size: 64
+  per_device_eval_batch_size: 64
+  gradient_accumulation_steps: 4
+  num_train_epochs: 2
+  learning_rate: 1e-5
+  eval_step: 20
+  max_completion_length: 128
+  beta: 1e-3
+  temperature: 1.0

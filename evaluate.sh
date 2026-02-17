@@ -3,18 +3,19 @@ set -e
 CATEGORY="Industrial_and_Scientific"
 
 # sft
-exp_name="saves/qwen2.5-0.5b/full/${CATEGORY}-sft-dsz0/checkpoint-120"
+# exp_name="saves/qwen2.5-0.5b/full/${CATEGORY}-sft-dsz0/checkpoint-120"
 # exp_name="saves/qwen2.5-1.5b/full/${CATEGORY}-sft-dsz2"
 
 # rl
+exp_name="rl_outputs/${CATEGORY}-qwen2.5-3b-instruct-grpo/checkpoint-495"
 # exp_name="rl_outputs/${CATEGORY}-qwen2.5-0.5b-instruct-grpo/checkpoint-1155"
 # exp_name="rl_outputs/${CATEGORY}-qwen2.5-1.5b-instruct-grpo/checkpoint-1155"
 
 
 # multi-GPU config
-cuda_list="0 1 2 3 4 5 6 7"  # 8 GPUs
+cuda_list="0 1 2 3"  # 4 GPUs
 # cuda_list="0"                    # single GPU
-# cuda_list="0 1 2 3"
+# cuda_list="0 1 2 3 4 5 6 7"
 
 # Test data path
 test_data_path="data/${CATEGORY}/sft/test.json"
@@ -30,6 +31,7 @@ max_new_tokens=256
 num_beams=50
 temperature=1.0
 do_sample=False
+length_penalty=0.0
 
 # main
 exp_name_clean=$(basename "$exp_name")

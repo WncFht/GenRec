@@ -1,3 +1,4 @@
+import os
 from typing import Optional, Union
 
 import fire
@@ -5,6 +6,7 @@ from datasets import load_dataset
 from transformers import (
     AutoTokenizer,
 )
+from transformers.trainer_utils import get_last_checkpoint
 from trl import GRPOTrainer
 
 from MIMIGenRec import MIMIGenRec, get_grpo_config
@@ -46,6 +48,7 @@ def main(
     bf16: bool = True,
     deepspeed: Optional[str] = None,
     report_to: Optional[str] = None,
+    resume_from_checkpoint: Optional[str] = "auto",
 ):
     # load dataset
     dataset = load_dataset(
@@ -106,7 +109,25 @@ def main(
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
     )
-    trainer.train()
+
+    resolved_resume = resume_from_checkpoint
+    if isinstance(resolved_resume, str):
+        lowered = resolved_resume.strip().lower()
+        if lowered in {"", "none", "false"}:
+            resolved_resume = None
+        elif lowered == "auto":
+            resolved_resume = get_last_checkpoint(output_dir)
+            if resolved_resume is None:
+                print(f"[INFO] No checkpoint found under {output_dir}, start from scratch.")
+            else:
+                print(f"[INFO] Auto resume from checkpoint: {resolved_resume}")
+
+    if resolved_resume is not None:
+        if not os.path.isdir(resolved_resume):
+            raise FileNotFoundError(f"Checkpoint path not found: {resolved_resume}")
+        trainer.train(resume_from_checkpoint=resolved_resume)
+    else:
+        trainer.train()
 
 
 if __name__ == "__main__":
