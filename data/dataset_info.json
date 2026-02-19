@@ -70,5 +70,77 @@
       "response": "output",
       "system": "system"
     }
+  },
+  "Instruments_grec_index_emb_qwen3_embedding_4B_rq4_cb32_32_32_32_dsInstruments_ridFeb_10_2026_05_52_11_train": {
+    "file_name": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb32-32-32-32_dsInstruments_ridFeb-10-2026-05-52-11/sft/train.json",
+    "columns": {
+      "prompt": "instruction",
+      "query": "input",
+      "response": "output",
+      "system": "system"
+    }
+  },
+  "Instruments_grec_index_emb_qwen3_embedding_4B_rq4_cb32_32_32_32_dsInstruments_ridFeb_10_2026_05_52_11_valid": {
+    "file_name": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb32-32-32-32_dsInstruments_ridFeb-10-2026-05-52-11/sft/valid.json",
+    "columns": {
+      "prompt": "instruction",
+      "query": "input",
+      "response": "output",
+      "system": "system"
+    }
+  },
+  "Instruments_grec_index_emb_qwen3_embedding_4B_rq4_cb64_64_64_64_dsInstruments_ridFeb_10_2026_06_04_11_train": {
+    "file_name": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb64-64-64-64_dsInstruments_ridFeb-10-2026-06-04-11/sft/train.json",
+    "columns": {
+      "prompt": "instruction",
+      "query": "input",
+      "response": "output",
+      "system": "system"
+    }
+  },
+  "Instruments_grec_index_emb_qwen3_embedding_4B_rq4_cb64_64_64_64_dsInstruments_ridFeb_10_2026_06_04_11_valid": {
+    "file_name": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb64-64-64-64_dsInstruments_ridFeb-10-2026-06-04-11/sft/valid.json",
+    "columns": {
+      "prompt": "instruction",
+      "query": "input",
+      "response": "output",
+      "system": "system"
+    }
+  },
+  "Instruments_grec_index_emb_qwen3_embedding_4B_rq4_cb128_128_128_128_dsInstruments_ridFeb_10_2026_05_23_35_train": {
+    "file_name": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb128-128-128-128_dsInstruments_ridFeb-10-2026-05-23-35/sft/train.json",
+    "columns": {
+      "prompt": "instruction",
+      "query": "input",
+      "response": "output",
+      "system": "system"
+    }
+  },
+  "Instruments_grec_index_emb_qwen3_embedding_4B_rq4_cb128_128_128_128_dsInstruments_ridFeb_10_2026_05_23_35_valid": {
+    "file_name": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb128-128-128-128_dsInstruments_ridFeb-10-2026-05-23-35/sft/valid.json",
+    "columns": {
+      "prompt": "instruction",
+      "query": "input",
+      "response": "output",
+      "system": "system"
+    }
+  },
+  "Instruments_grec_index_emb_qwen3_embedding_4B_rq4_cb512_512_512_512_dsInstruments_ridFeb_10_2026_03_29_55_train": {
+    "file_name": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb512-512-512-512_dsInstruments_ridFeb-10-2026-03-29-55/sft/train.json",
+    "columns": {
+      "prompt": "instruction",
+      "query": "input",
+      "response": "output",
+      "system": "system"
+    }
+  },
+  "Instruments_grec_index_emb_qwen3_embedding_4B_rq4_cb512_512_512_512_dsInstruments_ridFeb_10_2026_03_29_55_valid": {
+    "file_name": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb512-512-512-512_dsInstruments_ridFeb-10-2026-03-29-55/sft/valid.json",
+    "columns": {
+      "prompt": "instruction",
+      "query": "input",
+      "response": "output",
+      "system": "system"
+    }
   }
 }
