@@ -11,18 +11,33 @@ MANAGER_DIR="${MANAGER_DIR:-$SCRIPT_DIR/log/eval_sidecar}"
 usage() {
   cat <<'EOF'
 Usage:
-  bash eval_wandb_sidecar.sh <start|stop|status|tail|run|once> [--instance NAME] [sidecar args...]
+  bash eval_wandb_sidecar.sh <start|stop|status|tail|run|once|prepare-manifest> [--instance NAME] [args...]
+
+Commands:
+  prepare-manifest     Run manifest generation once.
+  run                  Run uploader in foreground (watch mode).
+  once                 Run uploader once and exit.
+  start                Run uploader in background (watch mode).
+  stop/status/tail     Manage background uploader process.
 
 Examples:
-  bash eval_wandb_sidecar.sh start --instance cb64 --sft-root /path/to/saves/model --category Instruments_grec --test-data-path /path/to/test.json --index-path /path/to/id2sid.json --cuda-list "0"
-  bash eval_wandb_sidecar.sh status --instance cb64
-  bash eval_wandb_sidecar.sh tail --instance cb64
-  bash eval_wandb_sidecar.sh stop --instance cb64
+  # Remote (training machine): generate manifest only
+  bash eval_wandb_sidecar.sh prepare-manifest \
+    --results-root ./results \
+    --output-manifest ./results/.wandb_eval_manifest.json \
+    --default-project MIMIGenRec-Eval
 
-Notes:
-  - Additional args are passed directly to eval_wandb_sidecar.py.
-  - "run" runs in foreground (watch mode).
-  - "once" runs one pass then exits.
+  # Local: upload once in online mode
+  PYTHON_BIN=python3 bash eval_wandb_sidecar.sh once \
+    --results-root ./results \
+    --manifest-path ./results/.wandb_eval_manifest.json \
+    --wandb-mode online
+
+  # Local: long-running uploader
+  PYTHON_BIN=python3 bash eval_wandb_sidecar.sh start --instance eval_uploader \
+    --results-root ./results \
+    --manifest-path ./results/.wandb_eval_manifest.json \
+    --wandb-mode online
 EOF
 }
 
@@ -79,34 +94,39 @@ require_sidecar() {
 }
 
 case "$COMMAND" in
-  start)
+  prepare-manifest)
     require_sidecar
-    if is_running; then
-      echo "[INFO] sidecar already running. instance=$INSTANCE pid=$(cat "$PID_FILE")"
-      echo "[INFO] log=$LOG_FILE"
-      exit 0
-    fi
-
-    nohup "$PYTHON_BIN" "$SIDECAR_PY" "${FORWARD_ARGS[@]}" >> "$LOG_FILE" 2>&1 &
-    PID=$!
-    echo "$PID" > "$PID_FILE"
-    echo "[INFO] sidecar started. instance=$INSTANCE pid=$PID"
-    echo "[INFO] log=$LOG_FILE"
+    exec "$PYTHON_BIN" "$SIDECAR_PY" prepare-manifest "${FORWARD_ARGS[@]}"
     ;;
 
   run)
     require_sidecar
-    exec "$PYTHON_BIN" "$SIDECAR_PY" "${FORWARD_ARGS[@]}"
+    exec "$PYTHON_BIN" "$SIDECAR_PY" upload "${FORWARD_ARGS[@]}"
     ;;
 
   once)
     require_sidecar
-    exec "$PYTHON_BIN" "$SIDECAR_PY" --once "${FORWARD_ARGS[@]}"
+    exec "$PYTHON_BIN" "$SIDECAR_PY" upload --once "${FORWARD_ARGS[@]}"
+    ;;
+
+  start)
+    require_sidecar
+    if is_running; then
+      echo "[INFO] uploader already running. instance=$INSTANCE pid=$(cat "$PID_FILE")"
+      echo "[INFO] log=$LOG_FILE"
+      exit 0
+    fi
+
+    nohup "$PYTHON_BIN" "$SIDECAR_PY" upload "${FORWARD_ARGS[@]}" >> "$LOG_FILE" 2>&1 &
+    PID=$!
+    echo "$PID" > "$PID_FILE"
+    echo "[INFO] uploader started. instance=$INSTANCE pid=$PID"
+    echo "[INFO] log=$LOG_FILE"
     ;;
 
   stop)
     if ! is_running; then
-      echo "[INFO] sidecar not running. instance=$INSTANCE"
+      echo "[INFO] uploader not running. instance=$INSTANCE"
       rm -f "$PID_FILE"
       exit 0
     fi
@@ -124,16 +144,16 @@ case "$COMMAND" in
       kill -9 "$PID" 2>/dev/null || true
     fi
     rm -f "$PID_FILE"
-    echo "[INFO] sidecar stopped. instance=$INSTANCE"
+    echo "[INFO] uploader stopped. instance=$INSTANCE"
     ;;
 
   status)
     if is_running; then
-      echo "[INFO] sidecar running. instance=$INSTANCE pid=$(cat "$PID_FILE")"
+      echo "[INFO] uploader running. instance=$INSTANCE pid=$(cat "$PID_FILE")"
       echo "[INFO] log=$LOG_FILE"
       exit 0
     fi
-    echo "[INFO] sidecar not running. instance=$INSTANCE"
+    echo "[INFO] uploader not running. instance=$INSTANCE"
     echo "[INFO] expected pid file: $PID_FILE"
     exit 1
     ;;

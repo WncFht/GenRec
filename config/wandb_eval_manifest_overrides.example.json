@@ -1,0 +1,28 @@
+{
+  "models": {
+    "Industrial_and_Scientific-sft-dsz0-4gpu-eq8": {
+      "dataset": "Industrial_and_Scientific",
+      "cb_setting": "none",
+      "eval_split": "test",
+      "seed": 42,
+      "num_beams": 50,
+      "sid_levels": -1,
+      "wandb_project": "MIMIGenRec-Eval",
+      "wandb_entity": "",
+      "wandb_run_id": "eval-industrial-sft",
+      "wandb_run_name": "industrial-sft-eval"
+    },
+    "Instruments-grec-sft-qwen4B-4-256-dsz0": {
+      "dataset": "Instruments_grec",
+      "cb_setting": "cb256",
+      "eval_split": "test",
+      "seed": 42,
+      "num_beams": 50,
+      "sid_levels": -1,
+      "wandb_project": "MIMIGenRec-Eval",
+      "wandb_entity": "",
+      "wandb_run_id": "eval-instruments-grec-cb256",
+      "wandb_run_name": "instruments-grec-cb256-eval"
+    }
+  }
+}

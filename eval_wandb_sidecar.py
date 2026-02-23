@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-"""Incremental SFT checkpoint evaluator with persistent W&B logging.
+"""Generate/upload eval metrics manifests for W&B.
 
-This sidecar watches an SFT output directory for new checkpoint-* folders, evaluates
-new checkpoints via evaluate_sft_3b.sh, and appends metrics into one long-lived
-W&B eval run.
+This script supports two commands:
+
+1) prepare-manifest (remote):
+   Scan results/<model_dir>/checkpoint-*/metrics.json and generate a manifest.
+
+2) upload (local):
+   Read manifest + results and incrementally upload metrics to W&B.
 """
 
 from __future__ import annotations
@@ -15,7 +19,6 @@ import json
 import logging
 import os
 import re
-import subprocess
 import sys
 import time
 from contextlib import contextmanager
@@ -26,7 +29,11 @@ from typing import Any
 
 
 CHECKPOINT_RE = re.compile(r"^checkpoint-(\d+)$")
-CB_RE = re.compile(r"(cb\d+(?:-\d+)*)")
+CB_RE = re.compile(r"(cb\d+(?:-\d+)*)", re.IGNORECASE)
+WIDTH_CB_RE = re.compile(r"(?:^|-)4-(\d+)(?:-|$)")
+
+MANIFEST_VERSION = 1
+
 METRIC_KEYS = [
     "HR@1",
     "HR@3",
@@ -47,6 +54,21 @@ class CheckpointInfo:
     path: Path
 
 
+@dataclass(frozen=True)
+class ModelSpec:
+    model_dir: str
+    dataset: str
+    cb_setting: str
+    eval_split: str
+    seed: int
+    num_beams: int
+    sid_levels: int
+    wandb_project: str
+    wandb_entity: str | None
+    wandb_run_id: str
+    wandb_run_name: str
+
+
 def now_utc_iso() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat()
 
@@ -63,6 +85,11 @@ def resolve_path(path_str: str, base: Path) -> Path:
     return path.resolve()
 
 
+def stable_hash(payload: dict[str, Any], length: int = 16) -> str:
+    raw = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:length]
+
+
 def parse_checkpoint_step(name: str) -> int | None:
     match = CHECKPOINT_RE.match(name)
     if not match:
@@ -70,18 +97,12 @@ def parse_checkpoint_step(name: str) -> int | None:
     return int(match.group(1))
 
 
-def discover_checkpoints(sft_root: Path) -> list[CheckpointInfo]:
+def discover_checkpoint_dirs(model_dir_path: Path) -> list[CheckpointInfo]:
     checkpoints: list[CheckpointInfo] = []
-
-    root_step = parse_checkpoint_step(sft_root.name)
-    if root_step is not None and sft_root.is_dir():
-        checkpoints.append(CheckpointInfo(step=root_step, name=sft_root.name, path=sft_root))
+    if not model_dir_path.is_dir():
         return checkpoints
 
-    if not sft_root.is_dir():
-        return checkpoints
-
-    for entry in sft_root.iterdir():
+    for entry in model_dir_path.iterdir():
         if not entry.is_dir():
             continue
         step = parse_checkpoint_step(entry.name)
@@ -93,31 +114,24 @@ def discover_checkpoints(sft_root: Path) -> list[CheckpointInfo]:
     return checkpoints
 
 
-def checkpoint_is_ready(ckpt: CheckpointInfo, min_age_seconds: int) -> bool:
-    try:
-        stat = ckpt.path.stat()
-    except FileNotFoundError:
-        return False
+def discover_model_dirs(results_root: Path) -> list[str]:
+    models: list[str] = []
+    if not results_root.is_dir():
+        return models
 
-    age = time.time() - stat.st_mtime
-    if age < min_age_seconds:
-        return False
+    for entry in results_root.iterdir():
+        if not entry.is_dir() or entry.name.startswith("."):
+            continue
+        ckpts = discover_checkpoint_dirs(entry)
+        if ckpts:
+            models.append(entry.name)
 
-    try:
-        next(ckpt.path.iterdir())
-    except (StopIteration, FileNotFoundError):
-        return False
-
-    return True
+    models.sort()
+    return models
 
 
-def metrics_output_dir(repo_root: Path, ckpt: CheckpointInfo) -> Path:
-    model_parent = ckpt.path.parent.name
-    return repo_root / "results" / model_parent / ckpt.name
-
-
-def metrics_json_path(repo_root: Path, ckpt: CheckpointInfo) -> Path:
-    return metrics_output_dir(repo_root, ckpt) / "metrics.json"
+def metrics_json_path(ckpt: CheckpointInfo) -> Path:
+    return ckpt.path / "metrics.json"
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -136,40 +150,6 @@ def save_json_atomic(path: Path, data: dict[str, Any]) -> None:
     tmp_path.replace(path)
 
 
-def stable_hash(payload: dict[str, Any], length: int = 16) -> str:
-    raw = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
-    return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:length]
-
-
-def infer_model_name(sft_root: Path) -> str:
-    step = parse_checkpoint_step(sft_root.name)
-    if step is not None:
-        return sft_root.parent.name
-    return sft_root.name
-
-
-def infer_dataset(category: str, test_data_path: Path) -> str:
-    # Typical path: data/<dataset_variant>/sft/test.json
-    parent = test_data_path.parent
-    if parent.name == "sft" and parent.parent.name:
-        return parent.parent.name
-    if parent.name:
-        return parent.name
-    return category
-
-
-def infer_eval_split(test_data_path: Path) -> str:
-    return test_data_path.stem or "test"
-
-
-def infer_cb_setting(candidates: list[str]) -> str:
-    for value in candidates:
-        match = CB_RE.search(value)
-        if match:
-            return match.group(1)
-    return "unknown"
-
-
 @contextmanager
 def exclusive_lock(lock_path: Path):
     lock_path.parent.mkdir(parents=True, exist_ok=True)
@@ -177,7 +157,7 @@ def exclusive_lock(lock_path: Path):
         try:
             fcntl.flock(fp.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError as exc:
-            raise RuntimeError(f"Another sidecar instance holds lock: {lock_path}") from exc
+            raise RuntimeError(f"Another uploader process holds lock: {lock_path}") from exc
 
         fp.seek(0)
         fp.truncate(0)
@@ -190,32 +170,245 @@ def exclusive_lock(lock_path: Path):
             fcntl.flock(fp.fileno(), fcntl.LOCK_UN)
 
 
-def normalize_state(
-    state: dict[str, Any],
+def infer_dataset_from_model_dir(model_dir: str) -> str:
+    split_tokens = ["-sft-", "-qwen", "-llama", "-mistral", "-grpo", "-rl"]
+    prefix = model_dir
+    for token in split_tokens:
+        if token in model_dir:
+            prefix = model_dir.split(token, 1)[0]
+            break
+
+    if prefix:
+        return prefix.replace("-", "_")
+    return model_dir.replace("-", "_")
+
+
+def infer_cb_setting_from_model_dir(model_dir: str) -> str:
+    cb_match = CB_RE.search(model_dir)
+    if cb_match:
+        return cb_match.group(1)
+
+    width_match = WIDTH_CB_RE.search(model_dir)
+    if width_match:
+        return f"cb{width_match.group(1)}"
+
+    return "none"
+
+
+def load_overrides(path: Path | None) -> dict[str, dict[str, Any]]:
+    if path is None:
+        return {}
+
+    raw = load_json(path)
+
+    if "models" in raw:
+        models_obj = raw["models"]
+        if isinstance(models_obj, dict):
+            return {str(k): dict(v) for k, v in models_obj.items() if isinstance(v, dict)}
+        if isinstance(models_obj, list):
+            parsed: dict[str, dict[str, Any]] = {}
+            for item in models_obj:
+                if not isinstance(item, dict):
+                    continue
+                model_dir = item.get("model_dir")
+                if isinstance(model_dir, str) and model_dir:
+                    payload = {k: v for k, v in item.items() if k != "model_dir"}
+                    parsed[model_dir] = payload
+            return parsed
+        raise ValueError(f"Unsupported 'models' format in overrides: {path}")
+
+    parsed: dict[str, dict[str, Any]] = {}
+    for k, v in raw.items():
+        if isinstance(v, dict):
+            parsed[str(k)] = dict(v)
+    return parsed
+
+
+def build_model_manifest_item(
     *,
-    model_config_key: str,
-    run_id: str,
-    run_name: str,
+    model_dir: str,
+    defaults: dict[str, Any],
+    override: dict[str, Any],
+    run_id_prefix: str,
 ) -> dict[str, Any]:
-    processed_steps = sorted({int(step) for step in state.get("processed_steps", [])})
-    table_rows = state.get("table_rows", [])
+    merged = dict(defaults)
+    merged.update(override)
+
+    dataset = str(merged.get("dataset") or defaults["dataset"])
+    cb_setting = str(merged.get("cb_setting") or defaults["cb_setting"])
+    eval_split = str(merged.get("eval_split") or defaults["eval_split"])
+    seed = int(merged.get("seed", defaults["seed"]))
+    num_beams = int(merged.get("num_beams", defaults["num_beams"]))
+    sid_levels = int(merged.get("sid_levels", defaults["sid_levels"]))
+    wandb_project = str(merged.get("wandb_project") or defaults["wandb_project"])
+    wandb_entity = merged.get("wandb_entity", defaults["wandb_entity"])
+    wandb_entity = str(wandb_entity) if wandb_entity not in (None, "") else None
+
+    default_run_id = f"{run_id_prefix}-{stable_hash({'model_dir': model_dir, 'dataset': dataset, 'cb_setting': cb_setting, 'eval_split': eval_split}, 20)}"
+    wandb_run_id = str(merged.get("wandb_run_id") or default_run_id)
+    wandb_run_name = str(merged.get("wandb_run_name") or f"{sanitize_token(model_dir)}-eval")
+
+    return {
+        "model_dir": model_dir,
+        "dataset": dataset,
+        "cb_setting": cb_setting,
+        "eval_split": eval_split,
+        "seed": seed,
+        "num_beams": num_beams,
+        "sid_levels": sid_levels,
+        "wandb_project": wandb_project,
+        "wandb_entity": wandb_entity,
+        "wandb_run_id": wandb_run_id,
+        "wandb_run_name": wandb_run_name,
+    }
+
+
+def cmd_prepare_manifest(args: argparse.Namespace) -> int:
+    overrides = load_overrides(args.overrides)
+
+    model_dirs = discover_model_dirs(args.results_root)
+    if not model_dirs:
+        logging.warning("No model directories found under results root: %s", args.results_root)
+
+    models: list[dict[str, Any]] = []
+    for model_dir in model_dirs:
+        defaults = {
+            "dataset": infer_dataset_from_model_dir(model_dir),
+            "cb_setting": infer_cb_setting_from_model_dir(model_dir),
+            "eval_split": args.default_eval_split,
+            "seed": 42,
+            "num_beams": 50,
+            "sid_levels": -1,
+            "wandb_project": args.default_project,
+            "wandb_entity": args.default_entity,
+        }
+        override = overrides.get(model_dir, {})
+        item = build_model_manifest_item(
+            model_dir=model_dir,
+            defaults=defaults,
+            override=override,
+            run_id_prefix=args.run_id_prefix,
+        )
+        models.append(item)
+
+    manifest = {
+        "version": MANIFEST_VERSION,
+        "generated_at": now_utc_iso(),
+        "results_root": str(args.results_root),
+        "models": sorted(models, key=lambda x: x["model_dir"]),
+    }
+
+    save_json_atomic(args.output_manifest, manifest)
+
+    logging.info("Manifest written: %s", args.output_manifest)
+    logging.info("Models included: %d", len(models))
+    for item in models:
+        logging.info(
+            "model=%s dataset=%s cb_setting=%s run_id=%s",
+            item["model_dir"],
+            item["dataset"],
+            item["cb_setting"],
+            item["wandb_run_id"],
+        )
+
+    return 0
+
+
+def parse_model_spec(raw: dict[str, Any], idx: int) -> ModelSpec:
+    required = [
+        "model_dir",
+        "dataset",
+        "cb_setting",
+        "eval_split",
+        "seed",
+        "num_beams",
+        "sid_levels",
+        "wandb_project",
+        "wandb_run_id",
+        "wandb_run_name",
+    ]
+
+    missing = [key for key in required if key not in raw]
+    if missing:
+        raise ValueError(f"Manifest models[{idx}] missing required keys: {missing}")
+
+    entity_raw = raw.get("wandb_entity")
+    wandb_entity = str(entity_raw) if entity_raw not in (None, "") else None
+
+    return ModelSpec(
+        model_dir=str(raw["model_dir"]),
+        dataset=str(raw["dataset"]),
+        cb_setting=str(raw["cb_setting"]),
+        eval_split=str(raw["eval_split"]),
+        seed=int(raw["seed"]),
+        num_beams=int(raw["num_beams"]),
+        sid_levels=int(raw["sid_levels"]),
+        wandb_project=str(raw["wandb_project"]),
+        wandb_entity=wandb_entity,
+        wandb_run_id=str(raw["wandb_run_id"]),
+        wandb_run_name=str(raw["wandb_run_name"]),
+    )
+
+
+def load_manifest(path: Path) -> dict[str, Any]:
+    raw = load_json(path)
+    version = raw.get("version")
+    if version != MANIFEST_VERSION:
+        raise ValueError(f"Unsupported manifest version={version}, expected {MANIFEST_VERSION}")
+
+    models = raw.get("models")
+    if not isinstance(models, list):
+        raise ValueError("Manifest 'models' must be a list")
+
+    return raw
+
+
+def parse_models_from_manifest(manifest: dict[str, Any], model_filter: set[str]) -> list[ModelSpec]:
+    seen: set[str] = set()
+    specs: list[ModelSpec] = []
+
+    for idx, model_raw in enumerate(manifest["models"]):
+        if not isinstance(model_raw, dict):
+            raise ValueError(f"Manifest models[{idx}] must be an object")
+        spec = parse_model_spec(model_raw, idx)
+        if model_filter and spec.model_dir not in model_filter:
+            continue
+        if spec.model_dir in seen:
+            raise ValueError(f"Duplicate model_dir in manifest: {spec.model_dir}")
+        seen.add(spec.model_dir)
+        specs.append(spec)
+
+    specs.sort(key=lambda m: m.model_dir)
+    return specs
+
+
+def normalize_upload_state(raw: dict[str, Any], model: ModelSpec) -> dict[str, Any]:
+    processed_steps = sorted({int(step) for step in raw.get("processed_steps", [])})
+    table_rows = raw.get("table_rows", [])
     if not isinstance(table_rows, list):
         table_rows = []
 
-    normalized = {
+    failed_steps = raw.get("failed_steps", {})
+    if not isinstance(failed_steps, dict):
+        failed_steps = {}
+
+    return {
         "version": 1,
-        "model_config_key": model_config_key,
-        "run_id": run_id,
-        "run_name": run_name,
+        "model_dir": model.model_dir,
+        "run_id": model.wandb_run_id,
+        "run_name": model.wandb_run_name,
         "processed_steps": processed_steps,
-        "failed_steps": state.get("failed_steps", {}),
-        "last_seen_step": state.get("last_seen_step"),
-        "last_update_time": state.get("last_update_time", now_utc_iso()),
+        "failed_steps": failed_steps,
+        "last_seen_step": raw.get("last_seen_step"),
+        "last_update_time": raw.get("last_update_time", now_utc_iso()),
         "table_rows": table_rows,
     }
-    if not isinstance(normalized["failed_steps"], dict):
-        normalized["failed_steps"] = {}
-    return normalized
+
+
+def state_file_for_model(state_dir: Path, model: ModelSpec) -> Path:
+    suffix = stable_hash({"model_dir": model.model_dir, "run_id": model.wandb_run_id}, 12)
+    base = sanitize_token(model.model_dir)
+    return state_dir / f"{base}_{suffix}.json"
 
 
 def upsert_table_row(rows: list[dict[str, Any]], new_row: dict[str, Any]) -> list[dict[str, Any]]:
@@ -278,58 +471,42 @@ def load_metrics(metrics_path: Path) -> dict[str, float]:
     return parsed
 
 
-def run_single_checkpoint_eval(
-    args: argparse.Namespace,
-    ckpt: CheckpointInfo,
-) -> None:
-    env = os.environ.copy()
-    env.update(
-        {
-            "CATEGORY": args.category,
-            "CUDA_LIST": args.cuda_list,
-            "PYTHON_BIN": args.python_bin,
-            "TEST_DATA_PATH": str(args.test_data_path),
-            "INDEX_PATH": str(args.index_path),
-            "BATCH_SIZE": str(args.batch_size),
-            "MAX_NEW_TOKENS": str(args.max_new_tokens),
-            "NUM_BEAMS": str(args.num_beams),
-            "TEMPERATURE": str(args.temperature),
-            "DO_SAMPLE": str(args.do_sample),
-            "LENGTH_PENALTY": str(args.length_penalty),
-            "SID_LEVELS": str(args.sid_levels),
-            "CKPT_LIST": str(ckpt.path),
-        }
-    )
-
-    command = ["bash", str(args.eval_script), str(args.sft_root)]
-    logging.info("Evaluating %s via %s", ckpt.path, " ".join(command))
-    subprocess.run(command, cwd=str(args.repo_root), env=env, check=True)
+def build_row(ckpt: CheckpointInfo, metrics: dict[str, float], metrics_path: Path) -> dict[str, Any]:
+    row: dict[str, Any] = {
+        "checkpoint_step": ckpt.step,
+        "checkpoint_name": ckpt.name,
+        "metrics_path": str(metrics_path),
+    }
+    for key in METRIC_KEYS:
+        row[key] = float(metrics[key]) if key in metrics else None
+    return row
 
 
-def init_wandb(
-    args: argparse.Namespace,
-    run_id: str,
-    run_name: str,
-    config: dict[str, Any],
-):
+def init_wandb_run(args: argparse.Namespace, model: ModelSpec):
     try:
         import wandb  # pylint: disable=import-outside-toplevel
     except ImportError as exc:
-        raise RuntimeError(
-            "wandb is not installed in current environment; install wandb or run with --disable-wandb"
-        ) from exc
+        raise RuntimeError("wandb is not installed in current environment") from exc
 
     run = wandb.init(
-        project=args.wandb_project,
-        entity=args.wandb_entity,
-        id=run_id,
-        name=run_name,
+        project=model.wandb_project,
+        entity=model.wandb_entity,
+        id=model.wandb_run_id,
+        name=model.wandb_run_name,
         resume=args.wandb_resume,
         job_type=args.wandb_job_type,
         mode=args.wandb_mode,
-        config=config,
+        config={
+            "model_name": model.model_dir,
+            "dataset": model.dataset,
+            "cb_setting": model.cb_setting,
+            "seed": model.seed,
+            "num_beams": model.num_beams,
+            "sid_levels": model.sid_levels,
+            "eval_split": model.eval_split,
+        },
+        reinit=True,
     )
-
     wandb.define_metric("checkpoint_step")
     wandb.define_metric("eval/*", step_metric="checkpoint_step")
 
@@ -353,261 +530,242 @@ def log_metrics_to_wandb(
     for key, value in metrics.items():
         payload[f"eval/{key}"] = float(value)
 
-    run.log(payload)
+    run.log(payload, step=ckpt.step)
 
     table = wandb_module.Table(columns=TABLE_COLUMNS)
     for row in sorted(table_rows, key=lambda item: int(item["checkpoint_step"])):
         table.add_data(*[row.get(column) for column in TABLE_COLUMNS])
-    run.log({"eval/checkpoint_table": table})
+    run.log({"eval/checkpoint_table": table}, step=ckpt.step)
 
     summary = build_summary_from_rows(table_rows)
     for key, value in summary.items():
         run.summary[key] = value
 
 
-def build_row(ckpt: CheckpointInfo, metrics: dict[str, float], metrics_path: Path) -> dict[str, Any]:
-    row: dict[str, Any] = {
-        "checkpoint_step": ckpt.step,
-        "checkpoint_name": ckpt.name,
-        "metrics_path": str(metrics_path),
-    }
-    for key in METRIC_KEYS:
-        row[key] = float(metrics[key]) if key in metrics else None
-    return row
+def discover_pending_checkpoints(
+    results_root: Path, model: ModelSpec, processed: set[int]
+) -> tuple[list[CheckpointInfo], list[CheckpointInfo]]:
+    model_path = results_root / model.model_dir
+    checkpoints = discover_checkpoint_dirs(model_path)
+
+    pending: list[CheckpointInfo] = []
+    for ckpt in checkpoints:
+        if ckpt.step in processed:
+            continue
+        if not metrics_json_path(ckpt).is_file():
+            continue
+        pending.append(ckpt)
+
+    return checkpoints, pending
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Watch SFT checkpoints, evaluate incrementally, and log to one W&B run."
+def process_model_once(args: argparse.Namespace, model: ModelSpec) -> tuple[int, int]:
+    state_file = state_file_for_model(args.state_dir, model)
+    raw_state: dict[str, Any] = {}
+    if state_file.is_file():
+        raw_state = load_json(state_file)
+    state = normalize_upload_state(raw_state, model)
+
+    processed = {int(step) for step in state["processed_steps"]}
+
+    checkpoints, pending = discover_pending_checkpoints(args.results_root, model, processed)
+    state["last_seen_step"] = checkpoints[-1].step if checkpoints else None
+
+    if not pending:
+        state["last_update_time"] = now_utc_iso()
+        save_json_atomic(state_file, state)
+        return (0, 0)
+
+    logging.info(
+        "Model %s pending checkpoints: %s",
+        model.model_dir,
+        ", ".join(item.name for item in pending),
     )
 
-    default_repo_root = Path(__file__).resolve().parent
+    wandb_module = None
+    wandb_run = None
+    if not args.disable_wandb:
+        wandb_module, wandb_run = init_wandb_run(args, model)
 
-    parser.add_argument("--repo-root", default=str(default_repo_root), help="GenRec repo root")
-    parser.add_argument("--sft-root", required=True, help="SFT output root containing checkpoint-* folders")
-    parser.add_argument("--eval-script", default="evaluate_sft_3b.sh", help="Path to evaluate shell script")
+    processed_count = 0
+    try:
+        for ckpt in pending:
+            metrics_path = metrics_json_path(ckpt)
+            try:
+                metrics = load_metrics(metrics_path)
 
-    parser.add_argument("--category", default=os.environ.get("CATEGORY", "Industrial_and_Scientific"))
-    parser.add_argument(
-        "--test-data-path", default=os.environ.get("TEST_DATA_PATH", "data/Industrial_and_Scientific/sft/test.json")
+                state["processed_steps"] = sorted({*processed, ckpt.step})
+                processed.add(ckpt.step)
+
+                failed_steps = state.get("failed_steps", {})
+                failed_steps.pop(str(ckpt.step), None)
+                state["failed_steps"] = failed_steps
+
+                row = build_row(ckpt, metrics, metrics_path)
+                state["table_rows"] = upsert_table_row(state.get("table_rows", []), row)
+                state["last_update_time"] = now_utc_iso()
+
+                if wandb_run is not None and wandb_module is not None:
+                    log_metrics_to_wandb(
+                        wandb_module,
+                        wandb_run,
+                        ckpt=ckpt,
+                        metrics=metrics,
+                        metrics_path=metrics_path,
+                        table_rows=state["table_rows"],
+                    )
+
+                save_json_atomic(state_file, state)
+                processed_count += 1
+                logging.info("Processed %s/%s", model.model_dir, ckpt.name)
+            except Exception as exc:  # pylint: disable=broad-except
+                failed_steps = state.get("failed_steps", {})
+                failed_steps[str(ckpt.step)] = {
+                    "checkpoint": ckpt.name,
+                    "error": str(exc),
+                    "time": now_utc_iso(),
+                }
+                state["failed_steps"] = failed_steps
+                state["last_update_time"] = now_utc_iso()
+                save_json_atomic(state_file, state)
+                logging.exception("Failed processing %s/%s", model.model_dir, ckpt.name)
+    finally:
+        if wandb_run is not None:
+            wandb_run.finish()
+
+    return (processed_count, len(pending))
+
+
+def parse_model_filter(raw_values: list[str]) -> set[str]:
+    parsed: set[str] = set()
+    for raw in raw_values:
+        for item in raw.split(","):
+            value = item.strip()
+            if value:
+                parsed.add(value)
+    return parsed
+
+
+def cmd_upload(args: argparse.Namespace) -> int:
+    model_filter = parse_model_filter(args.model_filter)
+    lock_file = args.state_dir / ".upload.lock"
+
+    with exclusive_lock(lock_file):
+        while True:
+            manifest = load_manifest(args.manifest_path)
+            models = parse_models_from_manifest(manifest, model_filter)
+
+            if not models:
+                logging.info("No models to process (manifest + model filter).")
+
+            total_processed = 0
+            total_pending = 0
+
+            for model in models:
+                processed_count, pending_count = process_model_once(args, model)
+                total_processed += processed_count
+                total_pending += pending_count
+
+            if args.once:
+                if total_pending == 0:
+                    logging.info("No pending checkpoints. Exit due to --once.")
+                else:
+                    logging.info(
+                        "Completed one pass due to --once. processed=%d pending_seen=%d",
+                        total_processed,
+                        total_pending,
+                    )
+                break
+
+            time.sleep(args.poll_interval_seconds)
+
+    return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Manifest-based eval uploader for W&B")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    prepare = subparsers.add_parser("prepare-manifest", help="Generate manifest from results directory")
+    prepare.add_argument("--results-root", default="./results", help="Results root containing model directories")
+    prepare.add_argument(
+        "--output-manifest",
+        default="results/.wandb_eval_manifest.json",
+        help="Output manifest path",
     )
-    parser.add_argument(
-        "--index-path", default=os.environ.get("INDEX_PATH", "data/Industrial_and_Scientific/id2sid.json")
+    prepare.add_argument("--overrides", default="", help="Optional overrides JSON path")
+    prepare.add_argument("--default-project", default="MIMIGenRec-Eval", help="Default W&B project")
+    prepare.add_argument("--default-entity", default="", help="Default W&B entity")
+    prepare.add_argument("--default-eval-split", default="test", help="Default eval split")
+    prepare.add_argument("--run-id-prefix", default="eval", help="Run ID prefix for generated run IDs")
+    prepare.add_argument("--log-level", default="INFO")
+
+    upload = subparsers.add_parser("upload", help="Upload metrics based on manifest")
+    upload.add_argument("--results-root", default="./results", help="Results root containing model directories")
+    upload.add_argument(
+        "--manifest-path",
+        default="results/.wandb_eval_manifest.json",
+        help="Manifest generated by prepare-manifest",
     )
-
-    parser.add_argument("--cuda-list", default=os.environ.get("CUDA_LIST", "0"))
-    parser.add_argument("--python-bin", default=os.environ.get("PYTHON_BIN", "python"))
-    parser.add_argument("--batch-size", type=int, default=int(os.environ.get("BATCH_SIZE", "8")))
-    parser.add_argument("--max-new-tokens", type=int, default=int(os.environ.get("MAX_NEW_TOKENS", "256")))
-    parser.add_argument("--num-beams", type=int, default=int(os.environ.get("NUM_BEAMS", "50")))
-    parser.add_argument("--temperature", type=float, default=float(os.environ.get("TEMPERATURE", "1.0")))
-    parser.add_argument("--do-sample", default=os.environ.get("DO_SAMPLE", "False"))
-    parser.add_argument("--length-penalty", type=float, default=float(os.environ.get("LENGTH_PENALTY", "0.0")))
-    parser.add_argument("--sid-levels", type=int, default=int(os.environ.get("SID_LEVELS", "-1")))
-    parser.add_argument("--seed", type=int, default=42)
-
-    parser.add_argument("--dataset", default="")
-    parser.add_argument("--cb-setting", default="")
-    parser.add_argument("--eval-split", default="")
-
-    parser.add_argument("--poll-interval-seconds", type=int, default=60)
-    parser.add_argument("--checkpoint-ready-seconds", type=int, default=120)
-    parser.add_argument("--once", action="store_true", help="Process pending checkpoints once then exit")
-    parser.add_argument(
-        "--force-eval", action="store_true", help="Always run evaluate script even if metrics.json exists"
+    upload.add_argument("--state-dir", default="state/wandb_eval_uploader", help="Uploader state directory")
+    upload.add_argument("--once", action="store_true", help="Process pending checkpoints once then exit")
+    upload.add_argument("--poll-interval-seconds", type=int, default=60)
+    upload.add_argument("--disable-wandb", action="store_true")
+    upload.add_argument("--wandb-mode", default=os.environ.get("WANDB_MODE", "online"))
+    upload.add_argument("--wandb-resume", default=os.environ.get("WANDB_RESUME", "allow"))
+    upload.add_argument("--wandb-job-type", default=os.environ.get("WANDB_JOB_TYPE", "eval"))
+    upload.add_argument(
+        "--model-filter",
+        action="append",
+        default=[],
+        help="Optional model_dir filter (repeatable or comma-separated)",
     )
-    parser.add_argument("--max-pending-per-cycle", type=int, default=0, help="0 means unlimited")
+    upload.add_argument("--log-level", default="INFO")
 
-    parser.add_argument("--state-dir", default="state/wandb_eval_sidecar")
+    return parser
 
-    parser.add_argument("--disable-wandb", action="store_true")
-    parser.add_argument("--wandb-project", default=os.environ.get("WANDB_PROJECT", "MIMIGenRec-Eval"))
-    parser.add_argument("--wandb-entity", default=os.environ.get("WANDB_ENTITY"))
-    parser.add_argument("--wandb-run-id", default=os.environ.get("WANDB_RUN_ID", ""))
-    parser.add_argument("--wandb-run-name", default=os.environ.get("WANDB_RUN_NAME", ""))
-    parser.add_argument("--wandb-mode", default=os.environ.get("WANDB_MODE", "offline"))
-    parser.add_argument("--wandb-resume", default=os.environ.get("WANDB_RESUME", "allow"))
-    parser.add_argument("--wandb-job-type", default=os.environ.get("WANDB_JOB_TYPE", "eval"))
 
-    parser.add_argument("--log-level", default="INFO")
-
-    args = parser.parse_args()
-
+def configure_logging(log_level: str) -> None:
     logging.basicConfig(
-        level=getattr(logging, args.log_level.upper(), logging.INFO),
+        level=getattr(logging, log_level.upper(), logging.INFO),
         format="[%(asctime)s] [%(levelname)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    args.repo_root = resolve_path(args.repo_root, Path.cwd())
-    args.sft_root = resolve_path(args.sft_root, args.repo_root)
-    args.eval_script = resolve_path(args.eval_script, args.repo_root)
-    args.test_data_path = resolve_path(args.test_data_path, args.repo_root)
-    args.index_path = resolve_path(args.index_path, args.repo_root)
-    args.state_dir = resolve_path(args.state_dir, args.repo_root)
-
-    if not args.eval_script.is_file():
-        raise FileNotFoundError(f"evaluate script not found: {args.eval_script}")
-    if not args.sft_root.exists():
-        raise FileNotFoundError(f"SFT root not found: {args.sft_root}")
-    if not args.test_data_path.is_file():
-        raise FileNotFoundError(f"test data not found: {args.test_data_path}")
-    if not args.index_path.is_file():
-        raise FileNotFoundError(f"index file not found: {args.index_path}")
-
-    return args
-
 
 def main() -> int:
-    args = parse_args()
+    parser = build_parser()
+    args = parser.parse_args()
+    configure_logging(args.log_level)
 
-    model_name = infer_model_name(args.sft_root)
-    dataset = args.dataset or infer_dataset(args.category, args.test_data_path)
-    eval_split = args.eval_split or infer_eval_split(args.test_data_path)
-    cb_setting = args.cb_setting or infer_cb_setting(
-        [str(args.sft_root), str(args.test_data_path), str(args.index_path), model_name, dataset]
-    )
+    cwd = Path.cwd()
 
-    model_config_payload = {
-        "model_name": model_name,
-        "dataset": dataset,
-        "cb_setting": cb_setting,
-        "seed": args.seed,
-        "num_beams": args.num_beams,
-        "sid_levels": args.sid_levels,
-        "eval_split": eval_split,
-        "sft_root": str(args.sft_root),
-        "test_data_path": str(args.test_data_path),
-        "index_path": str(args.index_path),
-    }
-    model_config_key = stable_hash(model_config_payload, length=20)
+    if args.command == "prepare-manifest":
+        args.results_root = resolve_path(args.results_root, cwd)
+        args.output_manifest = resolve_path(args.output_manifest, cwd)
+        args.overrides = resolve_path(args.overrides, cwd) if args.overrides else None
 
-    default_run_id = f"eval-{model_config_key}"
-    default_run_name = f"{sanitize_token(model_name)}-eval"
+        if not args.results_root.is_dir():
+            raise FileNotFoundError(f"results root not found: {args.results_root}")
+        if args.overrides is not None and not args.overrides.is_file():
+            raise FileNotFoundError(f"overrides file not found: {args.overrides}")
 
-    state_prefix = sanitize_token(model_name)
-    state_file = args.state_dir / f"{state_prefix}_{model_config_key}.json"
-    lock_file = args.state_dir / f"{state_prefix}_{model_config_key}.lock"
+        return cmd_prepare_manifest(args)
 
-    logging.info("repo_root=%s", args.repo_root)
-    logging.info("sft_root=%s", args.sft_root)
-    logging.info("state_file=%s", state_file)
-    logging.info("wandb_project=%s", args.wandb_project)
+    if args.command == "upload":
+        args.results_root = resolve_path(args.results_root, cwd)
+        args.manifest_path = resolve_path(args.manifest_path, cwd)
+        args.state_dir = resolve_path(args.state_dir, cwd)
 
-    with exclusive_lock(lock_file):
-        raw_state: dict[str, Any] = {}
-        if state_file.is_file():
-            raw_state = load_json(state_file)
+        if not args.results_root.is_dir():
+            raise FileNotFoundError(f"results root not found: {args.results_root}")
+        if not args.manifest_path.is_file():
+            raise FileNotFoundError(f"manifest not found: {args.manifest_path}")
 
-        run_id = args.wandb_run_id or str(raw_state.get("run_id") or default_run_id)
-        run_name = args.wandb_run_name or str(raw_state.get("run_name") or default_run_name)
+        return cmd_upload(args)
 
-        state = normalize_state(raw_state, model_config_key=model_config_key, run_id=run_id, run_name=run_name)
-        state["last_update_time"] = now_utc_iso()
-        save_json_atomic(state_file, state)
-
-        wandb_module = None
-        wandb_run = None
-        if not args.disable_wandb:
-            wandb_config = {
-                "model_name": model_name,
-                "dataset": dataset,
-                "cb_setting": cb_setting,
-                "seed": args.seed,
-                "num_beams": args.num_beams,
-                "sid_levels": args.sid_levels,
-                "eval_split": eval_split,
-            }
-            wandb_module, wandb_run = init_wandb(args, run_id=run_id, run_name=run_name, config=wandb_config)
-
-        try:
-            while True:
-                checkpoints = discover_checkpoints(args.sft_root)
-                if checkpoints:
-                    state["last_seen_step"] = checkpoints[-1].step
-                else:
-                    state["last_seen_step"] = None
-
-                processed = {int(step) for step in state.get("processed_steps", [])}
-                pending: list[CheckpointInfo] = []
-                for ckpt in checkpoints:
-                    if ckpt.step in processed:
-                        continue
-                    if not checkpoint_is_ready(ckpt, args.checkpoint_ready_seconds):
-                        continue
-                    pending.append(ckpt)
-
-                if args.max_pending_per_cycle > 0:
-                    pending = pending[: args.max_pending_per_cycle]
-
-                if not pending:
-                    state["last_update_time"] = now_utc_iso()
-                    save_json_atomic(state_file, state)
-                    if args.once:
-                        logging.info("No pending checkpoints. Exit due to --once.")
-                        break
-                    time.sleep(args.poll_interval_seconds)
-                    continue
-
-                logging.info(
-                    "Found %d pending checkpoint(s): %s", len(pending), ", ".join(item.name for item in pending)
-                )
-
-                for ckpt in pending:
-                    metrics_path = metrics_json_path(args.repo_root, ckpt)
-                    try:
-                        if args.force_eval or not metrics_path.is_file():
-                            run_single_checkpoint_eval(args, ckpt)
-
-                        if not metrics_path.is_file():
-                            raise FileNotFoundError(f"metrics.json not found after eval: {metrics_path}")
-
-                        metrics = load_metrics(metrics_path)
-
-                        state["processed_steps"] = sorted({*processed, ckpt.step})
-                        processed.add(ckpt.step)
-                        state_failed = state.get("failed_steps", {})
-                        state_failed.pop(str(ckpt.step), None)
-                        state["failed_steps"] = state_failed
-
-                        row = build_row(ckpt, metrics, metrics_path)
-                        state["table_rows"] = upsert_table_row(state.get("table_rows", []), row)
-                        state["last_update_time"] = now_utc_iso()
-
-                        if wandb_run is not None and wandb_module is not None:
-                            log_metrics_to_wandb(
-                                wandb_module,
-                                wandb_run,
-                                ckpt=ckpt,
-                                metrics=metrics,
-                                metrics_path=metrics_path,
-                                table_rows=state["table_rows"],
-                            )
-
-                        save_json_atomic(state_file, state)
-                        logging.info("Processed %s successfully", ckpt.name)
-                    except Exception as exc:  # pylint: disable=broad-except
-                        failed_steps = state.get("failed_steps", {})
-                        failed_steps[str(ckpt.step)] = {
-                            "checkpoint": ckpt.name,
-                            "error": str(exc),
-                            "time": now_utc_iso(),
-                        }
-                        state["failed_steps"] = failed_steps
-                        state["last_update_time"] = now_utc_iso()
-                        save_json_atomic(state_file, state)
-                        logging.exception("Failed to process %s", ckpt.name)
-
-                if args.once:
-                    logging.info("Completed one pass due to --once.")
-                    break
-
-                time.sleep(args.poll_interval_seconds)
-        finally:
-            if wandb_run is not None:
-                wandb_run.finish()
-
-    return 0
+    parser.error(f"Unknown command: {args.command}")
+    return 2
 
 
 if __name__ == "__main__":
