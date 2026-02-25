@@ -185,3 +185,4 @@ results/
 rl_outputs/
 .history/
 temp/
+/state/
