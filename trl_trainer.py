@@ -11,6 +11,7 @@ from trl import GRPOTrainer
 
 from MIMIGenRec import MIMIGenRec, get_grpo_config
 from rewards.ranking_reward import build_reward_setup
+from token_prefix_grpo_trainer import TokenPrefixGRPOTrainer
 from util import build_constrained_logits_processor
 
 
@@ -49,6 +50,7 @@ def main(
     reward_mode: str = "prefix_only",
     prefix_reward_normalize: bool = True,
     probe_rule_with_zero_weight: bool = True,
+    token_level_prefix_advantage: bool = True,
     bf16: bool = True,
     deepspeed: Optional[str] = None,
     report_to: Optional[str] = None,
@@ -126,17 +128,28 @@ def main(
         f"[INFO] reward_mode={reward_mode}, "
         f"prefix_reward_normalize={prefix_reward_normalize}, "
         f"probe_rule_with_zero_weight={probe_rule_with_zero_weight}, "
+        f"token_level_prefix_advantage={token_level_prefix_advantage}, "
         f"num_reward_funcs={len(reward_funcs)}, "
         f"reward_weights={reward_weights}"
     )
 
-    trainer = GRPOTrainer(
-        model=model,
-        args=training_args,
-        reward_funcs=reward_funcs,
-        train_dataset=train_dataset,
-        eval_dataset=eval_dataset,
-    )
+    if token_level_prefix_advantage:
+        trainer = TokenPrefixGRPOTrainer(
+            model=model,
+            args=training_args,
+            reward_funcs=reward_funcs,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            prefix_reward_normalize=prefix_reward_normalize,
+        )
+    else:
+        trainer = GRPOTrainer(
+            model=model,
+            args=training_args,
+            reward_funcs=reward_funcs,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+        )
 
     resolved_resume = resume_from_checkpoint
     if isinstance(resolved_resume, str):

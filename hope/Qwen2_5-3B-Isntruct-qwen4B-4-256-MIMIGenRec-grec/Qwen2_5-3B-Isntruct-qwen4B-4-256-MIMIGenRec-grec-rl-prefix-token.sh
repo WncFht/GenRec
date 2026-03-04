@@ -4,7 +4,7 @@ set -eo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  bash Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix.sh [options]
+  bash Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix-token.sh [options]
 
 Run modes:
   --nohup                 Start RL in background via nohup and follow log (default)
@@ -99,7 +99,7 @@ DATA_VARIANT_DEFAULT="${DATA_VARIANT_DEFAULT:-Instruments_grec_index_emb-qwen3-e
 MODEL_PATH="${MODEL_PATH:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/saves/qwen2.5-3b/full/Instruments-grec-sft-qwen4B-4-256-dsz0/checkpoint-495}"
 DATA_DIR="${DATA_DIR:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/data/${DATA_VARIANT_DEFAULT}/rl}"
 INDEX_PATH="${INDEX_PATH:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/data/${DATA_VARIANT_DEFAULT}/id2sid.json}"
-OUTPUT_DIR="${OUTPUT_DIR:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/rl_outputs/Instruments-grec-grpo-prefixonly-ndcg-rule0-qwen2.5-3b-qwen4B-4-256-from-sft495}"
+OUTPUT_DIR="${OUTPUT_DIR:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/rl_outputs/Instruments-grec-grpo-prefix-tokenadv-ndcg-rule0-qwen2.5-3b-qwen4B-4-256-from-sft495}"
 DS_CONFIG="${DS_CONFIG:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/config/zero2.yaml}"
 
 PYTHON_BIN="${PYTHON_BIN:-python}"
@@ -128,7 +128,7 @@ RESUME_FROM_CHECKPOINT="${RESUME_FROM_CHECKPOINT:-auto}"
 export WANDB_PROJECT="${WANDB_PROJECT:-MIMIGenRec-GRPO}"
 export WANDB_MODE="${WANDB_MODE:-offline}"
 export WANDB_API_KEY="${WANDB_API_KEY:-}"
-export WANDB_RUN_NAME="${WANDB_RUN_NAME:-instruments_grec_rl_prefixonly_ndcg_rule0_qwen2_5_3b_qwen4b_4_256_from_ckpt495}"
+export WANDB_RUN_NAME="${WANDB_RUN_NAME:-instruments_grec_rl_prefix_tokenadv_ndcg_rule0_qwen2_5_3b_qwen4b_4_256_from_ckpt495}"
 
 LOG_DIR="${LOG_DIR:-${REPO_ROOT}/log}"
 

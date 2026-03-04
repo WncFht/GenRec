@@ -38,6 +38,7 @@ Config overrides:
   --reward-mode <name>
   --prefix-reward-normalize <true|false>
   --probe-rule-zero-weight <true|false>
+  --token-level-prefix-adv <true|false>
   --save-total-limit <n>
   --report-to <name>
   --wandb-mode <offline|online|disabled>
@@ -116,6 +117,7 @@ TEMPERATURE="1.0"
 REWARD_MODE="prefix_only"
 PREFIX_REWARD_NORMALIZE="true"
 PROBE_RULE_ZERO_WEIGHT="true"
+TOKEN_LEVEL_PREFIX_ADV="true"
 SAVE_TOTAL_LIMIT=1
 RESUME_FROM_CHECKPOINT="auto"
 
@@ -266,6 +268,11 @@ while [[ $# -gt 0 ]]; do
       FORWARD_ARGS+=("--probe-rule-zero-weight" "$2")
       shift 2
       ;;
+    --token-level-prefix-adv)
+      TOKEN_LEVEL_PREFIX_ADV="$2"
+      FORWARD_ARGS+=("--token-level-prefix-adv" "$2")
+      shift 2
+      ;;
     --save-total-limit)
       SAVE_TOTAL_LIMIT="$2"
       FORWARD_ARGS+=("--save-total-limit" "$2")
@@ -369,6 +376,7 @@ TRAIN_CMD=(
   --reward_mode "$REWARD_MODE"
   --prefix_reward_normalize "$PREFIX_REWARD_NORMALIZE"
   --probe_rule_with_zero_weight "$PROBE_RULE_ZERO_WEIGHT"
+  --token_level_prefix_advantage "$TOKEN_LEVEL_PREFIX_ADV"
   --save_total_limit "$SAVE_TOTAL_LIMIT"
   --report_to "$REPORT_TO"
   --resume_from_checkpoint "$RESUME_FROM_CHECKPOINT"
@@ -405,5 +413,6 @@ echo "[INFO] SID_LEVELS=$SID_LEVELS"
 echo "[INFO] REWARD_MODE=$REWARD_MODE"
 echo "[INFO] PREFIX_REWARD_NORMALIZE=$PREFIX_REWARD_NORMALIZE"
 echo "[INFO] PROBE_RULE_ZERO_WEIGHT=$PROBE_RULE_ZERO_WEIGHT"
+echo "[INFO] TOKEN_LEVEL_PREFIX_ADV=$TOKEN_LEVEL_PREFIX_ADV"
 
 "${TRAIN_CMD[@]}"
