@@ -35,6 +35,9 @@ Config overrides:
   --max-completion-length <n>
   --beta <float>
   --temperature <float>
+  --reward-mode <name>
+  --prefix-reward-normalize <true|false>
+  --probe-rule-zero-weight <true|false>
   --save-total-limit <n>
   --report-to <name>
   --wandb-mode <offline|online|disabled>
@@ -106,10 +109,13 @@ PER_DEVICE_EVAL_BSZ=64
 GRAD_ACC=4
 NUM_EPOCHS=2
 LEARNING_RATE="1e-5"
-EVAL_STEP=20
+EVAL_STEP=100
 MAX_COMPLETION_LENGTH=128
 BETA="1e-3"
 TEMPERATURE="1.0"
+REWARD_MODE="prefix_only"
+PREFIX_REWARD_NORMALIZE="true"
+PROBE_RULE_ZERO_WEIGHT="true"
 SAVE_TOTAL_LIMIT=1
 RESUME_FROM_CHECKPOINT="auto"
 
@@ -245,6 +251,21 @@ while [[ $# -gt 0 ]]; do
       FORWARD_ARGS+=("--temperature" "$2")
       shift 2
       ;;
+    --reward-mode)
+      REWARD_MODE="$2"
+      FORWARD_ARGS+=("--reward-mode" "$2")
+      shift 2
+      ;;
+    --prefix-reward-normalize)
+      PREFIX_REWARD_NORMALIZE="$2"
+      FORWARD_ARGS+=("--prefix-reward-normalize" "$2")
+      shift 2
+      ;;
+    --probe-rule-zero-weight)
+      PROBE_RULE_ZERO_WEIGHT="$2"
+      FORWARD_ARGS+=("--probe-rule-zero-weight" "$2")
+      shift 2
+      ;;
     --save-total-limit)
       SAVE_TOTAL_LIMIT="$2"
       FORWARD_ARGS+=("--save-total-limit" "$2")
@@ -345,6 +366,9 @@ TRAIN_CMD=(
   --max_completion_length "$MAX_COMPLETION_LENGTH"
   --beta "$BETA"
   --temperature "$TEMPERATURE"
+  --reward_mode "$REWARD_MODE"
+  --prefix_reward_normalize "$PREFIX_REWARD_NORMALIZE"
+  --probe_rule_with_zero_weight "$PROBE_RULE_ZERO_WEIGHT"
   --save_total_limit "$SAVE_TOTAL_LIMIT"
   --report_to "$REPORT_TO"
   --resume_from_checkpoint "$RESUME_FROM_CHECKPOINT"
@@ -378,5 +402,8 @@ echo "[INFO] MAIN_PORT=$MAIN_PORT"
 echo "[INFO] RUN_NAME=$WANDB_RUN_NAME"
 echo "[INFO] RESUME_FROM_CHECKPOINT=$RESUME_FROM_CHECKPOINT"
 echo "[INFO] SID_LEVELS=$SID_LEVELS"
+echo "[INFO] REWARD_MODE=$REWARD_MODE"
+echo "[INFO] PREFIX_REWARD_NORMALIZE=$PREFIX_REWARD_NORMALIZE"
+echo "[INFO] PROBE_RULE_ZERO_WEIGHT=$PROBE_RULE_ZERO_WEIGHT"
 
 "${TRAIN_CMD[@]}"

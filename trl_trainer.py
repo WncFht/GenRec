@@ -10,7 +10,7 @@ from transformers.trainer_utils import get_last_checkpoint
 from trl import GRPOTrainer
 
 from MIMIGenRec import MIMIGenRec, get_grpo_config
-from rewards.ranking_reward import get_ndcg_rule_reward, rule_reward
+from rewards.ranking_reward import build_reward_setup
 from util import build_constrained_logits_processor
 
 
@@ -33,7 +33,7 @@ def main(
     num_train_epochs: int = 2,
     learning_rate: float = 1e-5,
     logging_steps: int = 1,
-    eval_step: int = 20,
+    eval_step: int = 100,
     eval_strategy: str = "steps",
     save_strategy: str = "steps",
     save_steps: Union[int, float] = 0.1,
@@ -46,6 +46,9 @@ def main(
     beta: float = 1e-3,
     repetition_penalty: float = 1.0,
     do_sample: bool = False,
+    reward_mode: str = "prefix_only",
+    prefix_reward_normalize: bool = True,
+    probe_rule_with_zero_weight: bool = True,
     bf16: bool = True,
     deepspeed: Optional[str] = None,
     report_to: Optional[str] = None,
@@ -64,7 +67,14 @@ def main(
     eval_dataset = dataset["valid"]
     test_dataset = dataset["test"]  # noqa: F841
 
-    training_args = get_grpo_config(
+    reward_funcs, reward_weights = build_reward_setup(
+        reward_mode=reward_mode,
+        num_beams=num_beams,
+        prefix_reward_normalize=prefix_reward_normalize,
+        probe_rule_with_zero_weight=probe_rule_with_zero_weight,
+    )
+
+    grpo_config_kwargs = dict(
         output_dir=output_dir,
         per_device_train_batch_size=per_device_train_batch_size,
         per_device_eval_batch_size=per_device_eval_batch_size,
@@ -87,6 +97,9 @@ def main(
         deepspeed=deepspeed,
         report_to=report_to,
     )
+    if reward_weights is not None:
+        grpo_config_kwargs["reward_weights"] = reward_weights
+    training_args = get_grpo_config(**grpo_config_kwargs)
 
     tokenizer = AutoTokenizer.from_pretrained(model)
     logits_processor = build_constrained_logits_processor(
@@ -109,10 +122,18 @@ def main(
         do_sample=do_sample,
     )
 
+    print(
+        f"[INFO] reward_mode={reward_mode}, "
+        f"prefix_reward_normalize={prefix_reward_normalize}, "
+        f"probe_rule_with_zero_weight={probe_rule_with_zero_weight}, "
+        f"num_reward_funcs={len(reward_funcs)}, "
+        f"reward_weights={reward_weights}"
+    )
+
     trainer = GRPOTrainer(
         model=model,
         args=training_args,
-        reward_funcs=[rule_reward, get_ndcg_rule_reward(num_beams)],
+        reward_funcs=reward_funcs,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
     )

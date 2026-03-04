@@ -4,7 +4,7 @@ set -eo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  bash Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl.sh [options]
+  bash Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix.sh [options]
 
 Run modes:
   --nohup                 Start RL in background via nohup and follow log (default)
@@ -33,6 +33,9 @@ Common overrides:
   --max-completion-length <n>
   --beta <float>
   --temperature <float>
+  --reward-mode <prefix_ranking|prefix_only|ranking|rule_only|ranking_only>
+  --prefix-reward-normalize <true|false>
+  --probe-rule-zero-weight <true|false>
   --save-total-limit <n>
   --report-to <name>
   --wandb-mode <offline|online|disabled>
@@ -95,7 +98,7 @@ DATA_VARIANT_DEFAULT="${DATA_VARIANT_DEFAULT:-Instruments_grec_index_emb-qwen3-e
 MODEL_PATH="${MODEL_PATH:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/saves/qwen2.5-3b/full/Instruments-grec-sft-qwen4B-4-256-dsz0/checkpoint-495}"
 DATA_DIR="${DATA_DIR:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/data/${DATA_VARIANT_DEFAULT}/rl}"
 INDEX_PATH="${INDEX_PATH:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/data/${DATA_VARIANT_DEFAULT}/id2sid.json}"
-OUTPUT_DIR="${OUTPUT_DIR:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/rl_outputs/Instruments-grec-grpo-qwen2.5-3b-qwen4B-4-256-from-sft495}"
+OUTPUT_DIR="${OUTPUT_DIR:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/rl_outputs/Instruments-grec-grpo-prefixonly-ndcg-rule0-qwen2.5-3b-qwen4B-4-256-from-sft495}"
 DS_CONFIG="${DS_CONFIG:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/config/zero2.yaml}"
 
 PYTHON_BIN="${PYTHON_BIN:-python}"
@@ -113,6 +116,9 @@ EVAL_STEP="${EVAL_STEP:-100}"
 MAX_COMPLETION_LENGTH="${MAX_COMPLETION_LENGTH:-128}"
 BETA="${BETA:-1e-3}"
 TEMPERATURE="${TEMPERATURE:-1.0}"
+REWARD_MODE="${REWARD_MODE:-prefix_only}"
+PREFIX_REWARD_NORMALIZE="${PREFIX_REWARD_NORMALIZE:-true}"
+PROBE_RULE_ZERO_WEIGHT="${PROBE_RULE_ZERO_WEIGHT:-true}"
 SAVE_TOTAL_LIMIT="${SAVE_TOTAL_LIMIT:-2}"
 REPORT_TO="${REPORT_TO:-wandb}"
 RESUME_FROM_CHECKPOINT="${RESUME_FROM_CHECKPOINT:-auto}"
@@ -120,7 +126,7 @@ RESUME_FROM_CHECKPOINT="${RESUME_FROM_CHECKPOINT:-auto}"
 export WANDB_PROJECT="${WANDB_PROJECT:-MIMIGenRec-GRPO}"
 export WANDB_MODE="${WANDB_MODE:-offline}"
 export WANDB_API_KEY="${WANDB_API_KEY:-}"
-export WANDB_RUN_NAME="${WANDB_RUN_NAME:-instruments_grec_rl_qwen2_5_3b_qwen4b_4_256_from_ckpt495}"
+export WANDB_RUN_NAME="${WANDB_RUN_NAME:-instruments_grec_rl_prefixonly_ndcg_rule0_qwen2_5_3b_qwen4b_4_256_from_ckpt495}"
 
 LOG_DIR="${LOG_DIR:-${REPO_ROOT}/log}"
 
@@ -244,6 +250,21 @@ while [[ $# -gt 0 ]]; do
     --temperature)
       TEMPERATURE="$2"
       FORWARD_ARGS+=("--temperature" "$2")
+      shift 2
+      ;;
+    --reward-mode)
+      REWARD_MODE="$2"
+      FORWARD_ARGS+=("--reward-mode" "$2")
+      shift 2
+      ;;
+    --prefix-reward-normalize)
+      PREFIX_REWARD_NORMALIZE="$2"
+      FORWARD_ARGS+=("--prefix-reward-normalize" "$2")
+      shift 2
+      ;;
+    --probe-rule-zero-weight)
+      PROBE_RULE_ZERO_WEIGHT="$2"
+      FORWARD_ARGS+=("--probe-rule-zero-weight" "$2")
       shift 2
       ;;
     --save-total-limit)
@@ -386,6 +407,9 @@ TRAIN_CMD=(
   --max_completion_length "$MAX_COMPLETION_LENGTH"
   --beta "$BETA"
   --temperature "$TEMPERATURE"
+  --reward_mode "$REWARD_MODE"
+  --prefix_reward_normalize "$PREFIX_REWARD_NORMALIZE"
+  --probe_rule_with_zero_weight "$PROBE_RULE_ZERO_WEIGHT"
   --save_total_limit "$SAVE_TOTAL_LIMIT"
   --report_to "$REPORT_TO"
   --resume_from_checkpoint "$RESUME_FROM_CHECKPOINT"
@@ -415,5 +439,8 @@ echo "[INFO] MAIN_PORT=$MAIN_PORT"
 echo "[INFO] RUN_NAME=$WANDB_RUN_NAME"
 echo "[INFO] RESUME_FROM_CHECKPOINT=$RESUME_FROM_CHECKPOINT"
 echo "[INFO] SID_LEVELS=$SID_LEVELS"
+echo "[INFO] REWARD_MODE=$REWARD_MODE"
+echo "[INFO] PREFIX_REWARD_NORMALIZE=$PREFIX_REWARD_NORMALIZE"
+echo "[INFO] PROBE_RULE_ZERO_WEIGHT=$PROBE_RULE_ZERO_WEIGHT"
 
 "${TRAIN_CMD[@]}"
