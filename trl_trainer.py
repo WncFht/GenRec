@@ -52,6 +52,7 @@ def main(
     probe_rule_with_zero_weight: bool = True,
     token_level_prefix_advantage: bool = True,
     token_adv_total_token_normalize: bool = False,
+    token_level_ndcg_error_token_penalty: bool = False,
     bf16: bool = True,
     deepspeed: Optional[str] = None,
     report_to: Optional[str] = None,
@@ -131,6 +132,7 @@ def main(
         f"probe_rule_with_zero_weight={probe_rule_with_zero_weight}, "
         f"token_level_prefix_advantage={token_level_prefix_advantage}, "
         f"token_adv_total_token_normalize={token_adv_total_token_normalize}, "
+        f"token_level_ndcg_error_token_penalty={token_level_ndcg_error_token_penalty}, "
         f"num_reward_funcs={len(reward_funcs)}, "
         f"reward_weights={reward_weights}"
     )
@@ -144,6 +146,7 @@ def main(
             eval_dataset=eval_dataset,
             prefix_reward_normalize=prefix_reward_normalize,
             token_adv_total_token_normalize=token_adv_total_token_normalize,
+            token_level_ndcg_error_token_penalty=token_level_ndcg_error_token_penalty,
         )
     else:
         trainer = GRPOTrainer(
