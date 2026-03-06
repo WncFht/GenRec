@@ -14,9 +14,16 @@ class TokenPrefixGRPOTrainer(GRPOTrainer):
     - Rule signal: optional probe only (typically zero-weight in reward_weights).
     """
 
-    def __init__(self, *args, prefix_reward_normalize: bool = True, **kwargs):
+    def __init__(
+        self,
+        *args,
+        prefix_reward_normalize: bool = True,
+        token_adv_total_token_normalize: bool = False,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.prefix_reward_normalize = prefix_reward_normalize
+        self.token_adv_total_token_normalize = token_adv_total_token_normalize
         self._token_adv_warned = False
 
     @staticmethod
@@ -33,6 +40,24 @@ class TokenPrefixGRPOTrainer(GRPOTrainer):
         mean = grouped.mean(dim=1).repeat_interleave(group_size, dim=0)
         std = grouped.std(dim=1).repeat_interleave(group_size, dim=0)
         return (values - mean) / (std + eps)
+
+    @staticmethod
+    def _group_normalize_tokenwise(
+        values: torch.Tensor, mask: torch.Tensor, group_size: int, eps: float = 1e-4
+    ) -> torch.Tensor:
+        """Group-normalize token rewards at each token position (mask-aware)."""
+        bsz, seq_len = values.shape
+        grouped_values = values.view(-1, group_size, seq_len)
+        grouped_mask = mask.view(-1, group_size, seq_len).float()
+
+        denom = grouped_mask.sum(dim=1).clamp_min(1.0)
+        mean = (grouped_values * grouped_mask).sum(dim=1) / denom
+        centered = (grouped_values - mean.unsqueeze(1)) * grouped_mask
+        var = (centered * centered).sum(dim=1) / denom
+        std = torch.sqrt(var + eps)
+
+        normalized = ((grouped_values - mean.unsqueeze(1)) / std.unsqueeze(1)) * grouped_mask
+        return normalized.view(bsz, seq_len)
 
     def _build_prefix_token_rewards(
         self,
@@ -115,41 +140,57 @@ class TokenPrefixGRPOTrainer(GRPOTrainer):
         # 2) NDCG sequence rewards (local) from reward function.
         ndcg_func = self.reward_funcs[ndcg_idx]
         ndcg_local = torch.tensor(
-            ndcg_func(prompts=prompts, completions=completions_text, **reward_kwargs),
+            ndcg_func(
+                prompts=prompts,
+                completions=completions_text,
+                completion_ids=outputs["completion_ids"],
+                **reward_kwargs,
+            ),
             dtype=torch.float32,
             device=device,
         )
 
-        # 3) Group-normalize both sequence signals globally.
-        prefix_seq_global = gather(prefix_seq_local)
-        ndcg_global = gather(ndcg_local)
-        adv_prefix_global = self._group_normalize(prefix_seq_global, self.num_generations)
-        adv_ndcg_global = self._group_normalize(ndcg_global, self.num_generations)
-
+        prefix_weight = float(self.reward_weights[prefix_idx].item())
+        ndcg_weight = float(self.reward_weights[ndcg_idx].item())
+        completion_mask = outputs["completion_mask"].float()
         process_slice = slice(
             self.accelerator.process_index * len(prompts),
             (self.accelerator.process_index + 1) * len(prompts),
         )
-        adv_prefix_local = adv_prefix_global[process_slice]
-        adv_ndcg_local = adv_ndcg_global[process_slice]
 
-        # 4) Compose token-level advantages:
-        #    A_t = w_prefix * A_prefix * normalized_prefix_token_reward_t
-        #        + w_ndcg  * A_ndcg   * completion_mask_t
-        prefix_weight = float(self.reward_weights[prefix_idx].item())
-        ndcg_weight = float(self.reward_weights[ndcg_idx].item())
+        if self.token_adv_total_token_normalize:
+            # Compose raw token rewards first, then token-wise normalize by prompt-group.
+            ndcg_token_rewards = ndcg_local.unsqueeze(1) * completion_mask
+            total_token_rewards_local = prefix_weight * prefix_token_rewards + ndcg_weight * ndcg_token_rewards
+            total_token_rewards_global = gather(total_token_rewards_local)
+            completion_mask_global = gather(completion_mask)
+            token_advantages_global = self._group_normalize_tokenwise(
+                total_token_rewards_global, completion_mask_global, self.num_generations
+            )
+            token_advantages = token_advantages_global[process_slice]
+        else:
+            # 3) Group-normalize both sequence signals globally.
+            prefix_seq_global = gather(prefix_seq_local)
+            ndcg_global = gather(ndcg_local)
+            adv_prefix_global = self._group_normalize(prefix_seq_global, self.num_generations)
+            adv_ndcg_global = self._group_normalize(ndcg_global, self.num_generations)
+            adv_prefix_local = adv_prefix_global[process_slice]
+            adv_ndcg_local = adv_ndcg_global[process_slice]
 
-        prefix_mass = prefix_token_rewards.sum(dim=1, keepdim=True)
-        prefix_dist = torch.where(
-            prefix_mass > 0,
-            prefix_token_rewards / (prefix_mass + 1e-8),
-            torch.zeros_like(prefix_token_rewards),
-        )
-        completion_mask = outputs["completion_mask"].float()
-        token_advantages = (
-            prefix_weight * adv_prefix_local.unsqueeze(1) * prefix_dist
-            + ndcg_weight * adv_ndcg_local.unsqueeze(1) * completion_mask
-        )
+            # 4) Compose token-level advantages:
+            #    A_t = w_prefix * A_prefix * normalized_prefix_token_reward_t
+            #        + w_ndcg  * A_ndcg   * completion_mask_t
+
+            prefix_mass = prefix_token_rewards.sum(dim=1, keepdim=True)
+            prefix_dist = torch.where(
+                prefix_mass > 0,
+                prefix_token_rewards / (prefix_mass + 1e-8),
+                torch.zeros_like(prefix_token_rewards),
+            )
+            token_advantages = (
+                prefix_weight * adv_prefix_local.unsqueeze(1) * prefix_dist
+                + ndcg_weight * adv_ndcg_local.unsqueeze(1) * completion_mask
+            )
         outputs["advantages"] = token_advantages
 
         mode = "eval" if self.control.should_evaluate else "train"
@@ -158,54 +199,3 @@ class TokenPrefixGRPOTrainer(GRPOTrainer):
             self.accelerator.gather_for_metrics(nonzero_ratio).mean().item()
         )
         return outputs
-
-    def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
-        if return_outputs:
-            raise ValueError("The GRPOTrainer does not support returning outputs")
-
-        prompt_ids, prompt_mask = inputs["prompt_ids"], inputs["prompt_mask"]
-        completion_ids, completion_mask = inputs["completion_ids"], inputs["completion_mask"]
-        input_ids = torch.cat([prompt_ids, completion_ids], dim=1)
-        attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)
-        logits_to_keep = completion_ids.size(1)
-
-        per_token_logps = self._get_per_token_logps(model, input_ids, attention_mask, logits_to_keep)
-
-        if self.beta != 0.0:
-            ref_per_token_logps = inputs["ref_per_token_logps"]
-            per_token_kl = (
-                torch.exp(ref_per_token_logps - per_token_logps) - (ref_per_token_logps - per_token_logps) - 1
-            )
-
-        advantages = inputs["advantages"]
-        if advantages.dim() == 1:
-            advantages = advantages.unsqueeze(1).expand_as(per_token_logps)
-        elif advantages.dim() == 2:
-            if advantages.shape != per_token_logps.shape:
-                raise ValueError(
-                    f"Token-level advantages shape mismatch: got {tuple(advantages.shape)}, "
-                    f"expect {tuple(per_token_logps.shape)}"
-                )
-        else:
-            raise ValueError(f"Unsupported advantages dim={advantages.dim()}")
-
-        old_per_token_logps = inputs["old_per_token_logps"] if self.num_iterations > 1 else per_token_logps.detach()
-        coef_1 = torch.exp(per_token_logps - old_per_token_logps)
-        coef_2 = torch.clamp(coef_1, 1 - self.epsilon, 1 + self.epsilon)
-        per_token_loss1 = coef_1 * advantages
-        per_token_loss2 = coef_2 * advantages
-        per_token_loss = -torch.min(per_token_loss1, per_token_loss2)
-        if self.beta != 0.0:
-            per_token_loss = per_token_loss + self.beta * per_token_kl
-
-        loss = (per_token_loss * completion_mask).sum() / completion_mask.sum()
-
-        mode = "eval" if self.control.should_evaluate else "train"
-        if self.beta != 0.0:
-            mean_kl = ((per_token_kl * completion_mask).sum(dim=1) / completion_mask.sum(dim=1)).mean()
-            self._metrics[mode]["kl"].append(self.accelerator.gather_for_metrics(mean_kl).mean().item())
-
-        is_clipped = (per_token_loss1 < per_token_loss2).float()
-        clip_ratio = (is_clipped * completion_mask).sum() / completion_mask.sum()
-        self._metrics[mode]["clip_ratio"].append(self.accelerator.gather_for_metrics(clip_ratio).mean().item())
-        return loss
