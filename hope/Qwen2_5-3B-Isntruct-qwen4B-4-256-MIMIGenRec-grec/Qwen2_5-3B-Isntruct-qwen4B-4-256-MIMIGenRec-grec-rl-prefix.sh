@@ -419,6 +419,7 @@ TRAIN_CMD=(
   --probe_rule_with_zero_weight "$PROBE_RULE_ZERO_WEIGHT"
   --token_level_prefix_advantage "$TOKEN_LEVEL_PREFIX_ADV"
   --save_total_limit "$SAVE_TOTAL_LIMIT"
+  --save_only_model true
   --report_to "$REPORT_TO"
   --resume_from_checkpoint "$RESUME_FROM_CHECKPOINT"
 )

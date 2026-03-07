@@ -178,10 +178,10 @@ class TokenPrefixGRPOTrainer(GRPOTrainer):
         outputs = super()._generate_and_score_completions(inputs)
 
         prefix_idx, ndcg_idx = self._get_reward_func_indices()
-        if prefix_idx is None or ndcg_idx is None:
-            # Keep base sequence-level behavior if required reward funcs are missing.
+        if prefix_idx is None:
+            # Keep base sequence-level behavior if prefix reward func is missing.
             if not self._token_adv_warned:
-                print("[WARN] TokenPrefixGRPOTrainer fallback to sequence-level advantages (missing prefix/ndcg reward).")
+                print("[WARN] TokenPrefixGRPOTrainer fallback to sequence-level advantages (missing prefix reward).")
                 self._token_adv_warned = True
             return outputs
 
@@ -197,7 +197,7 @@ class TokenPrefixGRPOTrainer(GRPOTrainer):
         )
 
         prefix_weight = float(self.reward_weights[prefix_idx].item())
-        ndcg_weight = float(self.reward_weights[ndcg_idx].item())
+        ndcg_weight = float(self.reward_weights[ndcg_idx].item()) if ndcg_idx is not None else 0.0
         completion_mask = outputs["completion_mask"].float()
         process_slice = slice(
             self.accelerator.process_index * len(prompts),
@@ -205,7 +205,9 @@ class TokenPrefixGRPOTrainer(GRPOTrainer):
         )
 
         if self.token_adv_total_token_normalize:
-            if self.token_level_ndcg_error_token_penalty:
+            if ndcg_idx is None:
+                ndcg_token_rewards = torch.zeros_like(prefix_token_rewards)
+            elif self.token_level_ndcg_error_token_penalty:
                 # NDCG token penalty: only penalize wrong tokens, and only if the group has any positive prefix.
                 prefix_positive_local = (prefix_seq_local > 0).float()
                 prefix_positive_global = gather(prefix_positive_local)
@@ -239,30 +241,12 @@ class TokenPrefixGRPOTrainer(GRPOTrainer):
             )
             token_advantages = token_advantages_global[process_slice]
         else:
-            # 2) NDCG sequence rewards (local) from reward function.
-            ndcg_func = self.reward_funcs[ndcg_idx]
-            ndcg_local = torch.tensor(
-                ndcg_func(
-                    prompts=prompts,
-                    completions=completions_text,
-                    completion_ids=outputs["completion_ids"],
-                    **reward_kwargs,
-                ),
-                dtype=torch.float32,
-                device=device,
-            )
-
-            # 3) Group-normalize both sequence signals globally.
+            # 3) Group-normalize prefix signal globally.
             prefix_seq_global = gather(prefix_seq_local)
-            ndcg_global = gather(ndcg_local)
             adv_prefix_global = self._group_normalize(prefix_seq_global, self.num_generations)
-            adv_ndcg_global = self._group_normalize(ndcg_global, self.num_generations)
             adv_prefix_local = adv_prefix_global[process_slice]
-            adv_ndcg_local = adv_ndcg_global[process_slice]
 
-            # 4) Compose token-level advantages:
-            #    A_t = w_prefix * A_prefix * normalized_prefix_token_reward_t
-            #        + w_ndcg  * A_ndcg   * completion_mask_t
+            # 4) Compose token-level advantages.
 
             prefix_mass = prefix_token_rewards.sum(dim=1, keepdim=True)
             prefix_dist = torch.where(
@@ -270,10 +254,23 @@ class TokenPrefixGRPOTrainer(GRPOTrainer):
                 prefix_token_rewards / (prefix_mass + 1e-8),
                 torch.zeros_like(prefix_token_rewards),
             )
-            token_advantages = (
-                prefix_weight * adv_prefix_local.unsqueeze(1) * prefix_dist
-                + ndcg_weight * adv_ndcg_local.unsqueeze(1) * completion_mask
-            )
+            token_advantages = prefix_weight * adv_prefix_local.unsqueeze(1) * prefix_dist
+            if ndcg_idx is not None:
+                ndcg_func = self.reward_funcs[ndcg_idx]
+                ndcg_local = torch.tensor(
+                    ndcg_func(
+                        prompts=prompts,
+                        completions=completions_text,
+                        completion_ids=outputs["completion_ids"],
+                        **reward_kwargs,
+                    ),
+                    dtype=torch.float32,
+                    device=device,
+                )
+                ndcg_global = gather(ndcg_local)
+                adv_ndcg_global = self._group_normalize(ndcg_global, self.num_generations)
+                adv_ndcg_local = adv_ndcg_global[process_slice]
+                token_advantages = token_advantages + ndcg_weight * adv_ndcg_local.unsqueeze(1) * completion_mask
         outputs["advantages"] = token_advantages
 
         mode = "eval" if self.control.should_evaluate else "train"

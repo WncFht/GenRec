@@ -427,6 +427,7 @@ TRAIN_CMD=(
   --token_level_prefix_advantage "$TOKEN_LEVEL_PREFIX_ADV"
   --token_adv_total_token_normalize "$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE"
   --save_total_limit "$SAVE_TOTAL_LIMIT"
+  --save_only_model true
   --report_to "$REPORT_TO"
   --resume_from_checkpoint "$RESUME_FROM_CHECKPOINT"
 )

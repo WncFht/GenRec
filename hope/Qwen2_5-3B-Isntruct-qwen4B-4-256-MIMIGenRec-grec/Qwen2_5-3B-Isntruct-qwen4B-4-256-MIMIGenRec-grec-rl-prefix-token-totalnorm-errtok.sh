@@ -435,6 +435,7 @@ TRAIN_CMD=(
   --token_adv_total_token_normalize "$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE"
   --token_level_ndcg_error_token_penalty "$TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY"
   --save_total_limit "$SAVE_TOTAL_LIMIT"
+  --save_only_model true
   --report_to "$REPORT_TO"
   --resume_from_checkpoint "$RESUME_FROM_CHECKPOINT"
 )

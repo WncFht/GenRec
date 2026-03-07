@@ -113,6 +113,8 @@ def build_reward_setup(
         return [rule_reward], None
     if mode == "ranking_only":
         return [get_ndcg_rule_reward(num_beams)], None
+    if mode == "prefix_rule_only":
+        return [get_prefix_rule_reward(normalize=prefix_reward_normalize)], None
     if mode == "prefix_only":
         prefix_func = get_prefix_rule_reward(normalize=prefix_reward_normalize)
         ndcg_func = get_ndcg_rule_reward(num_beams)
@@ -133,7 +135,7 @@ def build_reward_setup(
         return [rule_reward, get_ndcg_rule_reward(num_beams)], None
     raise ValueError(
         f"Unsupported reward_mode={reward_mode}. "
-        "Use one of: ranking, rule_only, ranking_only, prefix_only, prefix_ranking."
+        "Use one of: ranking, rule_only, ranking_only, prefix_rule_only, prefix_only, prefix_ranking."
     )
 
 

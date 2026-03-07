@@ -13,6 +13,11 @@ Run modes:
   --run                   Internal mode; run training command directly
 
 Common overrides:
+  --preset <name>         Reward preset shortcut (default: prefix_token)
+                          presets: prefix_token, prefix_token_totalnorm,
+                                   prefix_token_totalnorm_errtok,
+                                   prefix_token_only, prefix_seq_only,
+                                   rule_only, ranking, ranking_only
   --model-path <path>
   --data-dir <path>
   --index-path <path>
@@ -33,6 +38,12 @@ Common overrides:
   --max-completion-length <n>
   --beta <float>
   --temperature <float>
+  --reward-mode <prefix_ranking|prefix_only|prefix_rule_only|ranking|rule_only|ranking_only>
+  --prefix-reward-normalize <true|false>
+  --probe-rule-zero-weight <true|false>
+  --token-level-prefix-adv <true|false>
+  --token-adv-total-token-normalize <true|false>
+  --token-level-ndcg-error-token-penalty <true|false>
   --save-total-limit <n>
   --report-to <name>
   --wandb-mode <offline|online|disabled>
@@ -76,6 +87,91 @@ latest_log_for_prefix() {
   echo "$latest"
 }
 
+set_if_unset() {
+  local var_name="$1"
+  local var_value="$2"
+  local is_set="$3"
+  if [[ "$is_set" -eq 0 ]]; then
+    printf -v "$var_name" '%s' "$var_value"
+  fi
+}
+
+apply_reward_preset() {
+  local preset="$1"
+  preset="$(echo "$preset" | tr '[:upper:]' '[:lower:]')"
+  case "$preset" in
+    prefix_token|default)
+      set_if_unset REWARD_MODE "prefix_only" "$REWARD_MODE_SET"
+      set_if_unset PREFIX_REWARD_NORMALIZE "true" "$PREFIX_REWARD_NORMALIZE_SET"
+      set_if_unset PROBE_RULE_ZERO_WEIGHT "true" "$PROBE_RULE_ZERO_WEIGHT_SET"
+      set_if_unset TOKEN_LEVEL_PREFIX_ADV "true" "$TOKEN_LEVEL_PREFIX_ADV_SET"
+      set_if_unset TOKEN_ADV_TOTAL_TOKEN_NORMALIZE "false" "$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE_SET"
+      set_if_unset TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY "false" "$TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY_SET"
+      ;;
+    prefix_token_totalnorm)
+      set_if_unset REWARD_MODE "prefix_only" "$REWARD_MODE_SET"
+      set_if_unset PREFIX_REWARD_NORMALIZE "true" "$PREFIX_REWARD_NORMALIZE_SET"
+      set_if_unset PROBE_RULE_ZERO_WEIGHT "true" "$PROBE_RULE_ZERO_WEIGHT_SET"
+      set_if_unset TOKEN_LEVEL_PREFIX_ADV "true" "$TOKEN_LEVEL_PREFIX_ADV_SET"
+      set_if_unset TOKEN_ADV_TOTAL_TOKEN_NORMALIZE "true" "$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE_SET"
+      set_if_unset TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY "false" "$TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY_SET"
+      ;;
+    prefix_token_totalnorm_errtok)
+      set_if_unset REWARD_MODE "prefix_only" "$REWARD_MODE_SET"
+      set_if_unset PREFIX_REWARD_NORMALIZE "true" "$PREFIX_REWARD_NORMALIZE_SET"
+      set_if_unset PROBE_RULE_ZERO_WEIGHT "true" "$PROBE_RULE_ZERO_WEIGHT_SET"
+      set_if_unset TOKEN_LEVEL_PREFIX_ADV "true" "$TOKEN_LEVEL_PREFIX_ADV_SET"
+      set_if_unset TOKEN_ADV_TOTAL_TOKEN_NORMALIZE "true" "$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE_SET"
+      set_if_unset TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY "true" "$TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY_SET"
+      ;;
+    prefix_token_only)
+      set_if_unset REWARD_MODE "prefix_rule_only" "$REWARD_MODE_SET"
+      set_if_unset PREFIX_REWARD_NORMALIZE "true" "$PREFIX_REWARD_NORMALIZE_SET"
+      set_if_unset PROBE_RULE_ZERO_WEIGHT "false" "$PROBE_RULE_ZERO_WEIGHT_SET"
+      set_if_unset TOKEN_LEVEL_PREFIX_ADV "true" "$TOKEN_LEVEL_PREFIX_ADV_SET"
+      set_if_unset TOKEN_ADV_TOTAL_TOKEN_NORMALIZE "true" "$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE_SET"
+      set_if_unset TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY "false" "$TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY_SET"
+      ;;
+    prefix_seq_only)
+      set_if_unset REWARD_MODE "prefix_rule_only" "$REWARD_MODE_SET"
+      set_if_unset PREFIX_REWARD_NORMALIZE "true" "$PREFIX_REWARD_NORMALIZE_SET"
+      set_if_unset PROBE_RULE_ZERO_WEIGHT "false" "$PROBE_RULE_ZERO_WEIGHT_SET"
+      set_if_unset TOKEN_LEVEL_PREFIX_ADV "false" "$TOKEN_LEVEL_PREFIX_ADV_SET"
+      set_if_unset TOKEN_ADV_TOTAL_TOKEN_NORMALIZE "false" "$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE_SET"
+      set_if_unset TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY "false" "$TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY_SET"
+      ;;
+    rule_only)
+      set_if_unset REWARD_MODE "rule_only" "$REWARD_MODE_SET"
+      set_if_unset PREFIX_REWARD_NORMALIZE "true" "$PREFIX_REWARD_NORMALIZE_SET"
+      set_if_unset PROBE_RULE_ZERO_WEIGHT "false" "$PROBE_RULE_ZERO_WEIGHT_SET"
+      set_if_unset TOKEN_LEVEL_PREFIX_ADV "false" "$TOKEN_LEVEL_PREFIX_ADV_SET"
+      set_if_unset TOKEN_ADV_TOTAL_TOKEN_NORMALIZE "false" "$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE_SET"
+      set_if_unset TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY "false" "$TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY_SET"
+      ;;
+    ranking)
+      set_if_unset REWARD_MODE "ranking" "$REWARD_MODE_SET"
+      set_if_unset PREFIX_REWARD_NORMALIZE "true" "$PREFIX_REWARD_NORMALIZE_SET"
+      set_if_unset PROBE_RULE_ZERO_WEIGHT "false" "$PROBE_RULE_ZERO_WEIGHT_SET"
+      set_if_unset TOKEN_LEVEL_PREFIX_ADV "false" "$TOKEN_LEVEL_PREFIX_ADV_SET"
+      set_if_unset TOKEN_ADV_TOTAL_TOKEN_NORMALIZE "false" "$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE_SET"
+      set_if_unset TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY "false" "$TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY_SET"
+      ;;
+    ranking_only)
+      set_if_unset REWARD_MODE "ranking_only" "$REWARD_MODE_SET"
+      set_if_unset PREFIX_REWARD_NORMALIZE "true" "$PREFIX_REWARD_NORMALIZE_SET"
+      set_if_unset PROBE_RULE_ZERO_WEIGHT "false" "$PROBE_RULE_ZERO_WEIGHT_SET"
+      set_if_unset TOKEN_LEVEL_PREFIX_ADV "false" "$TOKEN_LEVEL_PREFIX_ADV_SET"
+      set_if_unset TOKEN_ADV_TOTAL_TOKEN_NORMALIZE "false" "$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE_SET"
+      set_if_unset TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY "false" "$TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY_SET"
+      ;;
+    *)
+      echo "[ERROR] Unknown preset: $preset"
+      echo "[ERROR] Supported presets: prefix_token, prefix_token_totalnorm, prefix_token_totalnorm_errtok, prefix_token_only, prefix_seq_only, rule_only, ranking, ranking_only"
+      exit 1
+      ;;
+  esac
+}
+
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_PATH="${SCRIPT_DIR}/$(basename -- "${BASH_SOURCE[0]}")"
 
@@ -113,9 +209,23 @@ EVAL_STEP="${EVAL_STEP:-100}"
 MAX_COMPLETION_LENGTH="${MAX_COMPLETION_LENGTH:-128}"
 BETA="${BETA:-1e-3}"
 TEMPERATURE="${TEMPERATURE:-1.0}"
+PRESET="${PRESET:-prefix_token}"
+REWARD_MODE="${REWARD_MODE:-}"
+PREFIX_REWARD_NORMALIZE="${PREFIX_REWARD_NORMALIZE:-}"
+PROBE_RULE_ZERO_WEIGHT="${PROBE_RULE_ZERO_WEIGHT:-}"
+TOKEN_LEVEL_PREFIX_ADV="${TOKEN_LEVEL_PREFIX_ADV:-}"
+TOKEN_ADV_TOTAL_TOKEN_NORMALIZE="${TOKEN_ADV_TOTAL_TOKEN_NORMALIZE:-}"
+TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY="${TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY:-}"
 SAVE_TOTAL_LIMIT="${SAVE_TOTAL_LIMIT:-10}"
 REPORT_TO="${REPORT_TO:-wandb}"
 RESUME_FROM_CHECKPOINT="${RESUME_FROM_CHECKPOINT:-auto}"
+
+REWARD_MODE_SET=0
+PREFIX_REWARD_NORMALIZE_SET=0
+PROBE_RULE_ZERO_WEIGHT_SET=0
+TOKEN_LEVEL_PREFIX_ADV_SET=0
+TOKEN_ADV_TOTAL_TOKEN_NORMALIZE_SET=0
+TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY_SET=0
 
 export WANDB_PROJECT="${WANDB_PROJECT:-MIMIGenRec-GRPO}"
 export WANDB_MODE="${WANDB_MODE:-offline}"
@@ -145,6 +255,11 @@ while [[ $# -gt 0 ]]; do
     --from-nohup)
       FROM_NOHUP=1
       shift
+      ;;
+    --preset)
+      PRESET="$2"
+      FORWARD_ARGS+=("--preset" "$2")
+      shift 2
       ;;
     --model-path)
       MODEL_PATH="$2"
@@ -246,6 +361,42 @@ while [[ $# -gt 0 ]]; do
       FORWARD_ARGS+=("--temperature" "$2")
       shift 2
       ;;
+    --reward-mode|--reward_mode)
+      REWARD_MODE="$2"
+      REWARD_MODE_SET=1
+      FORWARD_ARGS+=("--reward-mode" "$2")
+      shift 2
+      ;;
+    --prefix-reward-normalize|--prefix_reward_normalize)
+      PREFIX_REWARD_NORMALIZE="$2"
+      PREFIX_REWARD_NORMALIZE_SET=1
+      FORWARD_ARGS+=("--prefix-reward-normalize" "$2")
+      shift 2
+      ;;
+    --probe-rule-zero-weight|--probe_rule_with_zero_weight)
+      PROBE_RULE_ZERO_WEIGHT="$2"
+      PROBE_RULE_ZERO_WEIGHT_SET=1
+      FORWARD_ARGS+=("--probe-rule-zero-weight" "$2")
+      shift 2
+      ;;
+    --token-level-prefix-adv|--token_level_prefix_advantage)
+      TOKEN_LEVEL_PREFIX_ADV="$2"
+      TOKEN_LEVEL_PREFIX_ADV_SET=1
+      FORWARD_ARGS+=("--token-level-prefix-adv" "$2")
+      shift 2
+      ;;
+    --token-adv-total-token-normalize|--token_adv_total_token_normalize)
+      TOKEN_ADV_TOTAL_TOKEN_NORMALIZE="$2"
+      TOKEN_ADV_TOTAL_TOKEN_NORMALIZE_SET=1
+      FORWARD_ARGS+=("--token-adv-total-token-normalize" "$2")
+      shift 2
+      ;;
+    --token-level-ndcg-error-token-penalty|--token_level_ndcg_error_token_penalty)
+      TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY="$2"
+      TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY_SET=1
+      FORWARD_ARGS+=("--token-level-ndcg-error-token-penalty" "$2")
+      shift 2
+      ;;
     --save-total-limit)
       SAVE_TOTAL_LIMIT="$2"
       FORWARD_ARGS+=("--save-total-limit" "$2")
@@ -285,6 +436,8 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+apply_reward_preset "$PRESET"
 
 if [[ -n "$LOG_FILE_OVERRIDE" ]]; then
   LOG_FILE="$LOG_FILE_OVERRIDE"
@@ -386,7 +539,14 @@ TRAIN_CMD=(
   --max_completion_length "$MAX_COMPLETION_LENGTH"
   --beta "$BETA"
   --temperature "$TEMPERATURE"
+  --reward_mode "$REWARD_MODE"
+  --prefix_reward_normalize "$PREFIX_REWARD_NORMALIZE"
+  --probe_rule_with_zero_weight "$PROBE_RULE_ZERO_WEIGHT"
+  --token_level_prefix_advantage "$TOKEN_LEVEL_PREFIX_ADV"
+  --token_adv_total_token_normalize "$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE"
+  --token_level_ndcg_error_token_penalty "$TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY"
   --save_total_limit "$SAVE_TOTAL_LIMIT"
+  --save_only_model true
   --report_to "$REPORT_TO"
   --resume_from_checkpoint "$RESUME_FROM_CHECKPOINT"
 )
@@ -415,5 +575,12 @@ echo "[INFO] MAIN_PORT=$MAIN_PORT"
 echo "[INFO] RUN_NAME=$WANDB_RUN_NAME"
 echo "[INFO] RESUME_FROM_CHECKPOINT=$RESUME_FROM_CHECKPOINT"
 echo "[INFO] SID_LEVELS=$SID_LEVELS"
+echo "[INFO] PRESET=$PRESET"
+echo "[INFO] REWARD_MODE=$REWARD_MODE"
+echo "[INFO] PREFIX_REWARD_NORMALIZE=$PREFIX_REWARD_NORMALIZE"
+echo "[INFO] PROBE_RULE_ZERO_WEIGHT=$PROBE_RULE_ZERO_WEIGHT"
+echo "[INFO] TOKEN_LEVEL_PREFIX_ADV=$TOKEN_LEVEL_PREFIX_ADV"
+echo "[INFO] TOKEN_ADV_TOTAL_TOKEN_NORMALIZE=$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE"
+echo "[INFO] TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY=$TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY"
 
 "${TRAIN_CMD[@]}"

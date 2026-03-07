@@ -39,6 +39,7 @@ def main(
     save_strategy: str = "steps",
     save_steps: Union[int, float] = 0.1,
     save_total_limit: int = 3,
+    save_only_model: bool = False,
     warmup_ratio: float = 0.03,
     max_grad_norm: float = 0.3,
     optim: str = "paged_adamw_32bit",
@@ -91,6 +92,7 @@ def main(
         save_strategy=save_strategy,
         save_steps=save_steps,
         save_total_limit=save_total_limit,
+        save_only_model=save_only_model,
         warmup_ratio=warmup_ratio,
         max_grad_norm=max_grad_norm,
         optim=optim,
@@ -133,6 +135,7 @@ def main(
         f"token_level_prefix_advantage={token_level_prefix_advantage}, "
         f"token_adv_total_token_normalize={token_adv_total_token_normalize}, "
         f"token_level_ndcg_error_token_penalty={token_level_ndcg_error_token_penalty}, "
+        f"save_only_model={save_only_model}, "
         f"num_reward_funcs={len(reward_funcs)}, "
         f"reward_weights={reward_weights}"
     )
