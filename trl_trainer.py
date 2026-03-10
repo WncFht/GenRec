@@ -9,6 +9,7 @@ from transformers import (
 from transformers.trainer_utils import get_last_checkpoint
 from trl import GRPOTrainer
 
+from cli_utils import coerce_bool_arg, format_typed_value
 from MIMIGenRec import MIMIGenRec, get_grpo_config
 from rewards.ranking_reward import build_reward_setup
 from token_prefix_grpo_trainer import TokenPrefixGRPOTrainer
@@ -59,6 +60,26 @@ def main(
     report_to: Optional[str] = None,
     resume_from_checkpoint: Optional[str] = "auto",
 ):
+    raw_bool_args = {
+        "save_only_model": save_only_model,
+        "do_sample": do_sample,
+        "prefix_reward_normalize": prefix_reward_normalize,
+        "probe_rule_with_zero_weight": probe_rule_with_zero_weight,
+        "token_level_prefix_advantage": token_level_prefix_advantage,
+        "token_adv_total_token_normalize": token_adv_total_token_normalize,
+        "token_level_ndcg_error_token_penalty": token_level_ndcg_error_token_penalty,
+        "bf16": bf16,
+    }
+    parsed_bool_args = {name: coerce_bool_arg(value, name) for name, value in raw_bool_args.items()}
+    save_only_model = parsed_bool_args["save_only_model"]
+    do_sample = parsed_bool_args["do_sample"]
+    prefix_reward_normalize = parsed_bool_args["prefix_reward_normalize"]
+    probe_rule_with_zero_weight = parsed_bool_args["probe_rule_with_zero_weight"]
+    token_level_prefix_advantage = parsed_bool_args["token_level_prefix_advantage"]
+    token_adv_total_token_normalize = parsed_bool_args["token_adv_total_token_normalize"]
+    token_level_ndcg_error_token_penalty = parsed_bool_args["token_level_ndcg_error_token_penalty"]
+    bf16 = parsed_bool_args["bf16"]
+
     # load dataset
     dataset = load_dataset(
         "json",
@@ -128,6 +149,14 @@ def main(
         do_sample=do_sample,
     )
 
+    print(
+        "[INFO] raw_bool_args="
+        + ", ".join(f"{name}={format_typed_value(value)}" for name, value in raw_bool_args.items())
+    )
+    print(
+        "[INFO] parsed_bool_args="
+        + ", ".join(f"{name}={value!r}" for name, value in parsed_bool_args.items())
+    )
     print(
         f"[INFO] reward_mode={reward_mode}, "
         f"prefix_reward_normalize={prefix_reward_normalize}, "

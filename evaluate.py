@@ -12,6 +12,7 @@ import torch
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer, GenerationConfig, LogitsProcessorList
 
+from cli_utils import coerce_bool_arg
 from logit_processor import ConstrainedLogitsProcessor
 
 
@@ -225,6 +226,10 @@ def main(
     prefix: Optional[str] = None,
     sid_levels: int = -1,
 ):
+    do_sample = coerce_bool_arg(do_sample, "do_sample")
+    compute_metrics_flag = coerce_bool_arg(compute_metrics_flag, "compute_metrics_flag")
+    metrics_only = coerce_bool_arg(metrics_only, "metrics_only")
+
     if metrics_only:
         with open(result_json_path, encoding="utf-8") as f:
             test_data = json.load(f)

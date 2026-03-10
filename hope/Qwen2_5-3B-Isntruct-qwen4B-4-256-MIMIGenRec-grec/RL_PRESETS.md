@@ -27,6 +27,7 @@ bash Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl.sh --preset <name>
   - `--token-adv-total-token-normalize true|false`
   - `--token-level-ndcg-error-token-penalty true|false`
 - `rl.sh` now always passes reward-related args explicitly to `trl_trainer.py`.
+- All reward modes now log `rule_reward`; when a mode does not optimize it directly, it is attached as a zero-weight probe.
 - Checkpoints policy remains:
   - `--save_total_limit` default `10`
   - `--save_only_model true`

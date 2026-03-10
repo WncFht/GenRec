@@ -102,6 +102,19 @@ def get_ndcg_rule_reward(num_beams):
     return ndcg_rule_reward
 
 
+def _append_rule_reward_probe(reward_funcs, reward_weights):
+    if any(getattr(reward_func, "__name__", "") == "rule_reward" for reward_func in reward_funcs):
+        return reward_funcs, reward_weights
+
+    reward_funcs = list(reward_funcs) + [rule_reward]
+    if reward_weights is None:
+        reward_weights = [1.0] * (len(reward_funcs) - 1)
+    else:
+        reward_weights = list(reward_weights)
+    reward_weights.append(0.0)
+    return reward_funcs, reward_weights
+
+
 def build_reward_setup(
     reward_mode: str,
     num_beams: int,
@@ -112,19 +125,13 @@ def build_reward_setup(
     if mode == "rule_only":
         return [rule_reward], None
     if mode == "ranking_only":
-        return [get_ndcg_rule_reward(num_beams)], None
+        return _append_rule_reward_probe([get_ndcg_rule_reward(num_beams)], None)
     if mode == "prefix_rule_only":
-        return [get_prefix_rule_reward(normalize=prefix_reward_normalize)], None
+        return _append_rule_reward_probe([get_prefix_rule_reward(normalize=prefix_reward_normalize)], None)
     if mode == "prefix_only":
         prefix_func = get_prefix_rule_reward(normalize=prefix_reward_normalize)
         ndcg_func = get_ndcg_rule_reward(num_beams)
-        if probe_rule_with_zero_weight:
-            return [
-                prefix_func,
-                ndcg_func,
-                rule_reward,
-            ], [1.0, 1.0, 0.0]
-        return [prefix_func, ndcg_func], None
+        return _append_rule_reward_probe([prefix_func, ndcg_func], None)
     if mode == "prefix_ranking":
         return [
             get_prefix_rule_reward(normalize=prefix_reward_normalize),
