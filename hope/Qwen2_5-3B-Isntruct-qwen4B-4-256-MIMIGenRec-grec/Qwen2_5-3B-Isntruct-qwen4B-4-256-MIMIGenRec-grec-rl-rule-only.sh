@@ -99,7 +99,7 @@ DATA_VARIANT_DEFAULT="${DATA_VARIANT_DEFAULT:-Instruments_grec_index_emb-qwen3-e
 MODEL_PATH="${MODEL_PATH:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/saves/qwen2.5-3b/full/Instruments-grec-sft-qwen4B-4-256-dsz0/checkpoint-495}"
 DATA_DIR="${DATA_DIR:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/data/${DATA_VARIANT_DEFAULT}/rl}"
 INDEX_PATH="${INDEX_PATH:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/data/${DATA_VARIANT_DEFAULT}/id2sid.json}"
-OUTPUT_DIR="${OUTPUT_DIR:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/rl_outputs/Instruments-grec-grpo-rule-only-qwen2.5-3b-qwen4B-4-256-from-sft495}"
+OUTPUT_DIR="${OUTPUT_DIR:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/rl_outputs/Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495}"
 DS_CONFIG="${DS_CONFIG:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/config/zero2.yaml}"
 
 PYTHON_BIN="${PYTHON_BIN:-python}"
@@ -128,7 +128,7 @@ RESUME_FROM_CHECKPOINT="${RESUME_FROM_CHECKPOINT:-auto}"
 export WANDB_PROJECT="${WANDB_PROJECT:-MIMIGenRec-GRPO}"
 export WANDB_MODE="${WANDB_MODE:-offline}"
 export WANDB_API_KEY="${WANDB_API_KEY:-}"
-export WANDB_RUN_NAME="${WANDB_RUN_NAME:-instruments_grec_rl_rule_only_qwen2_5_3b_qwen4b_4_256_from_ckpt495}"
+export WANDB_RUN_NAME="${WANDB_RUN_NAME:-instruments_grec_rl_rule_only_rerun_quietlog_qwen2_5_3b_qwen4b_4_256_from_ckpt495}"
 
 LOG_DIR="${LOG_DIR:-${REPO_ROOT}/log}"
 
@@ -371,6 +371,9 @@ unset HF_ENDPOINT || true
 export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-false}"
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-8}"
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
+export NCCL_DEBUG="${NCCL_DEBUG:-WARN}"
+export TORCH_DISTRIBUTED_DEBUG="${TORCH_DISTRIBUTED_DEBUG:-OFF}"
+export ACCELERATE_LOG_LEVEL="${ACCELERATE_LOG_LEVEL:-warning}"
 export PYTHONPATH="${REPO_ROOT}:${PYTHONPATH:-}"
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
@@ -443,6 +446,9 @@ echo "[INFO] OUTPUT_DIR=$OUTPUT_DIR"
 echo "[INFO] DS_CONFIG=$DS_CONFIG"
 echo "[INFO] LOG_FILE=$LOG_FILE"
 echo "[INFO] CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
+echo "[INFO] NCCL_DEBUG=$NCCL_DEBUG"
+echo "[INFO] TORCH_DISTRIBUTED_DEBUG=$TORCH_DISTRIBUTED_DEBUG"
+echo "[INFO] ACCELERATE_LOG_LEVEL=$ACCELERATE_LOG_LEVEL"
 echo "[INFO] NUM_PROCESSES=$NUM_PROCESSES"
 echo "[INFO] MAIN_PORT=$MAIN_PORT"
 echo "[INFO] RUN_NAME=$WANDB_RUN_NAME"
