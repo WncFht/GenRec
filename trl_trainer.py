@@ -10,10 +10,12 @@ from transformers.trainer_utils import get_last_checkpoint
 from trl import GRPOTrainer
 
 from cli_utils import coerce_bool_arg, format_typed_value
+from fixed_hint_utils import apply_fixed_hint_depth_to_example, load_fixed_hint_depth_map
+from fixed_hint_grpo_trainer import FixedHintRuleOnlyGRPOTrainer
 from MIMIGenRec import MIMIGenRec, get_grpo_config
 from rewards.ranking_reward import build_reward_setup
 from token_prefix_grpo_trainer import TokenPrefixGRPOTrainer
-from util import build_constrained_logits_processor
+from util import build_constrained_logits_processor, build_fixed_hint_constrained_logits_processor
 
 
 def main(
@@ -55,6 +57,10 @@ def main(
     token_level_prefix_advantage: bool = True,
     token_adv_total_token_normalize: bool = False,
     token_level_ndcg_error_token_penalty: bool = False,
+    fixed_hint_depth_map_path: Optional[str] = None,
+    fixed_hint_depth_cap: Optional[int] = None,
+    fixed_hint_unsolved_depth: int = 3,
+    fixed_hint_apply_to_eval: bool = False,
     bf16: bool = True,
     deepspeed: Optional[str] = None,
     report_to: Optional[str] = None,
@@ -68,6 +74,7 @@ def main(
         "token_level_prefix_advantage": token_level_prefix_advantage,
         "token_adv_total_token_normalize": token_adv_total_token_normalize,
         "token_level_ndcg_error_token_penalty": token_level_ndcg_error_token_penalty,
+        "fixed_hint_apply_to_eval": fixed_hint_apply_to_eval,
         "bf16": bf16,
     }
     parsed_bool_args = {name: coerce_bool_arg(value, name) for name, value in raw_bool_args.items()}
@@ -78,6 +85,7 @@ def main(
     token_level_prefix_advantage = parsed_bool_args["token_level_prefix_advantage"]
     token_adv_total_token_normalize = parsed_bool_args["token_adv_total_token_normalize"]
     token_level_ndcg_error_token_penalty = parsed_bool_args["token_level_ndcg_error_token_penalty"]
+    fixed_hint_apply_to_eval = parsed_bool_args["fixed_hint_apply_to_eval"]
     bf16 = parsed_bool_args["bf16"]
 
     # load dataset
@@ -92,6 +100,44 @@ def main(
     train_dataset = dataset["train"]
     eval_dataset = dataset["valid"]
     test_dataset = dataset["test"]  # noqa: F841
+
+    tokenizer = AutoTokenizer.from_pretrained(model)
+
+    if fixed_hint_depth_map_path is not None:
+        if reward_mode.strip().lower() != "rule_only":
+            raise NotImplementedError("Fixed oracle hint-depth training currently supports reward_mode=rule_only only.")
+
+        fixed_hint_map = load_fixed_hint_depth_map(fixed_hint_depth_map_path)
+
+        def _inject_hint(example):
+            enriched = apply_fixed_hint_depth_to_example(
+                example,
+                fixed_hint_map,
+                cap_depth=fixed_hint_depth_cap,
+                unsolved_depth=fixed_hint_unsolved_depth,
+            )
+            return enriched
+
+        train_dataset = train_dataset.map(_inject_hint, desc="Inject fixed oracle hints into train dataset")
+        if fixed_hint_apply_to_eval:
+            eval_dataset = eval_dataset.map(_inject_hint, desc="Inject fixed oracle hints into eval dataset")
+        else:
+            eval_dataset = eval_dataset.map(
+                lambda example: {
+                    **example,
+                    "oracle_hint_depth": 0,
+                    "oracle_hint_text": "",
+                    "oracle_hint_unsolved": False,
+                },
+                desc="Attach zero-depth fixed hint metadata to eval dataset",
+            )
+
+        train_hint_depths = train_dataset["oracle_hint_depth"]
+        hint_depth_hist = {depth: train_hint_depths.count(depth) for depth in sorted(set(train_hint_depths))}
+        print("[INFO] fixed_hint_generation_mode=mixed_single_generate")
+        print(f"[INFO] fixed_hint_depth_map_path={fixed_hint_depth_map_path}")
+        print(f"[INFO] fixed_hint_depth_cap={fixed_hint_depth_cap!r}, fixed_hint_unsolved_depth={fixed_hint_unsolved_depth}")
+        print(f"[INFO] train_oracle_hint_depth_hist={hint_depth_hist}")
 
     reward_funcs, reward_weights = build_reward_setup(
         reward_mode=reward_mode,
@@ -128,14 +174,22 @@ def main(
         grpo_config_kwargs["reward_weights"] = reward_weights
     training_args = get_grpo_config(**grpo_config_kwargs)
 
-    tokenizer = AutoTokenizer.from_pretrained(model)
-    logits_processor = build_constrained_logits_processor(
-        index_path,
-        tokenizer,
-        prefix=prefix,
-        num_beams=num_beams,
-        sid_levels=sid_levels,
-    )
+    if fixed_hint_depth_map_path is not None:
+        logits_processor = build_fixed_hint_constrained_logits_processor(
+            index_path,
+            tokenizer,
+            prefix=prefix,
+            num_beams=num_beams,
+            sid_levels=sid_levels,
+        )
+    else:
+        logits_processor = build_constrained_logits_processor(
+            index_path,
+            tokenizer,
+            prefix=prefix,
+            num_beams=num_beams,
+            sid_levels=sid_levels,
+        )
 
     model = MIMIGenRec.from_pretrained(
         model,
@@ -164,12 +218,25 @@ def main(
         f"token_level_prefix_advantage={token_level_prefix_advantage}, "
         f"token_adv_total_token_normalize={token_adv_total_token_normalize}, "
         f"token_level_ndcg_error_token_penalty={token_level_ndcg_error_token_penalty}, "
+        f"fixed_hint_generation_mode={'mixed_single_generate' if fixed_hint_depth_map_path is not None else 'disabled'}, "
+        f"fixed_hint_depth_map_path={fixed_hint_depth_map_path}, "
+        f"fixed_hint_depth_cap={fixed_hint_depth_cap}, "
+        f"fixed_hint_unsolved_depth={fixed_hint_unsolved_depth}, "
+        f"fixed_hint_apply_to_eval={fixed_hint_apply_to_eval}, "
         f"save_only_model={save_only_model}, "
         f"num_reward_funcs={len(reward_funcs)}, "
         f"reward_weights={reward_weights}"
     )
 
-    if token_level_prefix_advantage:
+    if fixed_hint_depth_map_path is not None:
+        trainer = FixedHintRuleOnlyGRPOTrainer(
+            model=model,
+            args=training_args,
+            reward_funcs=reward_funcs,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+        )
+    elif token_level_prefix_advantage:
         trainer = TokenPrefixGRPOTrainer(
             model=model,
             args=training_args,

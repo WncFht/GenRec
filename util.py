@@ -6,6 +6,7 @@ from rich.table import Table
 from transformers import AutoTokenizer, LogitsProcessorList
 
 from evaluate import build_trie_from_index, create_prefix_allowed_tokens_fn
+from fixed_hint_logit_processor import FixedHintConstrainedLogitsProcessor
 from logit_processor import ConstrainedLogitsProcessor
 
 
@@ -50,6 +51,37 @@ def build_constrained_logits_processor(
     logits_processor = LogitsProcessorList(
         [
             ConstrainedLogitsProcessor(
+                prefix_allowed_tokens_fn=prefix_allowed_tokens_fn,
+                num_beams=num_beams,
+                prefix_index=prefix_index,
+                prefix_ids=prompt_suffix_ids,
+                eos_token_id=tokenizer.eos_token_id,
+            )
+        ]
+    )
+    return logits_processor
+
+
+def build_fixed_hint_constrained_logits_processor(
+    index_path: str,
+    tokenizer: AutoTokenizer,
+    prefix: Optional[str] = None,
+    num_beams: int = 50,
+    sid_levels: int = -1,
+) -> LogitsProcessorList:
+    print(f"Building FixedHint Trie from {index_path}...")
+    trie, prompt_suffix_ids, prefix_index = build_trie_from_index(
+        index_path,
+        tokenizer,
+        prefix=prefix,
+        sid_levels=sid_levels,
+    )
+    print(f"FixedHint Trie built: prefix_index={prefix_index}, num_items={len(trie)}")
+
+    prefix_allowed_tokens_fn = create_prefix_allowed_tokens_fn(trie, prompt_suffix_ids)
+    logits_processor = LogitsProcessorList(
+        [
+            FixedHintConstrainedLogitsProcessor(
                 prefix_allowed_tokens_fn=prefix_allowed_tokens_fn,
                 num_beams=num_beams,
                 prefix_index=prefix_index,

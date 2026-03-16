@@ -5,8 +5,9 @@ import argparse
 import json
 import re
 from collections import Counter, defaultdict
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 
 SID_TOKEN_PATTERN = re.compile(r"<[^<>]+>")
@@ -152,9 +153,7 @@ def aggregate_run_summary(base_rows: list[dict[str, Any]], hinted_rows: dict[int
         "prefix_all_beams_min": min(all_prefix_rewards) if all_prefix_rewards else 0.0,
         "miss_subset_size": len(miss_rows),
         "hint_evaluated_miss_size": len(hinted_miss_rows),
-        "hint_rule_hit_sample_count_within_miss": sum(
-            1 for row in hinted_miss_rows if row["group"]["rule_hit_any"]
-        ),
+        "hint_rule_hit_sample_count_within_miss": sum(1 for row in hinted_miss_rows if row["group"]["rule_hit_any"]),
         "hint_rule_hit_sample_rate_within_miss": _safe_mean(
             float(row["group"]["rule_hit_any"]) for row in hinted_miss_rows
         ),
@@ -271,9 +270,7 @@ def aggregate_stage_summary(
         "cumulative_rule_hit_sample_count": cumulative_rule_hit_sample_count,
         "cumulative_rule_hit_sample_rate": _safe_div(cumulative_rule_hit_sample_count, total_samples),
         "full_prefix_match_hist_all_beams": {match_len: full_hist[match_len] for match_len in sorted(full_hist)},
-        "suffix_prefix_match_hist_all_beams": {
-            match_len: suffix_hist[match_len] for match_len in sorted(suffix_hist)
-        },
+        "suffix_prefix_match_hist_all_beams": {match_len: suffix_hist[match_len] for match_len in sorted(suffix_hist)},
         "group_pattern_counts_full": {pattern: full_patterns[pattern] for pattern in sorted(full_patterns)},
         "group_pattern_counts_suffix": {pattern: suffix_patterns[pattern] for pattern in sorted(suffix_patterns)},
     }
@@ -325,6 +322,62 @@ def discover_reusable_cache(
         return {"summary_path": summary_path, "details_path": details_path}
 
     return None
+
+
+def build_fixed_hint_depth_map_from_details(
+    details_payload: dict[str, Any], beam_size: int, unsolved_depth: int = 3
+) -> dict[str, Any]:
+    beam_key = str(beam_size)
+    payload_root = details_payload.get("results", details_payload)
+    beam_payload = payload_root.get(beam_key, {})
+    if not beam_payload:
+        raise KeyError(f"Missing beam_size={beam_size} in details payload.")
+
+    stage_payload = beam_payload.get("stages")
+    if stage_payload is None:
+        stage_payload = {
+            "base": {"rows": beam_payload.get("base_rows", [])},
+            "hint_1": {
+                "rows": list((beam_payload.get("hinted_rows") or {}).values())
+                if isinstance(beam_payload.get("hinted_rows"), dict)
+                else beam_payload.get("hinted_rows", [])
+            },
+        }
+
+    hint_depth_by_index: dict[str, int] = {}
+    unsolved_indices: list[int] = []
+    source_row_by_index: dict[int, dict[str, Any]] = {}
+
+    for stage_name, stage_info in sorted(stage_payload.items(), key=lambda item: _stage_sort_key(item[0])):
+        hint_depth = 0 if stage_name == "base" else int(stage_name.split("_")[-1])
+        for row in stage_info.get("rows", []):
+            source_index = row.get("source_index")
+            if source_index is None:
+                continue
+            source_row_by_index[int(source_index)] = row
+            key = str(source_index)
+            if row.get("group", {}).get("rule_hit_any") and key not in hint_depth_by_index:
+                hint_depth_by_index[key] = hint_depth
+
+    final_stage_name = max(stage_payload, key=_stage_sort_key)
+    final_stage_hint_depth = 0 if final_stage_name == "base" else int(final_stage_name.split("_")[-1])
+    for row in stage_payload[final_stage_name].get("rows", []):
+        source_index = row.get("source_index")
+        if source_index is None:
+            continue
+        key = str(source_index)
+        if key not in hint_depth_by_index:
+            hint_depth_by_index[key] = unsolved_depth
+            unsolved_indices.append(int(source_index))
+
+    return {
+        "sample_key_type": "extra_info.index",
+        "beam_size": beam_size,
+        "default_unsolved_depth": unsolved_depth,
+        "max_available_stage_depth": final_stage_hint_depth,
+        "hint_depth_by_index": dict(sorted(hint_depth_by_index.items(), key=lambda item: int(item[0]))),
+        "unsolved_indices": sorted(unsolved_indices),
+    }
 
 
 def _load_train_samples(data_dir: str, max_samples: int | None = None, offset: int = 0) -> list[dict[str, Any]]:
@@ -810,6 +863,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--reuse-summary-path")
     parser.add_argument("--reuse-details-path")
     parser.add_argument("--disable-cache-reuse", action="store_true")
+    parser.add_argument("--export-fixed-hint-depth-map-path")
+    parser.add_argument("--export-fixed-hint-beam-size", type=int, default=16)
+    parser.add_argument("--export-fixed-hint-unsolved-depth", type=int, default=3)
     parser.add_argument("--trust-remote-code", action="store_true")
     return parser.parse_args()
 
@@ -854,7 +910,9 @@ def main() -> None:
 
     tokenizer = None
     model = None
-    tokens_path = str(Path(args.add_tokens_path) if args.add_tokens_path else Path(args.data_dir).parent / "new_tokens.json")
+    tokens_path = str(
+        Path(args.add_tokens_path) if args.add_tokens_path else Path(args.data_dir).parent / "new_tokens.json"
+    )
     added_tokens = 0
     if needs_generation:
         tokenizer, model, tokens_path, added_tokens = _load_tokenizer_and_model(
@@ -934,6 +992,46 @@ def main() -> None:
         details_path.parent.mkdir(parents=True, exist_ok=True)
         details_path.write_text(json.dumps(detail_payload, indent=2, ensure_ascii=False), encoding="utf-8")
         print(f"Details saved to: {details_path}")
+
+    if args.export_fixed_hint_depth_map_path:
+        export_payload = (
+            detail_payload
+            if detail_payload.get("results")
+            else {
+                "results": {
+                    str(beam_size): {"stages": {stage_name: {"rows": rows} for stage_name, rows in stage_rows.items()}}
+                    for beam_size, stage_rows in (
+                        (
+                            beam_size,
+                            analyze_beam_size_cascade(
+                                samples=samples,
+                                model=model,
+                                tokenizer=tokenizer,
+                                index_path=args.index_path,
+                                beam_size=beam_size,
+                                max_hint_depth=max_hint_depth,
+                                batch_size=args.batch_size,
+                                max_prompt_length=args.max_prompt_length,
+                                max_new_tokens=args.max_new_tokens,
+                                repetition_penalty=args.repetition_penalty,
+                                sid_levels=args.sid_levels,
+                                cached_stage_rows=cached_stage_rows_by_beam.get(beam_size),
+                            )[1],
+                        )
+                        for beam_size in beam_sizes
+                    )
+                }
+            }
+        )
+        fixed_hint_map = build_fixed_hint_depth_map_from_details(
+            export_payload,
+            beam_size=args.export_fixed_hint_beam_size,
+            unsolved_depth=args.export_fixed_hint_unsolved_depth,
+        )
+        export_path = Path(args.export_fixed_hint_depth_map_path)
+        export_path.parent.mkdir(parents=True, exist_ok=True)
+        export_path.write_text(json.dumps(fixed_hint_map, indent=2, ensure_ascii=False), encoding="utf-8")
+        print(f"Fixed hint depth map saved to: {export_path}")
 
 
 if __name__ == "__main__":

@@ -22,6 +22,14 @@ def _extract_completion_text(completion):
     return str(completion)
 
 
+def _get_full_completion_text(index: int, completion, reward_kwargs) -> str:
+    completion_text = _extract_completion_text(completion)
+    hint_texts = reward_kwargs.get("oracle_hint_text")
+    if hint_texts is not None:
+        return f"{hint_texts[index]}{completion_text}"
+    return completion_text
+
+
 def _prefix_match_len(pred_nums: list[int], gt_nums: list[int]) -> int:
     matched = 0
     for pred, gt in zip(pred_nums, gt_nums):
@@ -36,7 +44,7 @@ def rule_reward(prompts, completions, completion_ids, **reward_kwargs):
     rewards = []
     for i, completion in enumerate(completions):
         gt_num = _extract_number(reward_model[i]["ground_truth"])
-        completion_num = _extract_number(_extract_completion_text(completion))
+        completion_num = _extract_number(_get_full_completion_text(i, completion, reward_kwargs))
         if completion_num == gt_num:
             rewards.append(1.0)
         else:
@@ -57,7 +65,7 @@ def get_prefix_rule_reward(normalize: bool = True):
         rewards = []
         for i, completion in enumerate(completions):
             gt_num = _extract_number(reward_model[i]["ground_truth"])
-            completion_num = _extract_number(_extract_completion_text(completion))
+            completion_num = _extract_number(_get_full_completion_text(i, completion, reward_kwargs))
             if not gt_num:
                 rewards.append(0.0)
                 continue
@@ -83,7 +91,7 @@ def get_ndcg_rule_reward(num_beams):
         lis = []
 
         for i, completion in enumerate(completions):
-            completion_num = _extract_number(_extract_completion_text(completion))
+            completion_num = _extract_number(_get_full_completion_text(i, completion, reward_kwargs))
             gt_num = _extract_number(reward_model[i]["ground_truth"])
             if completion_num == gt_num:
                 flag = True
