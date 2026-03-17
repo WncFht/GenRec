@@ -11,7 +11,7 @@ from trl import GRPOTrainer
 
 from cli_utils import coerce_bool_arg, format_typed_value
 from fixed_hint_utils import apply_fixed_hint_depth_to_example, load_fixed_hint_depth_map
-from fixed_hint_grpo_trainer import FixedHintRuleOnlyGRPOTrainer
+from fixed_hint_grpo_trainer import DynamicHintRuleOnlyGRPOTrainer, FixedHintRuleOnlyGRPOTrainer
 from MIMIGenRec import MIMIGenRec, get_grpo_config
 from rewards.ranking_reward import build_reward_setup
 from token_prefix_grpo_trainer import TokenPrefixGRPOTrainer
@@ -61,9 +61,12 @@ def main(
     fixed_hint_depth_cap: Optional[int] = None,
     fixed_hint_unsolved_depth: int = 3,
     fixed_hint_apply_to_eval: bool = False,
+    dynamic_hint_max_depth: Optional[int] = None,
+    dynamic_hint_apply_to_eval: bool = False,
     bf16: bool = True,
     deepspeed: Optional[str] = None,
     report_to: Optional[str] = None,
+    run_name: Optional[str] = None,
     resume_from_checkpoint: Optional[str] = "auto",
 ):
     raw_bool_args = {
@@ -75,6 +78,7 @@ def main(
         "token_adv_total_token_normalize": token_adv_total_token_normalize,
         "token_level_ndcg_error_token_penalty": token_level_ndcg_error_token_penalty,
         "fixed_hint_apply_to_eval": fixed_hint_apply_to_eval,
+        "dynamic_hint_apply_to_eval": dynamic_hint_apply_to_eval,
         "bf16": bf16,
     }
     parsed_bool_args = {name: coerce_bool_arg(value, name) for name, value in raw_bool_args.items()}
@@ -86,7 +90,16 @@ def main(
     token_adv_total_token_normalize = parsed_bool_args["token_adv_total_token_normalize"]
     token_level_ndcg_error_token_penalty = parsed_bool_args["token_level_ndcg_error_token_penalty"]
     fixed_hint_apply_to_eval = parsed_bool_args["fixed_hint_apply_to_eval"]
+    dynamic_hint_apply_to_eval = parsed_bool_args["dynamic_hint_apply_to_eval"]
     bf16 = parsed_bool_args["bf16"]
+    dynamic_hint_enabled = dynamic_hint_max_depth is not None and int(dynamic_hint_max_depth) > 0
+    if dynamic_hint_max_depth is not None:
+        dynamic_hint_max_depth = int(dynamic_hint_max_depth)
+
+    if fixed_hint_depth_map_path is not None and dynamic_hint_enabled:
+        raise ValueError("fixed_hint_depth_map_path and dynamic_hint_max_depth cannot be enabled at the same time.")
+    if dynamic_hint_enabled and reward_mode.strip().lower() != "rule_only":
+        raise NotImplementedError("Dynamic hint cascade training currently supports reward_mode=rule_only only.")
 
     # load dataset
     dataset = load_dataset(
@@ -138,6 +151,10 @@ def main(
         print(f"[INFO] fixed_hint_depth_map_path={fixed_hint_depth_map_path}")
         print(f"[INFO] fixed_hint_depth_cap={fixed_hint_depth_cap!r}, fixed_hint_unsolved_depth={fixed_hint_unsolved_depth}")
         print(f"[INFO] train_oracle_hint_depth_hist={hint_depth_hist}")
+    elif dynamic_hint_enabled:
+        print("[INFO] dynamic_hint_generation_mode=cascade")
+        print(f"[INFO] dynamic_hint_max_depth={dynamic_hint_max_depth}")
+        print(f"[INFO] dynamic_hint_apply_to_eval={dynamic_hint_apply_to_eval}")
 
     reward_funcs, reward_weights = build_reward_setup(
         reward_mode=reward_mode,
@@ -164,17 +181,19 @@ def main(
         max_grad_norm=max_grad_norm,
         optim=optim,
         lr_scheduler_type=lr_scheduler_type,
+        max_completion_length=max_completion_length,
         beta=beta,
         num_generations=num_beams,
         bf16=bf16,
         deepspeed=deepspeed,
         report_to=report_to,
+        run_name=run_name,
     )
     if reward_weights is not None:
         grpo_config_kwargs["reward_weights"] = reward_weights
     training_args = get_grpo_config(**grpo_config_kwargs)
 
-    if fixed_hint_depth_map_path is not None:
+    if fixed_hint_depth_map_path is not None or dynamic_hint_enabled:
         logits_processor = build_fixed_hint_constrained_logits_processor(
             index_path,
             tokenizer,
@@ -223,6 +242,9 @@ def main(
         f"fixed_hint_depth_cap={fixed_hint_depth_cap}, "
         f"fixed_hint_unsolved_depth={fixed_hint_unsolved_depth}, "
         f"fixed_hint_apply_to_eval={fixed_hint_apply_to_eval}, "
+        f"dynamic_hint_generation_mode={'cascade' if dynamic_hint_enabled else 'disabled'}, "
+        f"dynamic_hint_max_depth={dynamic_hint_max_depth}, "
+        f"dynamic_hint_apply_to_eval={dynamic_hint_apply_to_eval}, "
         f"save_only_model={save_only_model}, "
         f"num_reward_funcs={len(reward_funcs)}, "
         f"reward_weights={reward_weights}"
@@ -235,6 +257,16 @@ def main(
             reward_funcs=reward_funcs,
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
+        )
+    elif dynamic_hint_enabled:
+        trainer = DynamicHintRuleOnlyGRPOTrainer(
+            model=model,
+            args=training_args,
+            reward_funcs=reward_funcs,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            dynamic_hint_max_depth=dynamic_hint_max_depth,
+            dynamic_hint_apply_to_eval=dynamic_hint_apply_to_eval,
         )
     elif token_level_prefix_advantage:
         trainer = TokenPrefixGRPOTrainer(

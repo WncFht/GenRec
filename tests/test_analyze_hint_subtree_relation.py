@@ -152,7 +152,16 @@ def test_build_report_html_references_plots_and_summary() -> None:
 
     html = build_report_html(summary=summary, plot_paths=plot_paths)
 
-    assert "Hint Strength vs Subtree Size" in html
+    assert "提示强度 vs 子树规模" in html
+    assert "关键结论" in html
+    assert "任务概览" in html
+    assert "指标词典" in html
+    assert "图册筛选" in html
+    assert 'data-task="sid"' in html
+    assert "当前筛选条件下没有可显示的图表" in html
+    assert "横轴是 log1p(子树规模)" in html
+    assert "每个点代表一个节点" in html
+    assert "position: sticky" not in html
     assert "scatter_all_depth1.png" in html
     assert "correlation_heatmap_pearson.png" in html
     assert "strongest_positive_correlation" in html
