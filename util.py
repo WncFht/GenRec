@@ -1,4 +1,7 @@
+import logging
+import os
 import re
+import warnings
 from typing import Any, Optional
 
 from rich.console import Console
@@ -18,8 +21,42 @@ def _format_config_value(val: Any, max_str_len: int = 120, max_seq_len: int = 5)
     return repr(val)
 
 
+def is_main_process() -> bool:
+    for key in ("RANK", "LOCAL_RANK", "ACCELERATE_PROCESS_INDEX", "PROCESS_INDEX"):
+        value = os.environ.get(key)
+        if value is None:
+            continue
+        try:
+            return int(value) == 0
+        except ValueError:
+            continue
+    return True
+
+
+def print_main_process(*args: Any, **kwargs: Any) -> None:
+    if is_main_process():
+        print(*args, **kwargs)
+
+
+def quiet_non_main_process_logging() -> None:
+    if is_main_process():
+        return
+
+    try:
+        from transformers.utils import logging as transformers_logging
+
+        transformers_logging.set_verbosity_error()
+    except Exception:
+        logging.getLogger("transformers").setLevel(logging.ERROR)
+
+    warnings.filterwarnings(
+        "ignore",
+        message=r"`generation_config` default values have been modified to match model-specific defaults: .*",
+    )
+
+
 def print_config_table(title: str, attrs: dict[str, Any]) -> None:
-    if not attrs:
+    if not attrs or not is_main_process():
         return
     console = Console()
     table = Table(title=title, show_lines=False)
@@ -38,14 +75,14 @@ def build_constrained_logits_processor(
     sid_levels: int = -1,
 ) -> LogitsProcessorList:
     """Build Trie from index and return a LogitsProcessorList with ConstrainedLogitsProcessor."""
-    print(f"Building Trie from {index_path}...")
+    print_main_process(f"Building Trie from {index_path}...")
     trie, prompt_suffix_ids, prefix_index = build_trie_from_index(
         index_path,
         tokenizer,
         prefix=prefix,
         sid_levels=sid_levels,
     )
-    print(f"Trie built: prefix_index={prefix_index}, num_items={len(trie)}")
+    print_main_process(f"Trie built: prefix_index={prefix_index}, num_items={len(trie)}")
 
     prefix_allowed_tokens_fn = create_prefix_allowed_tokens_fn(trie, prompt_suffix_ids)
     logits_processor = LogitsProcessorList(
@@ -69,14 +106,14 @@ def build_fixed_hint_constrained_logits_processor(
     num_beams: int = 50,
     sid_levels: int = -1,
 ) -> LogitsProcessorList:
-    print(f"Building FixedHint Trie from {index_path}...")
+    print_main_process(f"Building FixedHint Trie from {index_path}...")
     trie, prompt_suffix_ids, prefix_index = build_trie_from_index(
         index_path,
         tokenizer,
         prefix=prefix,
         sid_levels=sid_levels,
     )
-    print(f"FixedHint Trie built: prefix_index={prefix_index}, num_items={len(trie)}")
+    print_main_process(f"FixedHint Trie built: prefix_index={prefix_index}, num_items={len(trie)}")
 
     prefix_allowed_tokens_fn = create_prefix_allowed_tokens_fn(trie, prompt_suffix_ids)
     logits_processor = LogitsProcessorList(

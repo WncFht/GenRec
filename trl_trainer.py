@@ -15,7 +15,12 @@ from fixed_hint_grpo_trainer import DynamicHintRuleOnlyGRPOTrainer, FixedHintRul
 from MIMIGenRec import MIMIGenRec, get_grpo_config
 from rewards.ranking_reward import build_reward_setup
 from token_prefix_grpo_trainer import TokenPrefixGRPOTrainer
-from util import build_constrained_logits_processor, build_fixed_hint_constrained_logits_processor
+from util import (
+    build_constrained_logits_processor,
+    build_fixed_hint_constrained_logits_processor,
+    print_main_process,
+    quiet_non_main_process_logging,
+)
 
 
 def main(
@@ -69,6 +74,8 @@ def main(
     run_name: Optional[str] = None,
     resume_from_checkpoint: Optional[str] = "auto",
 ):
+    quiet_non_main_process_logging()
+
     raw_bool_args = {
         "save_only_model": save_only_model,
         "do_sample": do_sample,
@@ -147,14 +154,16 @@ def main(
 
         train_hint_depths = train_dataset["oracle_hint_depth"]
         hint_depth_hist = {depth: train_hint_depths.count(depth) for depth in sorted(set(train_hint_depths))}
-        print("[INFO] fixed_hint_generation_mode=mixed_single_generate")
-        print(f"[INFO] fixed_hint_depth_map_path={fixed_hint_depth_map_path}")
-        print(f"[INFO] fixed_hint_depth_cap={fixed_hint_depth_cap!r}, fixed_hint_unsolved_depth={fixed_hint_unsolved_depth}")
-        print(f"[INFO] train_oracle_hint_depth_hist={hint_depth_hist}")
+        print_main_process("[INFO] fixed_hint_generation_mode=mixed_single_generate")
+        print_main_process(f"[INFO] fixed_hint_depth_map_path={fixed_hint_depth_map_path}")
+        print_main_process(
+            f"[INFO] fixed_hint_depth_cap={fixed_hint_depth_cap!r}, fixed_hint_unsolved_depth={fixed_hint_unsolved_depth}"
+        )
+        print_main_process(f"[INFO] train_oracle_hint_depth_hist={hint_depth_hist}")
     elif dynamic_hint_enabled:
-        print("[INFO] dynamic_hint_generation_mode=cascade")
-        print(f"[INFO] dynamic_hint_max_depth={dynamic_hint_max_depth}")
-        print(f"[INFO] dynamic_hint_apply_to_eval={dynamic_hint_apply_to_eval}")
+        print_main_process("[INFO] dynamic_hint_generation_mode=cascade")
+        print_main_process(f"[INFO] dynamic_hint_max_depth={dynamic_hint_max_depth}")
+        print_main_process(f"[INFO] dynamic_hint_apply_to_eval={dynamic_hint_apply_to_eval}")
 
     reward_funcs, reward_weights = build_reward_setup(
         reward_mode=reward_mode,
@@ -222,15 +231,15 @@ def main(
         do_sample=do_sample,
     )
 
-    print(
+    print_main_process(
         "[INFO] raw_bool_args="
         + ", ".join(f"{name}={format_typed_value(value)}" for name, value in raw_bool_args.items())
     )
-    print(
+    print_main_process(
         "[INFO] parsed_bool_args="
         + ", ".join(f"{name}={value!r}" for name, value in parsed_bool_args.items())
     )
-    print(
+    print_main_process(
         f"[INFO] reward_mode={reward_mode}, "
         f"prefix_reward_normalize={prefix_reward_normalize}, "
         f"probe_rule_with_zero_weight={probe_rule_with_zero_weight}, "
@@ -296,9 +305,9 @@ def main(
         elif lowered == "auto":
             resolved_resume = get_last_checkpoint(output_dir)
             if resolved_resume is None:
-                print(f"[INFO] No checkpoint found under {output_dir}, start from scratch.")
+                print_main_process(f"[INFO] No checkpoint found under {output_dir}, start from scratch.")
             else:
-                print(f"[INFO] Auto resume from checkpoint: {resolved_resume}")
+                print_main_process(f"[INFO] Auto resume from checkpoint: {resolved_resume}")
 
     if resolved_resume is not None:
         if not os.path.isdir(resolved_resume):

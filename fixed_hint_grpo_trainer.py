@@ -25,10 +25,6 @@ def _extract_images_from_inputs(inputs: list[dict[str, Union[torch.Tensor, Any]]
     return images
 
 
-def _count_hint_tokens(hint_text: str) -> int:
-    return hint_text.count("<")
-
-
 def _extract_completion_numbers(text: str) -> list[int]:
     return [int(match) for match in re.findall(r"_(\d+)", text)]
 
@@ -312,6 +308,7 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
         selected_group_outputs: dict[int, dict[str, Any]] = {}
         stage_stats: list[dict[str, int]] = []
         is_main_process = bool(getattr(getattr(self, "accelerator", None), "is_main_process", False))
+        should_log_stages = is_main_process and max_hint_depth > 0
 
         for requested_hint_depth in range(max_hint_depth + 1):
             if not unresolved_groups:
@@ -319,7 +316,7 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
 
             stage_inputs: list[dict[str, Union[torch.Tensor, Any]]] = []
             stage_images: list[Any] | None = [] if images is not None else None
-            stage_slices: list[tuple[int, int, dict[str, Any], int]] = []
+            stage_slices: list[tuple[int, int, dict[str, Any]]] = []
 
             for group in unresolved_groups:
                 group_stage_inputs = [
@@ -328,13 +325,12 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
                 start = len(stage_inputs)
                 stage_inputs.extend(group_stage_inputs)
                 end = len(stage_inputs)
-                actual_hint_depth = _count_hint_tokens(group_stage_inputs[0].get("oracle_hint_text", ""))
-                stage_slices.append((start, end, group, actual_hint_depth))
+                stage_slices.append((start, end, group))
                 if stage_images is not None:
                     stage_images.extend(group["images"])
 
             stage_prompts_text = self._build_hinted_prompts(stage_inputs)
-            if is_main_process:
+            if should_log_stages:
                 print(
                     "[INFO] dynamic_hint_stage "
                     f"requested_depth={requested_hint_depth} "
@@ -357,7 +353,7 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
             stage_rule_hit_group_count = 0
             stage_selected_group_count = 0
 
-            for start, end, group, actual_hint_depth in stage_slices:
+            for start, end, group in stage_slices:
                 group_rule_hit_any = any(reward > 0 for reward in stage_rule_rewards[start:end])
                 if group_rule_hit_any:
                     stage_rule_hit_group_count += 1
@@ -368,8 +364,7 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
                         "prompt_ids_list": stage_prompt_ids_list[start:end],
                         "completion_ids_list": stage_completion_ids_list[start:end],
                         "completions_text": stage_completions_text[start:end],
-                        "hint_depth": actual_hint_depth,
-                        "requested_hint_depth": requested_hint_depth,
+                        "hint_depth": requested_hint_depth,
                         "rule_hit_any": group_rule_hit_any,
                     }
                     stage_selected_group_count += 1
@@ -385,7 +380,7 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
                     "remaining_group_count": len(next_unresolved_groups),
                 }
             )
-            if is_main_process:
+            if should_log_stages:
                 print(
                     "[INFO] dynamic_hint_stage_result "
                     f"requested_depth={requested_hint_depth} "
@@ -407,7 +402,6 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
         selected_completion_ids_list: list[Any] = []
         selected_completions_text: list[str] = []
         selected_group_hint_depths: list[int] = []
-        selected_group_requested_hint_depths: list[int] = []
         selected_group_rule_hits: list[bool] = []
 
         for group_index in range(len(prompt_groups)):
@@ -418,7 +412,6 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
             selected_completion_ids_list.extend(group_output["completion_ids_list"])
             selected_completions_text.extend(group_output["completions_text"])
             selected_group_hint_depths.append(group_output["hint_depth"])
-            selected_group_requested_hint_depths.append(group_output["requested_hint_depth"])
             selected_group_rule_hits.append(group_output["rule_hit_any"])
 
         local_num_items_in_batch = sum(len(ids) for ids in selected_completion_ids_list)
@@ -430,7 +423,6 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
             "selected_completion_ids_list": selected_completion_ids_list,
             "selected_completions_text": selected_completions_text,
             "selected_group_hint_depths": selected_group_hint_depths,
-            "selected_group_requested_hint_depths": selected_group_requested_hint_depths,
             "selected_group_rule_hits": selected_group_rule_hits,
             "stage_stats": stage_stats,
             "local_num_items_in_batch": local_num_items_in_batch,
@@ -441,10 +433,11 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
         mode: str,
         stage_stats: list[dict[str, int]],
         selected_group_hint_depths: list[int],
-        selected_group_requested_hint_depths: list[int],
         selected_group_rule_hits: list[bool],
         max_hint_depth: int,
     ) -> None:
+        if mode == "eval" and not self.dynamic_hint_apply_to_eval:
+            return
         if not selected_group_hint_depths:
             return
 
@@ -460,10 +453,8 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
 
         max_depth_miss_count = sum(
             1
-            for requested_hint_depth, rule_hit_any in zip(
-                selected_group_requested_hint_depths, selected_group_rule_hits
-            )
-            if requested_hint_depth == max_hint_depth and not rule_hit_any
+            for hint_depth, rule_hit_any in zip(selected_group_hint_depths, selected_group_rule_hits)
+            if hint_depth == max_hint_depth and not rule_hit_any
         )
         self._metrics[mode]["dynamic_hint/max_depth_miss_frac"].append(max_depth_miss_count / float(num_groups))
 
@@ -473,9 +464,6 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
             denominator = float(evaluated_group_count) if evaluated_group_count else 1.0
             self._metrics[mode][f"dynamic_hint/stage_{requested_hint_depth}_rule_hit_frac"].append(
                 stage_stat["rule_hit_group_count"] / denominator
-            )
-            self._metrics[mode][f"dynamic_hint/stage_{requested_hint_depth}_selected_frac"].append(
-                stage_stat["selected_group_count"] / denominator
             )
             self._metrics[mode][f"dynamic_hint/stage_{requested_hint_depth}_remaining_frac"].append(
                 stage_stat["remaining_group_count"] / denominator
@@ -607,7 +595,6 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
             mode=mode,
             stage_stats=cascade["stage_stats"],
             selected_group_hint_depths=cascade["selected_group_hint_depths"],
-            selected_group_requested_hint_depths=cascade["selected_group_requested_hint_depths"],
             selected_group_rule_hits=cascade["selected_group_rule_hits"],
             max_hint_depth=max_hint_depth,
         )

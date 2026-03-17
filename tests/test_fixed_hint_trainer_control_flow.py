@@ -1,8 +1,10 @@
 import importlib.util
+import io
 import sys
 import types
 import unittest
 from collections import defaultdict
+from contextlib import redirect_stdout
 from pathlib import Path
 
 
@@ -341,6 +343,132 @@ class FixedHintTrainerControlFlowTests(unittest.TestCase):
 
         self.assertTrue(hasattr(num_items, "item"))
         self.assertEqual(num_items.item(), 5)
+
+    def test_dynamic_hint_metrics_drop_redundant_selected_frac_and_use_single_depth_list(self):
+        module = _load_trainer_module()
+
+        trainer = object.__new__(module.DynamicHintRuleOnlyGRPOTrainer)
+        trainer.dynamic_hint_apply_to_eval = False
+        trainer._metrics = {"train": defaultdict(list)}
+        trainer._logs = {}
+
+        trainer._log_dynamic_hint_metrics(
+            mode="train",
+            stage_stats=[
+                {
+                    "requested_hint_depth": 0,
+                    "evaluated_group_count": 4,
+                    "rule_hit_group_count": 1,
+                    "selected_group_count": 1,
+                    "remaining_group_count": 3,
+                },
+                {
+                    "requested_hint_depth": 1,
+                    "evaluated_group_count": 3,
+                    "rule_hit_group_count": 2,
+                    "selected_group_count": 2,
+                    "remaining_group_count": 1,
+                },
+            ],
+            selected_group_hint_depths=[0, 1, 1, 2],
+            selected_group_rule_hits=[True, True, True, False],
+            max_hint_depth=2,
+        )
+
+        self.assertEqual(trainer._metrics["train"]["dynamic_hint/selected_hint_depth_mean"], [1.0])
+        self.assertEqual(trainer._metrics["train"]["dynamic_hint/stage_0_rule_hit_frac"], [0.25])
+        self.assertEqual(trainer._metrics["train"]["dynamic_hint/stage_1_rule_hit_frac"], [2.0 / 3.0])
+        self.assertEqual(trainer._metrics["train"]["dynamic_hint/stage_0_remaining_frac"], [0.75])
+        self.assertEqual(trainer._metrics["train"]["dynamic_hint/stage_1_remaining_frac"], [1.0 / 3.0])
+        self.assertNotIn("dynamic_hint/stage_0_selected_frac", trainer._metrics["train"])
+        self.assertNotIn("dynamic_hint/stage_1_selected_frac", trainer._metrics["train"])
+        self.assertEqual(trainer._logs["dynamic_hint_depth"], [0, 1, 1, 2])
+
+    def test_dynamic_hint_metrics_skip_eval_when_eval_hints_disabled(self):
+        module = _load_trainer_module()
+
+        trainer = object.__new__(module.DynamicHintRuleOnlyGRPOTrainer)
+        trainer.dynamic_hint_apply_to_eval = False
+        trainer._metrics = {"eval": defaultdict(list)}
+        trainer._logs = {}
+
+        trainer._log_dynamic_hint_metrics(
+            mode="eval",
+            stage_stats=[
+                {
+                    "requested_hint_depth": 0,
+                    "evaluated_group_count": 4,
+                    "rule_hit_group_count": 1,
+                    "selected_group_count": 4,
+                    "remaining_group_count": 0,
+                }
+            ],
+            selected_group_hint_depths=[0, 0, 0, 0],
+            selected_group_rule_hits=[True, False, False, False],
+            max_hint_depth=0,
+        )
+
+        self.assertEqual(dict(trainer._metrics["eval"]), {})
+        self.assertNotIn("dynamic_hint_depth", trainer._logs)
+
+    def test_dynamic_hint_metrics_keep_eval_when_eval_hints_enabled(self):
+        module = _load_trainer_module()
+
+        trainer = object.__new__(module.DynamicHintRuleOnlyGRPOTrainer)
+        trainer.dynamic_hint_apply_to_eval = True
+        trainer._metrics = {"eval": defaultdict(list)}
+        trainer._logs = {}
+
+        trainer._log_dynamic_hint_metrics(
+            mode="eval",
+            stage_stats=[
+                {
+                    "requested_hint_depth": 0,
+                    "evaluated_group_count": 4,
+                    "rule_hit_group_count": 1,
+                    "selected_group_count": 1,
+                    "remaining_group_count": 3,
+                }
+            ],
+            selected_group_hint_depths=[0, 1, 1, 2],
+            selected_group_rule_hits=[True, True, True, False],
+            max_hint_depth=2,
+        )
+
+        self.assertEqual(trainer._metrics["eval"]["dynamic_hint/selected_hint_depth_mean"], [1.0])
+        self.assertEqual(trainer._metrics["eval"]["dynamic_hint/stage_0_rule_hit_frac"], [0.25])
+        self.assertEqual(trainer._logs["dynamic_hint_depth"], [0, 1, 1, 2])
+
+    def test_dynamic_hint_cascade_suppresses_stage_logs_for_base_only_eval_path(self):
+        module = _load_trainer_module()
+        trainer = object.__new__(module.DynamicHintRuleOnlyGRPOTrainer)
+        trainer.num_generations = 2
+        trainer.accelerator = types.SimpleNamespace(is_main_process=True)
+        trainer.processing_class = types.SimpleNamespace(
+            batch_decode=lambda batch, skip_special_tokens=True: ["<a_1><b_2>", "<a_1><x_9>"]
+        )
+
+        def fake_generate_single_turn(prompts, images):
+            return (
+                [[100], [101]],
+                [[11, 12], [13, 14]],
+                None,
+                {},
+            )
+
+        trainer._generate_single_turn = fake_generate_single_turn
+
+        inputs = [
+            {"prompt": "prompt-0", "reward_model": {"ground_truth": "<a_1><b_2>"}},
+            {"prompt": "prompt-0", "reward_model": {"ground_truth": "<a_1><b_2>"}},
+        ]
+
+        stdout = io.StringIO()
+        with redirect_stdout(stdout):
+            cascade = trainer._run_dynamic_hint_cascade(inputs, images=None, max_hint_depth=0)
+
+        self.assertEqual(stdout.getvalue(), "")
+        self.assertEqual(cascade["selected_group_hint_depths"], [0])
 
 
 if __name__ == "__main__":

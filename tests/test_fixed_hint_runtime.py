@@ -1,6 +1,8 @@
+import os
 import sys
 import types
 import unittest
+from unittest import mock
 
 
 def _install_dependency_stubs():
@@ -66,6 +68,7 @@ except ModuleNotFoundError:
 from rewards.ranking_reward import get_prefix_rule_reward, rule_reward
 from fixed_hint_logit_processor import find_last_prefix_match_start
 from logit_processor import ConstrainedLogitsProcessor
+import util
 
 
 def test_default_constrained_logits_processor_keeps_count_based_behavior():
@@ -134,3 +137,39 @@ def test_find_last_prefix_match_start_returns_full_prompt_suffix_with_hint_token
 
     assert start == 3
     assert sent[start:] == [101, 102, 103, 9001, 9002, 42]
+
+
+class UtilMainProcessLoggingTests(unittest.TestCase):
+    def test_print_config_table_only_emits_on_main_process(self):
+        console_calls = []
+
+        class _Console:
+            def print(self, *args, **kwargs):
+                console_calls.append((args, kwargs))
+
+        with mock.patch.object(util, "Console", _Console):
+            with mock.patch.dict(os.environ, {"RANK": "1"}, clear=False):
+                util.print_config_table("Hidden", {"alpha": 1})
+            self.assertEqual(console_calls, [])
+
+            with mock.patch.dict(os.environ, {"RANK": "0"}, clear=False):
+                util.print_config_table("Visible", {"beta": 2})
+            self.assertEqual(len(console_calls), 1)
+
+    def test_quiet_non_main_process_logging_sets_transformers_error_verbosity(self):
+        calls = []
+        transformers_utils_mod = types.ModuleType("transformers.utils")
+        transformers_utils_mod.logging = types.SimpleNamespace(set_verbosity_error=lambda: calls.append("error"))
+
+        original_utils = sys.modules.get("transformers.utils")
+        sys.modules["transformers.utils"] = transformers_utils_mod
+        try:
+            with mock.patch.dict(os.environ, {"RANK": "1"}, clear=False):
+                util.quiet_non_main_process_logging()
+        finally:
+            if original_utils is None:
+                del sys.modules["transformers.utils"]
+            else:
+                sys.modules["transformers.utils"] = original_utils
+
+        self.assertEqual(calls, ["error"])

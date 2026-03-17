@@ -1,8 +1,13 @@
 import importlib.util
+import io
+import os
+import re
 import subprocess
 import sys
 import types
 import unittest
+from contextlib import redirect_stdout
+from unittest import mock
 from pathlib import Path
 
 
@@ -13,6 +18,12 @@ DYNAMIC_HINT_SCRIPT = (
     / "hope"
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint.sh"
+)
+FIXED_HINT_SCRIPT = (
+    REPO_ROOT
+    / "hope"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint.sh"
 )
 
 
@@ -98,6 +109,8 @@ def _load_trl_trainer_module(grpo_kwargs_sink: dict[str, object]):
     util_mod = types.ModuleType("util")
     util_mod.build_constrained_logits_processor = lambda *args, **kwargs: None
     util_mod.build_fixed_hint_constrained_logits_processor = lambda *args, **kwargs: None
+    util_mod.print_main_process = lambda *args, **kwargs: print(*args, **kwargs) if os.environ.get("RANK", "0") == "0" else None
+    util_mod.quiet_non_main_process_logging = lambda: None
     sys.modules["util"] = util_mod
 
     spec = importlib.util.spec_from_file_location("trl_trainer_under_test", TRL_TRAINER_PATH)
@@ -109,6 +122,30 @@ def _load_trl_trainer_module(grpo_kwargs_sink: dict[str, object]):
 
 
 class TrlTrainerEntrypointTests(unittest.TestCase):
+    def test_fixed_and_dynamic_launchers_keep_step_count_driving_defaults_aligned(self):
+        fixed_text = FIXED_HINT_SCRIPT.read_text(encoding="utf-8")
+        dynamic_text = DYNAMIC_HINT_SCRIPT.read_text(encoding="utf-8")
+
+        def extract_default(script_text: str, var_name: str) -> str:
+            pattern = rf'^{var_name}="\$\{{{var_name}:-([^"]+)}}"'
+            match = re.search(pattern, script_text, flags=re.MULTILINE)
+            self.assertIsNotNone(match, msg=f"Missing default assignment for {var_name}")
+            return match.group(1)
+
+        for var_name in (
+            "DATA_VARIANT_DEFAULT",
+            "NUM_PROCESSES",
+            "PER_DEVICE_TRAIN_BSZ",
+            "PER_DEVICE_EVAL_BSZ",
+            "GRAD_ACC",
+            "NUM_EPOCHS",
+        ):
+            self.assertEqual(
+                extract_default(fixed_text, var_name),
+                extract_default(dynamic_text, var_name),
+                msg=f"{var_name} default drift would change steps-per-epoch parity",
+            )
+
     def test_main_forwards_max_completion_length_and_run_name_to_grpo_config(self):
         grpo_kwargs = {}
         module = _load_trl_trainer_module(grpo_kwargs)
@@ -143,6 +180,32 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         self.assertIn("--run_name", result.stdout)
         self.assertIn("--per_device_train_batch_size 64", result.stdout)
         self.assertIn("--per_device_eval_batch_size 64", result.stdout)
+
+    def test_non_main_rank_suppresses_startup_info_logs(self):
+        grpo_kwargs = {}
+        module = _load_trl_trainer_module(grpo_kwargs)
+        stdout = io.StringIO()
+
+        with mock.patch.dict(os.environ, {"RANK": "1", "LOCAL_RANK": "1"}, clear=False):
+            with redirect_stdout(stdout):
+                with self.assertRaises(StopAfterTrainerInit):
+                    module.main(
+                        model="dummy-model",
+                        data_dir="dummy-data",
+                        index_path="dummy-index",
+                        output_dir="dummy-output",
+                        report_to="wandb",
+                        run_name="dynamic-hint-test-run",
+                        max_completion_length=123,
+                        token_level_prefix_advantage=False,
+                        reward_mode="rule_only",
+                        num_beams=4,
+                        dynamic_hint_max_depth=3,
+                    )
+
+        output = stdout.getvalue()
+        self.assertNotIn("[INFO] dynamic_hint_generation_mode=cascade", output)
+        self.assertNotIn("[INFO] raw_bool_args=", output)
 
 
 if __name__ == "__main__":
