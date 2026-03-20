@@ -134,6 +134,52 @@ def _safe_mean(values: Iterable[float]) -> float:
     return sum(values) / len(values)
 
 
+def _normalize_fixed_hint_index(source_index: Any) -> str:
+    try:
+        return str(int(source_index))
+    except (TypeError, ValueError):
+        return str(source_index)
+
+
+def _build_fixed_hint_sample_key(task: str, source_index: Any) -> str:
+    task_name = str(task).strip()
+    if not task_name:
+        raise KeyError("Missing extra_info.task for fixed hint export.")
+    return f"{task_name}::{_normalize_fixed_hint_index(source_index)}"
+
+
+def _fixed_hint_sample_key_sort_key(sample_key: str) -> tuple[str, int | str]:
+    task_name, _, source_index = sample_key.partition("::")
+    try:
+        normalized_index: int | str = int(source_index)
+    except ValueError:
+        normalized_index = source_index
+    return (task_name, normalized_index)
+
+
+def _resolve_fixed_hint_task(
+    row: dict[str, Any], samples: list[dict[str, Any]] | None = None
+) -> str:
+    if row.get("task") is not None:
+        task_name = str(row["task"]).strip()
+        if task_name:
+            return task_name
+
+    sample_id = row.get("sample_id")
+    if samples is None or sample_id is None:
+        raise KeyError("Missing task metadata for fixed hint export; provide samples or row['task'].")
+
+    try:
+        sample = samples[int(sample_id)]
+    except (IndexError, TypeError, ValueError) as exc:
+        raise KeyError(f"Invalid sample_id={sample_id} for fixed hint export.") from exc
+
+    task_name = str(sample.get("extra_info", {}).get("task", "")).strip()
+    if not task_name:
+        raise KeyError(f"Missing extra_info.task for sample_id={sample_id} during fixed hint export.")
+    return task_name
+
+
 def aggregate_run_summary(base_rows: list[dict[str, Any]], hinted_rows: dict[int, dict[str, Any]]) -> dict[str, Any]:
     all_prefix_rewards = [reward for row in base_rows for reward in row["group"]["prefix_rewards"]]
     miss_rows = [row for row in base_rows if not row["group"]["rule_hit_any"]]
@@ -192,6 +238,7 @@ def normalize_cached_row(row: dict[str, Any], samples: list[dict[str, Any]], hin
     return {
         "sample_id": row["sample_id"],
         "source_index": row.get("source_index", sample.get("extra_info", {}).get("index")),
+        "task": row.get("task", sample.get("extra_info", {}).get("task")),
         "hint_text": row.get("hint_text", ""),
         "hint_depth": hint_depth,
         "ground_truth": ground_truth,
@@ -325,7 +372,10 @@ def discover_reusable_cache(
 
 
 def build_fixed_hint_depth_map_from_details(
-    details_payload: dict[str, Any], beam_size: int, unsolved_depth: int = 3
+    details_payload: dict[str, Any],
+    beam_size: int,
+    unsolved_depth: int = 3,
+    samples: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     beam_key = str(beam_size)
     payload_root = details_payload.get("results", details_payload)
@@ -344,9 +394,8 @@ def build_fixed_hint_depth_map_from_details(
             },
         }
 
-    hint_depth_by_index: dict[str, int] = {}
-    unsolved_indices: list[int] = []
-    source_row_by_index: dict[int, dict[str, Any]] = {}
+    hint_depth_by_sample_key: dict[str, int] = {}
+    unsolved_sample_keys: list[str] = []
 
     for stage_name, stage_info in sorted(stage_payload.items(), key=lambda item: _stage_sort_key(item[0])):
         hint_depth = 0 if stage_name == "base" else int(stage_name.split("_")[-1])
@@ -354,10 +403,12 @@ def build_fixed_hint_depth_map_from_details(
             source_index = row.get("source_index")
             if source_index is None:
                 continue
-            source_row_by_index[int(source_index)] = row
-            key = str(source_index)
-            if row.get("group", {}).get("rule_hit_any") and key not in hint_depth_by_index:
-                hint_depth_by_index[key] = hint_depth
+            sample_key = _build_fixed_hint_sample_key(
+                _resolve_fixed_hint_task(row, samples=samples),
+                source_index,
+            )
+            if row.get("group", {}).get("rule_hit_any") and sample_key not in hint_depth_by_sample_key:
+                hint_depth_by_sample_key[sample_key] = hint_depth
 
     final_stage_name = max(stage_payload, key=_stage_sort_key)
     final_stage_hint_depth = 0 if final_stage_name == "base" else int(final_stage_name.split("_")[-1])
@@ -365,18 +416,23 @@ def build_fixed_hint_depth_map_from_details(
         source_index = row.get("source_index")
         if source_index is None:
             continue
-        key = str(source_index)
-        if key not in hint_depth_by_index:
-            hint_depth_by_index[key] = unsolved_depth
-            unsolved_indices.append(int(source_index))
+        sample_key = _build_fixed_hint_sample_key(
+            _resolve_fixed_hint_task(row, samples=samples),
+            source_index,
+        )
+        if sample_key not in hint_depth_by_sample_key:
+            hint_depth_by_sample_key[sample_key] = unsolved_depth
+            unsolved_sample_keys.append(sample_key)
 
     return {
-        "sample_key_type": "extra_info.index",
+        "sample_key_type": "extra_info.task+index",
         "beam_size": beam_size,
         "default_unsolved_depth": unsolved_depth,
         "max_available_stage_depth": final_stage_hint_depth,
-        "hint_depth_by_index": dict(sorted(hint_depth_by_index.items(), key=lambda item: int(item[0]))),
-        "unsolved_indices": sorted(unsolved_indices),
+        "hint_depth_by_sample_key": dict(
+            sorted(hint_depth_by_sample_key.items(), key=lambda item: _fixed_hint_sample_key_sort_key(item[0]))
+        ),
+        "unsolved_sample_keys": sorted(unsolved_sample_keys, key=_fixed_hint_sample_key_sort_key),
     }
 
 
@@ -544,6 +600,7 @@ def _prepare_base_records(samples: list[dict[str, Any]], tokenizer) -> list[dict
             {
                 "sample_id": sample_id,
                 "source_index": sample.get("extra_info", {}).get("index"),
+                "task": sample.get("extra_info", {}).get("task"),
                 "ground_truth": sample["reward_model"]["ground_truth"],
                 "prompt_text": _format_prompt(tokenizer, sample["prompt"]),
                 "hint_text": "",
@@ -573,6 +630,7 @@ def _prepare_hint_records(
             {
                 "sample_id": row["sample_id"],
                 "source_index": sample.get("extra_info", {}).get("index"),
+                "task": sample.get("extra_info", {}).get("task"),
                 "ground_truth": sample["reward_model"]["ground_truth"],
                 "prompt_text": f"{_format_prompt(tokenizer, sample['prompt'])}{hint_text}",
                 "hint_text": hint_text,
@@ -626,6 +684,7 @@ def _run_records(
                     {
                         "sample_id": record["sample_id"],
                         "source_index": record["source_index"],
+                        "task": record.get("task"),
                         "hint_text": record["hint_text"],
                         "hint_depth": actual_hint_depth,
                         "group": summarize_group(
@@ -1027,6 +1086,7 @@ def main() -> None:
             export_payload,
             beam_size=args.export_fixed_hint_beam_size,
             unsolved_depth=args.export_fixed_hint_unsolved_depth,
+            samples=samples,
         )
         export_path = Path(args.export_fixed_hint_depth_map_path)
         export_path.parent.mkdir(parents=True, exist_ok=True)

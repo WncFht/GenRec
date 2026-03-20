@@ -106,7 +106,7 @@ MODEL_PATH="${MODEL_PATH:-${REPO_ROOT}/saves/qwen2.5-3b/full/Instruments-grec-sf
 DATA_DIR="${DATA_DIR:-${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/rl}"
 INDEX_PATH="${INDEX_PATH:-${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/id2sid.json}"
 ADD_TOKENS_PATH="${ADD_TOKENS_PATH:-${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/new_tokens.json}"
-OUTPUT_DIR="${OUTPUT_DIR:-${REPO_ROOT}/rl_outputs/Instruments-grec-grpo-rule-only-fixed-hint-mixed-single-generate-qwen2.5-3b-qwen4B-4-256-from-sft495}"
+OUTPUT_DIR="${OUTPUT_DIR:-${REPO_ROOT}/rl_outputs/Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495}"
 DS_CONFIG="${DS_CONFIG:-${REPO_ROOT}/config/zero2.yaml}"
 
 NUM_PROCESSES="${NUM_PROCESSES:-4}"
@@ -125,7 +125,7 @@ TEMPERATURE="${TEMPERATURE:-1.0}"
 REPORT_TO="${REPORT_TO:-wandb}"
 RESUME_FROM_CHECKPOINT="${RESUME_FROM_CHECKPOINT:-auto}"
 
-RUN_NAME="${RUN_NAME:-instruments_grec_rl_rule_only_fixed_hint_mixed_single_generate_qwen2_5_3b_qwen4b_4_256_from_ckpt495}"
+RUN_NAME="${RUN_NAME:-instruments_grec_rl_rule_only_fixed_hint_taskfix_b16_ckpt495}"
 ANALYSIS_DIR_DEFAULT="${REPO_ROOT}/temp/rl_beam_hint"
 ANALYSIS_SUMMARY_PATH="${ANALYSIS_SUMMARY_PATH:-${ANALYSIS_DIR_DEFAULT}/instruments_grec_beam_hint_cascade_20260314_summary.json}"
 ANALYSIS_DETAILS_PATH="${ANALYSIS_DETAILS_PATH:-${ANALYSIS_DIR_DEFAULT}/instruments_grec_beam_hint_cascade_20260314_details.json}"
@@ -450,6 +450,7 @@ TRAIN_CMD=(
   --save_total_limit 10
   --save_only_model true
   --report_to "$REPORT_TO"
+  --run_name "$RUN_NAME"
   --resume_from_checkpoint "$RESUME_FROM_CHECKPOINT"
   --fixed_hint_depth_map_path "$FIXED_HINT_MAP_PATH"
   --fixed_hint_unsolved_depth "$UNSOLVED_DEPTH"

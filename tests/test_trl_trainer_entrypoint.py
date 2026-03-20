@@ -4,11 +4,13 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import types
 import unittest
 from contextlib import redirect_stdout
-from unittest import mock
 from pathlib import Path
+from typing import Optional
+from unittest import mock
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -18,6 +20,12 @@ DYNAMIC_HINT_SCRIPT = (
     / "hope"
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint.sh"
+)
+ANALYZE_BEAM_HINT_SCRIPT = (
+    REPO_ROOT
+    / "hope"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-analyze-rl-beam-hint.sh"
 )
 FIXED_HINT_SCRIPT = (
     REPO_ROOT
@@ -122,6 +130,118 @@ def _load_trl_trainer_module(grpo_kwargs_sink: dict[str, object]):
 
 
 class TrlTrainerEntrypointTests(unittest.TestCase):
+    def _run_analyze_beam_hint_dry_run(self, extra_args: Optional[list[str]] = None) -> subprocess.CompletedProcess:
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            model_dir = temp_root_path / "model"
+            data_dir = temp_root_path / "data" / "rl"
+            index_path = temp_root_path / "data" / "id2sid.json"
+            add_tokens_path = temp_root_path / "data" / "new_tokens.json"
+            summary_path = temp_root_path / "out" / "summary.json"
+            details_path = temp_root_path / "out" / "details.json"
+            cache_dir = temp_root_path / "cache"
+            log_dir = temp_root_path / "log"
+            model_dir.mkdir(parents=True)
+            data_dir.mkdir(parents=True)
+            cache_dir.mkdir(parents=True)
+            log_dir.mkdir(parents=True)
+            (data_dir / "train.json").write_text("[]", encoding="utf-8")
+            index_path.write_text("{}", encoding="utf-8")
+            add_tokens_path.write_text("[]", encoding="utf-8")
+
+            with tempfile.NamedTemporaryFile("w", suffix=".sh") as activate_script:
+                activate_script.write("return 0\n")
+                activate_script.flush()
+                env = dict(os.environ)
+                env["CONDA_DEFAULT_ENV"] = "genrec"
+                command = [
+                    "bash",
+                    str(ANALYZE_BEAM_HINT_SCRIPT),
+                    "--run",
+                    "--dry-run",
+                    "--conda-activate",
+                    activate_script.name,
+                    "--model-path",
+                    str(model_dir),
+                    "--data-dir",
+                    str(data_dir),
+                    "--index-path",
+                    str(index_path),
+                    "--add-tokens-path",
+                    str(add_tokens_path),
+                    "--summary-path",
+                    str(summary_path),
+                    "--details-path",
+                    str(details_path),
+                    "--cache-dir",
+                    str(cache_dir),
+                    "--log-dir",
+                    str(log_dir),
+                ]
+                if extra_args:
+                    command.extend(extra_args)
+                return subprocess.run(
+                    command,
+                    cwd=REPO_ROOT,
+                    env=env,
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+
+    def _run_fixed_hint_dry_run(self, extra_args: Optional[list[str]] = None) -> subprocess.CompletedProcess:
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            model_dir = temp_root_path / "model"
+            data_dir = temp_root_path / "data" / "rl"
+            index_path = temp_root_path / "data" / "id2sid.json"
+            add_tokens_path = temp_root_path / "data" / "new_tokens.json"
+            analysis_summary_path = temp_root_path / "analysis" / "summary.json"
+            analysis_details_path = temp_root_path / "analysis" / "details.json"
+            ds_config_path = temp_root_path / "config" / "zero2.yaml"
+            model_dir.mkdir(parents=True)
+            data_dir.mkdir(parents=True)
+            analysis_summary_path.parent.mkdir(parents=True)
+            ds_config_path.parent.mkdir(parents=True)
+            (data_dir / "train.json").write_text("[]", encoding="utf-8")
+            (data_dir / "valid.json").write_text("[]", encoding="utf-8")
+            (data_dir / "test.json").write_text("[]", encoding="utf-8")
+            index_path.write_text("{}", encoding="utf-8")
+            add_tokens_path.write_text("[]", encoding="utf-8")
+            analysis_summary_path.write_text("{}", encoding="utf-8")
+            analysis_details_path.write_text("{}", encoding="utf-8")
+            ds_config_path.write_text("train_micro_batch_size_per_gpu: 1\n", encoding="utf-8")
+
+            command = [
+                "bash",
+                str(FIXED_HINT_SCRIPT),
+                "--run",
+                "--dry-run",
+                "--model-path",
+                str(model_dir),
+                "--data-dir",
+                str(data_dir),
+                "--index-path",
+                str(index_path),
+                "--add-tokens-path",
+                str(add_tokens_path),
+                "--analysis-summary-path",
+                str(analysis_summary_path),
+                "--analysis-details-path",
+                str(analysis_details_path),
+                "--ds-config",
+                str(ds_config_path),
+            ]
+            if extra_args:
+                command.extend(extra_args)
+            return subprocess.run(
+                command,
+                cwd=REPO_ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
     def test_fixed_and_dynamic_launchers_keep_step_count_driving_defaults_aligned(self):
         fixed_text = FIXED_HINT_SCRIPT.read_text(encoding="utf-8")
         dynamic_text = DYNAMIC_HINT_SCRIPT.read_text(encoding="utf-8")
@@ -180,6 +300,32 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         self.assertIn("--run_name", result.stdout)
         self.assertIn("--per_device_train_batch_size 64", result.stdout)
         self.assertIn("--per_device_eval_batch_size 64", result.stdout)
+
+    def test_analyze_beam_hint_shell_dry_run_defaults_to_beam_16_only(self):
+        result = self._run_analyze_beam_hint_dry_run()
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("--beam-sizes 16", result.stdout)
+        self.assertNotIn("--beam-sizes 8,16", result.stdout)
+
+    def test_analyze_beam_hint_shell_dry_run_keeps_explicit_beam_override(self):
+        result = self._run_analyze_beam_hint_dry_run(["--beam-sizes", "8,16"])
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("--beam-sizes 8\\,16", result.stdout)
+
+    def test_fixed_hint_shell_dry_run_uses_task_index_fix_names(self):
+        result = self._run_fixed_hint_dry_run()
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn(
+            "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
+            result.stdout,
+        )
+        self.assertIn(
+            "--run_name instruments_grec_rl_rule_only_fixed_hint_taskfix_b16_ckpt495",
+            result.stdout,
+        )
 
     def test_non_main_rank_suppresses_startup_info_logs(self):
         grpo_kwargs = {}

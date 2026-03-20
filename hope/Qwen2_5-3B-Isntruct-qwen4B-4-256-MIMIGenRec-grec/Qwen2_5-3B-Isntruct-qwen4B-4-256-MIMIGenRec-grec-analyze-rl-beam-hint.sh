@@ -20,7 +20,7 @@ Common overrides:
   --summary-path <path>
   --details-path <path>
   --run-name <name>
-  --beam-sizes <csv>      Default: 8,16
+  --beam-sizes <csv>      Default: 16
   --hint-depth <n>        Default: 1
   --max-hint-depth <n>    Default: 3
   --batch-size <n>
@@ -107,7 +107,7 @@ SUMMARY_DIR_DEFAULT="${REPO_ROOT}/temp/rl_beam_hint"
 SUMMARY_PATH="${SUMMARY_PATH:-}"
 DETAILS_PATH="${DETAILS_PATH:-}"
 
-BEAM_SIZES="${BEAM_SIZES:-8,16}"
+BEAM_SIZES="${BEAM_SIZES:-16}"
 HINT_DEPTH="${HINT_DEPTH:-1}"
 MAX_HINT_DEPTH="${MAX_HINT_DEPTH:-3}"
 BATCH_SIZE="${BATCH_SIZE:-8}"

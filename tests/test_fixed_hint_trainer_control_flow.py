@@ -1,5 +1,6 @@
 import importlib.util
 import io
+import re
 import sys
 import types
 import unittest
@@ -65,6 +66,15 @@ def _install_trainer_stubs():
     sys.modules["trl.trainer"] = trl_trainer_mod
     sys.modules["trl.trainer.grpo_trainer"] = trl_grpo_mod
     sys.modules["trl.trainer.utils"] = trl_utils_mod
+
+    fixed_hint_utils_mod = types.ModuleType("fixed_hint_utils")
+    fixed_hint_utils_mod.build_hint_text = (
+        lambda ground_truth, hint_depth: "".join(re.findall(r"<[^>]+>", ground_truth)[: max(hint_depth, 0)])
+    )
+    fixed_hint_utils_mod.build_prompt_with_hint = (
+        lambda example, formatter: f"{formatter(example['prompt'])}{example.get('oracle_hint_text', '')}"
+    )
+    sys.modules["fixed_hint_utils"] = fixed_hint_utils_mod
 
 
 def _load_trainer_module():
@@ -204,6 +214,7 @@ class FixedHintTrainerControlFlowTests(unittest.TestCase):
         )
         self.assertEqual(cascade["selected_inputs"][2]["oracle_hint_text"], "<c_3>")
         self.assertEqual(cascade["local_num_items_in_batch"], 11)
+        self.assertEqual(cascade["selected_rule_rewards"], [1.0, 0.0, 1.0, 0.0])
 
     def test_dynamic_hint_cascade_keeps_max_depth_outputs_when_all_stages_miss(self):
         module = _load_trainer_module()
@@ -267,6 +278,106 @@ class FixedHintTrainerControlFlowTests(unittest.TestCase):
         )
         self.assertEqual(cascade["selected_inputs"][0]["oracle_hint_text"], "<a_1><b_2><c_3>")
         self.assertEqual(cascade["local_num_items_in_batch"], 2)
+        self.assertEqual(cascade["selected_rule_rewards"], [0.0, 0.0])
+
+    def test_log_completions_false_skips_prompt_and_completion_gather(self):
+        module = _load_trainer_module()
+        trainer = object.__new__(module.FixedHintRuleOnlyGRPOTrainer)
+        trainer.log_completions = False
+        trainer._logs = {"prompt": [], "completion": [], "images": []}
+
+        def fail_gather_object(value):
+            raise AssertionError("gather_object should be skipped when log_completions is disabled")
+
+        module.gather_object = fail_gather_object
+
+        trainer._maybe_log_prompt_completions(["prompt-0"], ["completion-0"])
+
+        self.assertEqual(trainer._logs["prompt"], [])
+        self.assertEqual(trainer._logs["completion"], [])
+
+    def test_log_completions_true_gathers_prompt_and_completion_text(self):
+        module = _load_trainer_module()
+        trainer = object.__new__(module.FixedHintRuleOnlyGRPOTrainer)
+        trainer.log_completions = True
+        trainer._logs = {"prompt": [], "completion": [], "images": []}
+
+        gather_calls = []
+
+        def fake_gather_object(value):
+            gather_calls.append(list(value))
+            return [f"gathered::{item}" for item in value]
+
+        module.gather_object = fake_gather_object
+
+        trainer._maybe_log_prompt_completions(["prompt-0"], ["completion-0"])
+
+        self.assertEqual(gather_calls, [["prompt-0"], ["completion-0"]])
+        self.assertEqual(trainer._logs["prompt"], ["gathered::prompt-0"])
+        self.assertEqual(trainer._logs["completion"], ["gathered::completion-0"])
+
+    def test_dynamic_rule_only_fast_path_gathers_reused_selected_rule_rewards(self):
+        module = _load_trainer_module()
+        captured = {}
+        gather_calls = []
+
+        def fake_tensor(value, dtype=None, device=None):
+            captured["value"] = value
+            captured["dtype"] = dtype
+            captured["device"] = device
+            return value
+
+        module.torch = types.SimpleNamespace(tensor=fake_tensor, float32="float32")
+
+        trainer = object.__new__(module.DynamicHintRuleOnlyGRPOTrainer)
+        trainer.accelerator = types.SimpleNamespace(
+            device="cpu",
+            gather=lambda value: gather_calls.append(value) or ["gathered", value],
+        )
+        trainer.reward_func_names = ["rule_reward"]
+
+        def fail_calculate_rewards(*args, **kwargs):
+            raise AssertionError("_calculate_rewards should not be called for dynamic rule_only fast path")
+
+        trainer._calculate_rewards = fail_calculate_rewards
+
+        rewards_per_func = trainer._resolve_rewards_per_func(
+            inputs=[{"prompt": "prompt-0"}, {"prompt": "prompt-1"}],
+            prompts=["prompt-0", "prompt-1"],
+            completions=["completion-0", "completion-1"],
+            completion_ids_list=[[11], [12]],
+            selected_rule_rewards=[1.0, 0.0],
+        )
+
+        self.assertEqual(gather_calls, [[[1.0], [0.0]]])
+        self.assertEqual(rewards_per_func, ["gathered", [[1.0], [0.0]]])
+        self.assertEqual(captured["value"], [[1.0], [0.0]])
+        self.assertEqual(captured["dtype"], "float32")
+        self.assertEqual(captured["device"], "cpu")
+
+    def test_dynamic_rule_only_fast_path_falls_back_for_non_rule_only_reward_setup(self):
+        module = _load_trainer_module()
+        trainer = object.__new__(module.DynamicHintRuleOnlyGRPOTrainer)
+        trainer.reward_func_names = ["rule_reward", "prefix_rule_reward"]
+
+        fallback_calls = []
+
+        def fake_calculate_rewards(inputs, prompts, completions, completion_ids_list):
+            fallback_calls.append((inputs, prompts, completions, completion_ids_list))
+            return "fallback"
+
+        trainer._calculate_rewards = fake_calculate_rewards
+
+        rewards_per_func = trainer._resolve_rewards_per_func(
+            inputs=[{"prompt": "prompt-0"}],
+            prompts=["prompt-0"],
+            completions=["completion-0"],
+            completion_ids_list=[[11]],
+            selected_rule_rewards=[1.0],
+        )
+
+        self.assertEqual(rewards_per_func, "fallback")
+        self.assertEqual(len(fallback_calls), 1)
 
     def test_dynamic_generation_metrics_returns_scalar_tensor_like_num_items(self):
         module = _load_trainer_module()

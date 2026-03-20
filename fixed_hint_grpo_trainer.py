@@ -4,7 +4,7 @@ import re
 from typing import Any, Union
 
 import torch
-from accelerate.utils import gather, gather_object
+from accelerate.utils import gather_object
 from trl import GRPOTrainer
 from trl.data_utils import is_conversational, maybe_apply_chat_template
 from trl.trainer.grpo_trainer import nanstd
@@ -53,6 +53,19 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
             )
             for example in inputs
         ]
+
+    def _maybe_log_prompt_completions(
+        self,
+        prompts_text: list[str],
+        completions_text: list[str],
+        images: list[Any] | None = None,
+    ) -> None:
+        if not getattr(self, "log_completions", False):
+            return
+        self._logs["prompt"].extend(gather_object(prompts_text))
+        self._logs["completion"].extend(gather_object(completions_text))
+        if images is not None:
+            self._logs["images"].extend(gather_object(images))
 
     def _generate_and_score_completions(
         self, inputs: list[dict[str, Union[torch.Tensor, Any]]]
@@ -146,7 +159,6 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
             completions = completions_text
 
         rewards_per_func = self._calculate_rewards(inputs, prompts, completions, completion_ids_list)
-        rewards_per_func = gather(rewards_per_func)
         rewards = (rewards_per_func * self.reward_weights.to(device).unsqueeze(0)).nansum(dim=1)
 
         mean_grouped_rewards = rewards.view(-1, self.num_generations).mean(dim=1)
@@ -183,8 +195,7 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
         self._metrics[mode]["reward_std"].append(std_rewards.mean().item())
         self._metrics[mode]["frac_reward_zero_std"].append(is_std_zero.float().mean().item())
 
-        self._logs["prompt"].extend(gather_object(prompts_text))
-        self._logs["completion"].extend(gather_object(completions_text))
+        self._maybe_log_prompt_completions(prompts_text, completions_text, images=images)
         for i, name in enumerate(self.reward_func_names):
             self._logs["rewards"][name].extend(rewards_per_func[:, i].tolist())
         self._logs["advantages"].extend(all_process_advantages.tolist())
@@ -364,6 +375,7 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
                         "prompt_ids_list": stage_prompt_ids_list[start:end],
                         "completion_ids_list": stage_completion_ids_list[start:end],
                         "completions_text": stage_completions_text[start:end],
+                        "rule_rewards": stage_rule_rewards[start:end],
                         "hint_depth": requested_hint_depth,
                         "rule_hit_any": group_rule_hit_any,
                     }
@@ -401,6 +413,7 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
         selected_prompt_ids_list: list[Any] = []
         selected_completion_ids_list: list[Any] = []
         selected_completions_text: list[str] = []
+        selected_rule_rewards: list[float] = []
         selected_group_hint_depths: list[int] = []
         selected_group_rule_hits: list[bool] = []
 
@@ -411,6 +424,7 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
             selected_prompt_ids_list.extend(group_output["prompt_ids_list"])
             selected_completion_ids_list.extend(group_output["completion_ids_list"])
             selected_completions_text.extend(group_output["completions_text"])
+            selected_rule_rewards.extend(group_output["rule_rewards"])
             selected_group_hint_depths.append(group_output["hint_depth"])
             selected_group_rule_hits.append(group_output["rule_hit_any"])
 
@@ -422,6 +436,7 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
             "selected_prompt_ids_list": selected_prompt_ids_list,
             "selected_completion_ids_list": selected_completion_ids_list,
             "selected_completions_text": selected_completions_text,
+            "selected_rule_rewards": selected_rule_rewards,
             "selected_group_hint_depths": selected_group_hint_depths,
             "selected_group_rule_hits": selected_group_rule_hits,
             "stage_stats": stage_stats,
@@ -471,6 +486,27 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
 
         self._logs.setdefault("dynamic_hint_depth", []).extend(selected_group_hint_depths)
 
+    def _resolve_rewards_per_func(
+        self,
+        inputs: list[dict[str, Union[torch.Tensor, Any]]],
+        prompts: list[Any],
+        completions: list[Any],
+        completion_ids_list: list[Any],
+        selected_rule_rewards: list[float] | None = None,
+    ):
+        if (
+            selected_rule_rewards is not None
+            and len(getattr(self, "reward_func_names", [])) == 1
+            and self.reward_func_names[0] == "rule_reward"
+        ):
+            rewards_per_func = torch.tensor(
+                [[float(reward)] for reward in selected_rule_rewards],
+                dtype=torch.float32,
+                device=self.accelerator.device,
+            )
+            return self.accelerator.gather(rewards_per_func)
+        return self._calculate_rewards(inputs, prompts, completions, completion_ids_list)
+
     def _generate_and_score_completions(
         self, inputs: list[dict[str, Union[torch.Tensor, Any]]]
     ) -> dict[str, Union[torch.Tensor, Any]]:
@@ -487,6 +523,7 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
         prompt_ids_list = cascade["selected_prompt_ids_list"]
         completion_ids_list = cascade["selected_completion_ids_list"]
         completions_text = cascade["selected_completions_text"]
+        selected_rule_rewards = cascade["selected_rule_rewards"]
         num_items_in_batch = self._log_selected_batch_generation_metrics(mode, prompt_ids_list, completion_ids_list)
 
         prompt_ids = [torch.tensor(ids, device=device) for ids in prompt_ids_list]
@@ -553,8 +590,13 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
         else:
             completions = completions_text
 
-        rewards_per_func = self._calculate_rewards(inputs, prompts, completions, completion_ids_list)
-        rewards_per_func = gather(rewards_per_func)
+        rewards_per_func = self._resolve_rewards_per_func(
+            inputs,
+            prompts,
+            completions,
+            completion_ids_list,
+            selected_rule_rewards=selected_rule_rewards,
+        )
         rewards = (rewards_per_func * self.reward_weights.to(device).unsqueeze(0)).nansum(dim=1)
 
         mean_grouped_rewards = rewards.view(-1, self.num_generations).mean(dim=1)
@@ -599,8 +641,7 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
             max_hint_depth=max_hint_depth,
         )
 
-        self._logs["prompt"].extend(gather_object(prompts_text))
-        self._logs["completion"].extend(gather_object(completions_text))
+        self._maybe_log_prompt_completions(prompts_text, completions_text, images=images)
         for i, name in enumerate(self.reward_func_names):
             self._logs["rewards"][name].extend(rewards_per_func[:, i].tolist())
         self._logs["advantages"].extend(all_process_advantages.tolist())
