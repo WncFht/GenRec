@@ -33,6 +33,11 @@ FIXED_HINT_SCRIPT = (
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint.sh"
 )
+GREC_RL_SCRIPT_DIR = (
+    REPO_ROOT
+    / "hope"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
+)
 
 
 class StopAfterTrainerInit(RuntimeError):
@@ -287,6 +292,26 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         self.assertEqual(grpo_kwargs["max_completion_length"], 123)
         self.assertEqual(grpo_kwargs["run_name"], "dynamic-hint-test-run")
 
+    def test_main_forwards_eval_on_start_to_grpo_config(self):
+        grpo_kwargs = {}
+        module = _load_trl_trainer_module(grpo_kwargs)
+
+        with self.assertRaises(StopAfterTrainerInit):
+            module.main(
+                model="dummy-model",
+                data_dir="dummy-data",
+                index_path="dummy-index",
+                output_dir="dummy-output",
+                report_to="wandb",
+                run_name="dynamic-hint-test-run",
+                token_level_prefix_advantage=False,
+                reward_mode="rule_only",
+                num_beams=4,
+                eval_on_start=True,
+            )
+
+        self.assertTrue(grpo_kwargs["eval_on_start"])
+
     def test_dynamic_hint_shell_dry_run_forwards_run_name_and_uses_working_batch_default(self):
         result = subprocess.run(
             ["bash", str(DYNAMIC_HINT_SCRIPT), "--dry-run"],
@@ -300,6 +325,7 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         self.assertIn("--run_name", result.stdout)
         self.assertIn("--per_device_train_batch_size 64", result.stdout)
         self.assertIn("--per_device_eval_batch_size 64", result.stdout)
+        self.assertIn("--eval_on_start true", result.stdout)
 
     def test_analyze_beam_hint_shell_dry_run_defaults_to_beam_16_only(self):
         result = self._run_analyze_beam_hint_dry_run()
@@ -326,6 +352,28 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
             "--run_name instruments_grec_rl_rule_only_fixed_hint_taskfix_b16_ckpt495",
             result.stdout,
         )
+        self.assertIn("--eval_on_start true", result.stdout)
+
+    def test_all_grec_rl_launchers_enable_eval_on_start_by_default(self):
+        training_scripts = sorted(
+            path
+            for path in GREC_RL_SCRIPT_DIR.glob("*-rl*.sh")
+            if "analyze-rl-beam-hint" not in path.name
+        )
+        self.assertTrue(training_scripts, msg="Expected grecc RL launcher scripts")
+
+        for script_path in training_scripts:
+            text = script_path.read_text(encoding="utf-8")
+            self.assertIn(
+                'EVAL_ON_START="${EVAL_ON_START:-true}"',
+                text,
+                msg=f"Missing default eval-on-start enablement in {script_path.name}",
+            )
+            self.assertIn(
+                '--eval_on_start "$EVAL_ON_START"',
+                text,
+                msg=f"Missing eval_on_start forwarding in {script_path.name}",
+            )
 
     def test_non_main_rank_suppresses_startup_info_logs(self):
         grpo_kwargs = {}

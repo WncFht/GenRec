@@ -44,6 +44,7 @@ def main(
     logging_steps: int = 1,
     eval_step: int = 100,
     eval_strategy: str = "steps",
+    eval_on_start: bool = False,
     save_strategy: str = "steps",
     save_steps: Union[int, float] = 0.1,
     save_total_limit: int = 3,
@@ -86,6 +87,7 @@ def main(
         "token_level_ndcg_error_token_penalty": token_level_ndcg_error_token_penalty,
         "fixed_hint_apply_to_eval": fixed_hint_apply_to_eval,
         "dynamic_hint_apply_to_eval": dynamic_hint_apply_to_eval,
+        "eval_on_start": eval_on_start,
         "bf16": bf16,
     }
     parsed_bool_args = {name: coerce_bool_arg(value, name) for name, value in raw_bool_args.items()}
@@ -98,6 +100,7 @@ def main(
     token_level_ndcg_error_token_penalty = parsed_bool_args["token_level_ndcg_error_token_penalty"]
     fixed_hint_apply_to_eval = parsed_bool_args["fixed_hint_apply_to_eval"]
     dynamic_hint_apply_to_eval = parsed_bool_args["dynamic_hint_apply_to_eval"]
+    eval_on_start = parsed_bool_args["eval_on_start"]
     bf16 = parsed_bool_args["bf16"]
     dynamic_hint_enabled = dynamic_hint_max_depth is not None and int(dynamic_hint_max_depth) > 0
     if dynamic_hint_max_depth is not None:
@@ -182,6 +185,7 @@ def main(
         logging_steps=logging_steps,
         eval_steps=eval_step,
         eval_strategy=eval_strategy,
+        eval_on_start=eval_on_start,
         save_strategy=save_strategy,
         save_steps=save_steps,
         save_total_limit=save_total_limit,
