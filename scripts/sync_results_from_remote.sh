@@ -44,7 +44,7 @@ Description:
       4) ignores basenames in EXCLUDE_BASENAMES_CSV (default: final_result.json,rollout.json)
       5) builds tar.gz; if final archive > CHUNK_SIZE, splits to .part.000/.001/...
   - unpack:
-      1) auto picks latest result*.tar.gz in current dir when input omitted
+      1) auto picks latest result*.tar.gz from ~/Downloads, then current dir, when input omitted
       2) extracts archive (or rebuilds from .part.000 + parts)
       3) overwrites local GenRec/results
       4) validates results/.wandb_eval_manifest.json exists
@@ -93,6 +93,19 @@ find_latest_results_archive() {
   fi
 
   printf '%s\n' "$latest_archive"
+}
+
+find_latest_results_archive_in_dirs() {
+  local search_dir latest_archive
+  for search_dir in "$@"; do
+    [[ -z "$search_dir" ]] && continue
+    if latest_archive="$(find_latest_results_archive "$search_dir")"; then
+      printf '%s\n' "$latest_archive"
+      return 0
+    fi
+  done
+
+  return 1
 }
 
 generate_manifest_if_enabled() {
@@ -349,8 +362,17 @@ unpack_results() {
 
   local input_arg="" input_path=""
   if [[ $# -eq 0 ]]; then
-    if ! input_path="$(find_latest_results_archive "$(pwd)")"; then
-      echo "Error: no result*.tar.gz archive found in current dir: $(pwd)" >&2
+    local downloads_dir=""
+    if [[ -n "${HOME:-}" ]]; then
+      downloads_dir="${HOME}/Downloads"
+    fi
+
+    if ! input_path="$(find_latest_results_archive_in_dirs "$downloads_dir" "$(pwd)")"; then
+      if [[ -n "$downloads_dir" ]]; then
+        echo "Error: no result*.tar.gz archive found in ~/Downloads or current dir: $(pwd)" >&2
+      else
+        echo "Error: no result*.tar.gz archive found in current dir: $(pwd)" >&2
+      fi
       exit 1
     fi
     echo "No unpack input provided. Using latest archive: $input_path"
@@ -381,7 +403,6 @@ unpack_results() {
   local temp_archive=""
   local temp_extract_dir=""
   local archive_path=""
-  local source_dir=""
   local -a source_archives=()
 
   cleanup() {
@@ -393,7 +414,6 @@ unpack_results() {
 
   if [[ -f "$input_path" && "$input_path" == *.tar.gz ]]; then
     archive_path="$input_path"
-    source_dir="$(dirname "$input_path")"
     source_archives=("$input_path")
   else
     local part_prefix
@@ -416,7 +436,6 @@ unpack_results() {
     temp_archive="/tmp/results_sync_unpack_$(date +%s)_$$.tar.gz"
     cat "${part_files[@]}" > "$temp_archive"
     archive_path="$temp_archive"
-    source_dir="$(dirname "${part_files[0]}")"
     source_archives=("${part_files[@]}")
     echo "Rebuilt archive from ${#part_files[@]} part files."
   fi
@@ -468,23 +487,17 @@ unpack_results() {
   echo "Or run watch mode:"
   echo "  PYTHON_BIN=python bash eval_wandb_sidecar.sh start --instance eval_uploader --results-root ./results --manifest-path ./results/.wandb_eval_manifest.json --wandb-mode online"
 
-  local archive_file
-  for archive_file in "${source_archives[@]:-}"; do
-    [[ -f "$archive_file" ]] && rm -f "$archive_file"
-  done
+  if [[ ${#source_archives[@]} -gt 0 ]]; then
+    local archive_file removed_source_archives=0
+    for archive_file in "${source_archives[@]}"; do
+      if [[ -f "$archive_file" ]]; then
+        rm -f "$archive_file"
+        removed_source_archives=$((removed_source_archives + 1))
+      fi
+    done
 
-  if [[ -n "$source_dir" ]]; then
-    local -a old_results_archives
-    shopt -s nullglob
-    old_results_archives=(
-      "$source_dir"/result*.tar.gz
-      "$source_dir"/result*.tar.gz.part.[0-9][0-9][0-9]
-    )
-    shopt -u nullglob
-
-    if [[ ${#old_results_archives[@]} -gt 0 ]]; then
-      rm -f "${old_results_archives[@]}"
-      echo "Removed result archive file(s) in source dir: ${#old_results_archives[@]}"
+    if (( removed_source_archives > 0 )); then
+      echo "Removed source archive file(s): $removed_source_archives"
     fi
   fi
 }
