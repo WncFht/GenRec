@@ -21,6 +21,18 @@ DYNAMIC_HINT_SCRIPT = (
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint.sh"
 )
+DYNAMIC_HINT_SID_ONLY_SCRIPT = (
+    REPO_ROOT
+    / "hope"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-only.sh"
+)
+DYNAMIC_HINT_RANKING_SCRIPT = (
+    REPO_ROOT
+    / "hope"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-ranking-dynamic-hint.sh"
+)
 ANALYZE_BEAM_HINT_SCRIPT = (
     REPO_ROOT
     / "hope"
@@ -327,6 +339,45 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         self.assertIn("--per_device_eval_batch_size 64", result.stdout)
         self.assertIn("--eval_on_start true", result.stdout)
 
+    def test_dynamic_hint_sid_only_shell_dry_run_uses_rl_sid_only_variant(self):
+        result = subprocess.run(
+            ["bash", str(DYNAMIC_HINT_SID_ONLY_SCRIPT), "--dry-run"],
+            cwd=REPO_ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("Instruments_grec_rlsidonly_index_emb", result.stdout)
+        self.assertIn("--reward_mode rule_only", result.stdout)
+        self.assertIn("--dynamic_hint_max_depth 3", result.stdout)
+        self.assertIn("--eval_on_start true", result.stdout)
+
+    def test_dynamic_hint_sid_only_shell_is_standalone_launcher(self):
+        script_text = DYNAMIC_HINT_SID_ONLY_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("trl_trainer.py", script_text)
+        self.assertNotIn(
+            "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint.sh",
+            script_text,
+        )
+        self.assertNotIn("exec bash", script_text)
+
+    def test_dynamic_hint_ranking_shell_dry_run_uses_ranking_reward_mode(self):
+        result = subprocess.run(
+            ["bash", str(DYNAMIC_HINT_RANKING_SCRIPT), "--dry-run"],
+            cwd=REPO_ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("--reward_mode ranking", result.stdout)
+        self.assertIn("--dynamic_hint_max_depth 3", result.stdout)
+        self.assertIn("--eval_on_start true", result.stdout)
+
     def test_analyze_beam_hint_shell_dry_run_defaults_to_beam_16_only(self):
         result = self._run_analyze_beam_hint_dry_run()
 
@@ -400,6 +451,24 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         output = stdout.getvalue()
         self.assertNotIn("[INFO] dynamic_hint_generation_mode=cascade", output)
         self.assertNotIn("[INFO] raw_bool_args=", output)
+
+    def test_dynamic_hint_accepts_ranking_reward_mode(self):
+        grpo_kwargs = {}
+        module = _load_trl_trainer_module(grpo_kwargs)
+
+        with self.assertRaises(StopAfterTrainerInit):
+            module.main(
+                model="dummy-model",
+                data_dir="dummy-data",
+                index_path="dummy-index",
+                output_dir="dummy-output",
+                report_to="wandb",
+                run_name="dynamic-hint-ranking-test-run",
+                token_level_prefix_advantage=False,
+                reward_mode="ranking",
+                num_beams=4,
+                dynamic_hint_max_depth=3,
+            )
 
 
 if __name__ == "__main__":

@@ -23,6 +23,10 @@ SID_LEVELS="${SID_LEVELS:--1}"
 SPLIT_STRATEGY="${SPLIT_STRATEGY:-mimionerec}"
 TRAIN_RATIO="${TRAIN_RATIO:-0.8}"
 VALID_RATIO="${VALID_RATIO:-0.1}"
+DATA_VARIANT_TAG="${DATA_VARIANT_TAG:-}"
+RL_ONLY_TASK1="${RL_ONLY_TASK1:-false}"
+RL_ONLY_TASK4="${RL_ONLY_TASK4:-false}"
+RL_ONLY_TASK5="${RL_ONLY_TASK5:-false}"
 MODE="${1:-check}"
 
 CATEGORY_DIR="${DATA_ROOT}/${CATEGORY}"
@@ -32,7 +36,12 @@ if [[ "${INDEX_STEM}" == "${CATEGORY}."* ]]; then
   INDEX_STEM="${INDEX_STEM#${CATEGORY}.}"
 fi
 
-DATA_VARIANT="${DATA_VARIANT:-${CATEGORY}_${SPLIT_STRATEGY}_${INDEX_STEM}}"
+if [[ -n "${DATA_VARIANT_TAG}" ]]; then
+  DEFAULT_DATA_VARIANT="${CATEGORY}_${SPLIT_STRATEGY}_${DATA_VARIANT_TAG}_${INDEX_STEM}"
+else
+  DEFAULT_DATA_VARIANT="${CATEGORY}_${SPLIT_STRATEGY}_${INDEX_STEM}"
+fi
+DATA_VARIANT="${DATA_VARIANT:-${DEFAULT_DATA_VARIANT}}"
 OUTPUT_DIR="${OUTPUT_DIR:-${GENREC_ROOT}/data/${DATA_VARIANT}}"
 DATASET_SUBDIR="${DATASET_SUBDIR:-${DATA_VARIANT}}"
 DATASET_INFO_PATH="${DATASET_INFO_PATH:-${GENREC_ROOT}/data/dataset_info.json}"
@@ -52,7 +61,8 @@ Examples:
 Override env vars if needed:
   GENREC_ROOT DATA_ROOT CATEGORY INDEX_PATH OUTPUT_DIR PYTHON_BIN SEQ_SAMPLE SEED
   SID_LEVELS SPLIT_STRATEGY TRAIN_RATIO VALID_RATIO
-  DATA_VARIANT DATASET_SUBDIR DATASET_KEY_PREFIX DATASET_INFO_PATH
+  DATA_VARIANT DATA_VARIANT_TAG DATASET_SUBDIR DATASET_KEY_PREFIX DATASET_INFO_PATH
+  RL_ONLY_TASK1 RL_ONLY_TASK4 RL_ONLY_TASK5
 EOF
 }
 
@@ -76,6 +86,10 @@ print_config() {
   echo "[INFO] SPLIT_STRATEGY=${SPLIT_STRATEGY}"
   echo "[INFO] TRAIN_RATIO=${TRAIN_RATIO}"
   echo "[INFO] VALID_RATIO=${VALID_RATIO}"
+  echo "[INFO] DATA_VARIANT_TAG=${DATA_VARIANT_TAG}"
+  echo "[INFO] RL_ONLY_TASK1=${RL_ONLY_TASK1}"
+  echo "[INFO] RL_ONLY_TASK4=${RL_ONLY_TASK4}"
+  echo "[INFO] RL_ONLY_TASK5=${RL_ONLY_TASK5}"
 }
 
 require_dir() {
@@ -103,6 +117,40 @@ check_base() {
   require_file "${GENREC_ROOT}/scripts/inspect_preprocess_category.py" "inspect script"
   require_file "${GENREC_ROOT}/scripts/prepare_category_from_inter_json.py" "prepare script"
   require_file "${GENREC_ROOT}/preprocess_data_sft_rl.py" "preprocess script"
+}
+
+append_rl_task_args() {
+  case "$(printf '%s' "${RL_ONLY_TASK1}" | tr '[:upper:]' '[:lower:]')" in
+    1|true|yes) PREPARE_CMD+=(--rl-only-task1) ;;
+  esac
+  case "$(printf '%s' "${RL_ONLY_TASK4}" | tr '[:upper:]' '[:lower:]')" in
+    1|true|yes) PREPARE_CMD+=(--rl-only-task4) ;;
+  esac
+  case "$(printf '%s' "${RL_ONLY_TASK5}" | tr '[:upper:]' '[:lower:]')" in
+    1|true|yes) PREPARE_CMD+=(--rl-only-task5) ;;
+  esac
+}
+
+build_prepare_cmd() {
+  PREPARE_CMD=(
+    "${PYTHON_BIN}" "${GENREC_ROOT}/scripts/prepare_category_from_inter_json.py"
+    --genrec-root "${GENREC_ROOT}"
+    --category-dir "${CATEGORY_DIR}"
+    --category "${CATEGORY}"
+    --index-path "${INDEX_PATH}"
+    --output-dir "${OUTPUT_DIR}"
+    --dataset-subdir "${DATASET_SUBDIR}"
+    --dataset-key-prefix "${DATASET_KEY_PREFIX}"
+    --dataset-info-path "${DATASET_INFO_PATH}"
+    --split-strategy "${SPLIT_STRATEGY}"
+    --train-ratio "${TRAIN_RATIO}"
+    --valid-ratio "${VALID_RATIO}"
+    --seq-sample "${SEQ_SAMPLE}"
+    --seed "${SEED}"
+    --sid-levels "${SID_LEVELS}"
+    --python-bin "${PYTHON_BIN}"
+  )
+  append_rl_task_args
 }
 
 step_check() {
@@ -137,46 +185,17 @@ step_check() {
 
 step_prepare() {
   echo "[STEP] Prepare .train/.valid/.test.inter only"
-  "${PYTHON_BIN}" "${GENREC_ROOT}/scripts/prepare_category_from_inter_json.py" \
-    --genrec-root "${GENREC_ROOT}" \
-    --category-dir "${CATEGORY_DIR}" \
-    --category "${CATEGORY}" \
-    --index-path "${INDEX_PATH}" \
-    --output-dir "${OUTPUT_DIR}" \
-    --dataset-subdir "${DATASET_SUBDIR}" \
-    --dataset-key-prefix "${DATASET_KEY_PREFIX}" \
-    --dataset-info-path "${DATASET_INFO_PATH}" \
-    --split-strategy "${SPLIT_STRATEGY}" \
-    --train-ratio "${TRAIN_RATIO}" \
-    --valid-ratio "${VALID_RATIO}" \
-    --seq-sample "${SEQ_SAMPLE}" \
-    --seed "${SEED}" \
-    --sid-levels "${SID_LEVELS}" \
-    --python-bin "${PYTHON_BIN}" \
-    --skip-dataset-info-update \
-    --prepare-only
+  build_prepare_cmd
+  PREPARE_CMD+=(--skip-dataset-info-update --prepare-only)
+  "${PREPARE_CMD[@]}"
 
   echo "[DONE] Prepared staging inter files under ${GENREC_ROOT}/data/_preprocess_input/${CATEGORY}"
 }
 
 step_build() {
   echo "[STEP] Build final SFT/RL dataset"
-  "${PYTHON_BIN}" "${GENREC_ROOT}/scripts/prepare_category_from_inter_json.py" \
-    --genrec-root "${GENREC_ROOT}" \
-    --category-dir "${CATEGORY_DIR}" \
-    --category "${CATEGORY}" \
-    --index-path "${INDEX_PATH}" \
-    --output-dir "${OUTPUT_DIR}" \
-    --dataset-subdir "${DATASET_SUBDIR}" \
-    --dataset-key-prefix "${DATASET_KEY_PREFIX}" \
-    --dataset-info-path "${DATASET_INFO_PATH}" \
-    --split-strategy "${SPLIT_STRATEGY}" \
-    --train-ratio "${TRAIN_RATIO}" \
-    --valid-ratio "${VALID_RATIO}" \
-    --seq-sample "${SEQ_SAMPLE}" \
-    --seed "${SEED}" \
-    --sid-levels "${SID_LEVELS}" \
-    --python-bin "${PYTHON_BIN}"
+  build_prepare_cmd
+  "${PREPARE_CMD[@]}"
 
   echo "[DONE] Output directory: ${OUTPUT_DIR}"
   echo "[DONE] Dataset keys: ${DATASET_KEY_PREFIX}_train, ${DATASET_KEY_PREFIX}_valid"

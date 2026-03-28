@@ -419,6 +419,9 @@ def main(
     only_task3: bool = False,
     only_task4: bool = False,
     only_task5: bool = False,
+    rl_only_task1: bool = False,
+    rl_only_task4: bool = False,
+    rl_only_task5: bool = False,
     seq_sample: int = 10000,
     seed: int = 42,
     sid_levels: int = -1,
@@ -434,6 +437,11 @@ def main(
     task3_fusion_seq = only_task3 if only_specified else True
     task4_hisTitle2sid = only_task4 if only_specified else True
     task5_title_desc2sid = only_task5 if only_specified else True
+
+    only_rl_specified = rl_only_task1 or rl_only_task4 or rl_only_task5
+    rl_task1_sid_sft = task1_sid_sft and (rl_only_task1 if only_rl_specified else True)
+    rl_task4_hisTitle2sid = task4_hisTitle2sid and (rl_only_task4 if only_rl_specified else True)
+    rl_task5_title_desc2sid = task5_title_desc2sid and (rl_only_task5 if only_rl_specified else True)
 
     category_dir = os.path.join(os.path.abspath(data_dir), category)
     item_path = os.path.join(category_dir, f"{category}.item.json")
@@ -484,12 +492,13 @@ def main(
         sft_valid.extend(valid_seq)
         sft_test.extend(test_seq)
         # RL format
-        for i, s in enumerate(train_seq):
-            rl_train.append(to_rl_format(s, data_source, "seq_rec", "train", i, "task1_sid_sft"))
-        for i, s in enumerate(valid_seq):
-            rl_valid.append(to_rl_format(s, data_source, "seq_rec", "valid", i, "task1_sid_sft"))
-        for i, s in enumerate(test_seq):
-            rl_test.append(to_rl_format(s, data_source, "seq_rec", "test", i, "task1_sid_sft"))
+        if rl_task1_sid_sft:
+            for i, s in enumerate(train_seq):
+                rl_train.append(to_rl_format(s, data_source, "seq_rec", "train", i, "task1_sid_sft"))
+            for i, s in enumerate(valid_seq):
+                rl_valid.append(to_rl_format(s, data_source, "seq_rec", "valid", i, "task1_sid_sft"))
+            for i, s in enumerate(test_seq):
+                rl_test.append(to_rl_format(s, data_source, "seq_rec", "test", i, "task1_sid_sft"))
         print(
             f"Task1 SidSFT: train={len(train_seq)}, valid={len(valid_seq)}, test={len(test_seq)}, (sft, rl, train, valid, test)"
         )
@@ -505,7 +514,7 @@ def main(
         sft_train.extend(fusion_train)
         print(f"Task3 FusionSeqRec: train={len(fusion_train)} (sft, history_sids->title)")
 
-    if task4_hisTitle2sid:
+    if rl_task4_hisTitle2sid:
         # RLSeqTitle2SidDataset: input history title, output sid
         hisTitle2sid_train = build_hisTitle2sid_seq_samples(
             train_rows, id2sid, id2title_full, sample=seq_sample, seed=seed
@@ -514,7 +523,7 @@ def main(
             rl_train.append(to_rl_format(s, data_source, "seq_title2sid", "train", i, "task4_hisTitle2sid"))
         print(f"Task4 Title2Sid: train={len(hisTitle2sid_train)} (rl, train only)")
 
-    if task5_title_desc2sid:
+    if rl_task5_title_desc2sid:
         # RLTitle2SidDataset: title2sid + description2sid (separate tasks), output sid
         title_desc2sid = build_title_desc2sid_samples(items_with_desc, id2sid, sample=-1, seed=seed)
         for i, s in enumerate(title_desc2sid):

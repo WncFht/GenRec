@@ -257,6 +257,15 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
 
         return prompt_ids_list, completion_ids_list
 
+    def _has_global_unresolved_groups(self, unresolved_group_count: int) -> bool:
+        local_flag = torch.tensor(
+            [1 if unresolved_group_count > 0 else 0],
+            device=self.accelerator.device,
+            dtype=torch.int32,
+        )
+        gathered_flags = self.accelerator.gather(local_flag)
+        return bool(gathered_flags.max().item())
+
     def _log_selected_batch_generation_metrics(
         self,
         mode: str,
@@ -320,32 +329,34 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
         stage_stats: list[dict[str, int]] = []
         is_main_process = bool(getattr(getattr(self, "accelerator", None), "is_main_process", False))
         should_log_stages = is_main_process and max_hint_depth > 0
+        dummy_group = prompt_groups[0]
 
         for requested_hint_depth in range(max_hint_depth + 1):
-            if not unresolved_groups:
-                break
+            local_unresolved_groups = list(unresolved_groups)
+            stage_target_groups = local_unresolved_groups if local_unresolved_groups else [dummy_group]
 
             stage_inputs: list[dict[str, Union[torch.Tensor, Any]]] = []
             stage_images: list[Any] | None = [] if images is not None else None
             stage_slices: list[tuple[int, int, dict[str, Any]]] = []
 
-            for group in unresolved_groups:
+            for group in stage_target_groups:
                 group_stage_inputs = [
                     self._build_runtime_hinted_example(example, requested_hint_depth) for example in group["inputs"]
                 ]
                 start = len(stage_inputs)
                 stage_inputs.extend(group_stage_inputs)
                 end = len(stage_inputs)
-                stage_slices.append((start, end, group))
+                if local_unresolved_groups:
+                    stage_slices.append((start, end, group))
                 if stage_images is not None:
                     stage_images.extend(group["images"])
 
             stage_prompts_text = self._build_hinted_prompts(stage_inputs)
-            if should_log_stages:
+            if should_log_stages and local_unresolved_groups:
                 print(
                     "[INFO] dynamic_hint_stage "
                     f"requested_depth={requested_hint_depth} "
-                    f"unresolved_groups={len(unresolved_groups)} "
+                    f"unresolved_groups={len(local_unresolved_groups)} "
                     f"stage_batch={len(stage_inputs)}"
                 )
             stage_prompt_ids_list, stage_completion_ids_list = self._generate_dynamic_stage(
@@ -386,13 +397,13 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
             stage_stats.append(
                 {
                     "requested_hint_depth": requested_hint_depth,
-                    "evaluated_group_count": len(unresolved_groups),
+                    "evaluated_group_count": len(local_unresolved_groups),
                     "rule_hit_group_count": stage_rule_hit_group_count,
                     "selected_group_count": stage_selected_group_count,
                     "remaining_group_count": len(next_unresolved_groups),
                 }
             )
-            if should_log_stages:
+            if should_log_stages and local_unresolved_groups:
                 print(
                     "[INFO] dynamic_hint_stage_result "
                     f"requested_depth={requested_hint_depth} "
@@ -401,6 +412,8 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
                     f"remaining_groups={len(next_unresolved_groups)}"
                 )
             unresolved_groups = next_unresolved_groups
+            if not self._has_global_unresolved_groups(len(unresolved_groups)):
+                break
 
         if len(selected_group_outputs) != len(prompt_groups):
             raise RuntimeError(
@@ -494,6 +507,9 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
         completion_ids_list: list[Any],
         selected_rule_rewards: list[float] | None = None,
     ):
+        # Reuse stage-local exact rewards only for the pure rule-only path.
+        # Mixed reward modes (for example rule + ndcg) still recompute their
+        # full reward vector after the cascade has selected one stage per group.
         if (
             selected_rule_rewards is not None
             and len(getattr(self, "reward_func_names", [])) == 1

@@ -65,7 +65,7 @@ except ModuleNotFoundError:
     torch_mod.FloatTensor = object
     sys.modules["torch"] = torch_mod
 
-from rewards.ranking_reward import get_prefix_rule_reward, rule_reward
+from rewards.ranking_reward import get_ndcg_rule_reward, get_prefix_rule_reward, rule_reward
 from fixed_hint_logit_processor import find_last_prefix_match_start
 from logit_processor import ConstrainedLogitsProcessor
 import util
@@ -127,6 +127,23 @@ def test_prefix_rule_reward_uses_full_completion_after_hint_reconstruction():
     )
 
     assert rewards == [0.75]
+
+
+def test_ndcg_rule_reward_uses_full_completion_after_hint_reconstruction():
+    ndcg_reward = get_ndcg_rule_reward(num_beams=2)
+    rewards = ndcg_reward(
+        prompts=["p", "p"],
+        completions=["<c_3><d_4>", "<c_3><d_9>"],
+        completion_ids=None,
+        reward_model=[
+            {"ground_truth": "<a_1><b_2><c_3><d_4>"},
+            {"ground_truth": "<a_1><b_2><c_3><d_4>"},
+        ],
+        oracle_hint_text=["<a_1><b_2>", "<a_1><b_2>"],
+    )
+
+    assert rewards[0] == 0.0
+    assert rewards[1] < 0.0
 
 
 def test_find_last_prefix_match_start_returns_full_prompt_suffix_with_hint_tokens():

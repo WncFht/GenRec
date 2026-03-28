@@ -106,10 +106,14 @@ def main(
     if dynamic_hint_max_depth is not None:
         dynamic_hint_max_depth = int(dynamic_hint_max_depth)
 
+    normalized_reward_mode = reward_mode.strip().lower()
+
     if fixed_hint_depth_map_path is not None and dynamic_hint_enabled:
         raise ValueError("fixed_hint_depth_map_path and dynamic_hint_max_depth cannot be enabled at the same time.")
-    if dynamic_hint_enabled and reward_mode.strip().lower() != "rule_only":
-        raise NotImplementedError("Dynamic hint cascade training currently supports reward_mode=rule_only only.")
+    if dynamic_hint_enabled and normalized_reward_mode not in {"rule_only", "ranking"}:
+        raise NotImplementedError(
+            "Dynamic hint cascade training currently supports reward_mode=rule_only or reward_mode=ranking only."
+        )
 
     # load dataset
     dataset = load_dataset(
@@ -127,7 +131,7 @@ def main(
     tokenizer = AutoTokenizer.from_pretrained(model)
 
     if fixed_hint_depth_map_path is not None:
-        if reward_mode.strip().lower() != "rule_only":
+        if normalized_reward_mode != "rule_only":
             raise NotImplementedError("Fixed oracle hint-depth training currently supports reward_mode=rule_only only.")
 
         fixed_hint_map = load_fixed_hint_depth_map(fixed_hint_depth_map_path)
