@@ -24,6 +24,8 @@
 
 ## Quick Start
 
+For repo-specific operational notes and dated research docs, see `docs/README.md`.
+
 ### 1. Environment & Dependencies
 
 **Install the current library**:

@@ -1,6 +1,6 @@
-.PHONY: build commit license quality style test
+.PHONY: build commit license quality style test clean-junk
 
-check_dirs := scripts src tests tests_v1
+check_dirs := scripts src tests
 
 RUN := $(shell command -v uv >/dev/null 2>&1 && echo "uv run" || echo "")
 BUILD := $(shell command -v uv >/dev/null 2>&1 && echo "uv build" || echo "python -m build")
@@ -25,4 +25,12 @@ style:
 	$(TOOL) ruff format $(check_dirs)
 
 test:
-	WANDB_DISABLED=true $(RUN) pytest -vv --import-mode=importlib tests/ tests_v1/
+	WANDB_DISABLED=true $(RUN) pytest -vv --import-mode=importlib tests/
+
+clean-junk:
+	find . -name '.DS_Store' -delete
+	find . -name '*.pid' -delete
+	find . -name '*.py[co]' -delete
+	find . -name '__pycache__' -type d -prune -exec rm -rf {} +
+	rm -rf .pytest_cache
+	find log -type f -empty -delete

@@ -44,6 +44,10 @@ Config overrides:
   --wandb-mode <offline|online|disabled>
   --dry-run
   -h, --help
+
+Environment overrides:
+  LOG_DIR=<dir>
+  LOG_FILE=<path>
 EOF
 }
 
@@ -321,8 +325,8 @@ if [[ $USER_SET_RUN_NAME -eq 0 ]]; then
   export WANDB_RUN_NAME="${CATEGORY}-qwen2.5-3b-instruct"
 fi
 
-LOG_DIR="log"
-LOG_FILE="${LOG_DIR}/$(sanitize_log_name "${WANDB_RUN_NAME}").log"
+LOG_DIR="${LOG_DIR:-log}"
+LOG_FILE="${LOG_FILE:-${LOG_DIR}/$(sanitize_log_name "${WANDB_RUN_NAME}").log}"
 
 if [[ "$MODE" == "tail" ]]; then
   require_file "$LOG_FILE" "log file"

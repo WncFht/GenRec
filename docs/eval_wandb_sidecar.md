@@ -145,6 +145,7 @@ bash eval_wandb_sidecar.sh stop --instance eval_uploader
 - `--once`
 - `--poll-interval-seconds`
 - `--model-filter`（可重复或逗号分隔）
+- `--manifest-overrides`（默认尝试 `config/wandb_eval_manifest_overrides.json`，存在则在上传前覆盖 manifest 中对应模型字段）
 - `--disable-wandb`
 - `--wandb-mode`（默认 `online`）
 - `--wandb-resume`（默认 `allow`）
@@ -196,7 +197,13 @@ PYTHON_BIN=python bash eval_wandb_sidecar.sh once \
   --model-filter Instruments-grec-sft-qwen4B-4-256-dsz0
 ```
 
-### 8.4 Python 3.9 兼容吗？
+### 8.4 manifest 里的 run id 过期了怎么办？
+
+- 如果本地存在 `config/wandb_eval_manifest_overrides.json`，`upload` 会在读取 manifest 后自动覆盖对应模型字段。
+- 这允许你用本地 overrides 修复“某个 run id 已在 W&B 被删除”的情况，而不必先手动重生成同步回来的 manifest。
+- 如果远端也需要拿到一致的新 run id，仍建议在下一次打包前重新执行 `prepare-manifest`。
+
+### 8.5 Python 3.9 兼容吗？
 
 兼容。脚本使用 `datetime.timezone.utc`，不依赖 `datetime.UTC`。
 

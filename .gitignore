@@ -35,6 +35,7 @@ MANIFEST
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
+*.pid
 
 # Unit test / coverage reports
 htmlcov/
@@ -174,6 +175,9 @@ ms_cache/
 om_cache/
 llamaboard_cache/
 llamaboard_config/
+config/wandb_eval_manifest_overrides.json
+data/_preprocess_input/
+log/
 saves/
 output/
 outputs/

@@ -1,6 +1,8 @@
 set -e
 
 CATEGORY="Industrial_and_Scientific"
+TEMP_ROOT="${TEMP_ROOT:-temp}"
+RESULTS_ROOT="${RESULTS_ROOT:-results}"
 
 # sft
 # exp_name="saves/qwen2.5-0.5b/full/${CATEGORY}-sft-dsz0/checkpoint-120"
@@ -21,8 +23,8 @@ cuda_list="0 1 2 3"  # 4 GPUs
 test_data_path="data/${CATEGORY}/sft/test.json"
 
 # Temp and output directories
-temp_dir="temp/eval-${CATEGORY}"
-output_dir="results/${exp_name#*/}"
+temp_dir="${TEMP_ROOT}/eval-${CATEGORY}"
+output_dir="${RESULTS_ROOT}/${exp_name#*/}"
 
 # evaluation params
 index_path="data/${CATEGORY}/id2sid.json"

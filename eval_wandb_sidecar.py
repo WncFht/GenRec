@@ -224,6 +224,30 @@ def load_overrides(path: Path | None) -> dict[str, dict[str, Any]]:
     return parsed
 
 
+def apply_manifest_overrides(
+    manifest: dict[str, Any], overrides: dict[str, dict[str, Any]]
+) -> dict[str, Any]:
+    if not overrides:
+        return manifest
+
+    models_raw = manifest.get("models")
+    if not isinstance(models_raw, list):
+        raise ValueError("Manifest 'models' must be a list")
+
+    merged_models: list[dict[str, Any]] = []
+    for idx, item in enumerate(models_raw):
+        if not isinstance(item, dict):
+            raise ValueError(f"Manifest models[{idx}] must be an object")
+        override = overrides.get(str(item.get("model_dir") or ""), {})
+        merged_item = dict(item)
+        merged_item.update(override)
+        merged_models.append(merged_item)
+
+    merged_manifest = dict(manifest)
+    merged_manifest["models"] = merged_models
+    return merged_manifest
+
+
 def build_model_manifest_item(
     *,
     model_dir: str,
@@ -350,17 +374,18 @@ def parse_model_spec(raw: dict[str, Any], idx: int) -> ModelSpec:
     )
 
 
-def load_manifest(path: Path) -> dict[str, Any]:
+def load_manifest(path: Path, overrides: dict[str, dict[str, Any]] | None = None) -> dict[str, Any]:
     raw = load_json(path)
     version = raw.get("version")
     if version != MANIFEST_VERSION:
         raise ValueError(f"Unsupported manifest version={version}, expected {MANIFEST_VERSION}")
 
-    models = raw.get("models")
+    manifest = apply_manifest_overrides(raw, overrides or {})
+    models = manifest.get("models")
     if not isinstance(models, list):
         raise ValueError("Manifest 'models' must be a list")
 
-    return raw
+    return manifest
 
 
 def parse_models_from_manifest(manifest: dict[str, Any], model_filter: set[str]) -> list[ModelSpec]:
@@ -652,7 +677,8 @@ def cmd_upload(args: argparse.Namespace) -> int:
 
     with exclusive_lock(lock_file):
         while True:
-            manifest = load_manifest(args.manifest_path)
+            overrides = load_overrides(args.manifest_overrides)
+            manifest = load_manifest(args.manifest_path, overrides=overrides)
             models = parse_models_from_manifest(manifest, model_filter)
 
             if not models:
@@ -711,6 +737,11 @@ def build_parser() -> argparse.ArgumentParser:
     upload.add_argument("--once", action="store_true", help="Process pending checkpoints once then exit")
     upload.add_argument("--poll-interval-seconds", type=int, default=60)
     upload.add_argument("--disable-wandb", action="store_true")
+    upload.add_argument(
+        "--manifest-overrides",
+        default=os.environ.get("WANDB_EVAL_MANIFEST_OVERRIDES", "config/wandb_eval_manifest_overrides.json"),
+        help="Optional overrides JSON applied on top of manifest during upload",
+    )
     upload.add_argument("--wandb-mode", default=os.environ.get("WANDB_MODE", "online"))
     upload.add_argument("--wandb-resume", default=os.environ.get("WANDB_RESUME", "allow"))
     upload.add_argument("--wandb-job-type", default=os.environ.get("WANDB_JOB_TYPE", "eval"))
@@ -756,11 +787,16 @@ def main() -> int:
         args.results_root = resolve_path(args.results_root, cwd)
         args.manifest_path = resolve_path(args.manifest_path, cwd)
         args.state_dir = resolve_path(args.state_dir, cwd)
+        args.manifest_overrides = (
+            resolve_path(args.manifest_overrides, cwd) if args.manifest_overrides else None
+        )
 
         if not args.results_root.is_dir():
             raise FileNotFoundError(f"results root not found: {args.results_root}")
         if not args.manifest_path.is_file():
             raise FileNotFoundError(f"manifest not found: {args.manifest_path}")
+        if args.manifest_overrides is not None and not args.manifest_overrides.is_file():
+            args.manifest_overrides = None
 
         return cmd_upload(args)
 

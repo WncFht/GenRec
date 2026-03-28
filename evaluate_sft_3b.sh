@@ -8,6 +8,8 @@ CATEGORY="${CATEGORY:-Industrial_and_Scientific}"
 SFT_ROOT="${1:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/saves/qwen2.5-3b/full/Industrial_and_Scientific-sft-dsz0-4gpu-eq8}"
 CUDA_LIST="${CUDA_LIST:-0 1 2 3}"
 PYTHON_BIN="${PYTHON_BIN:-python}"
+TEMP_ROOT="${TEMP_ROOT:-temp}"
+RESULTS_ROOT="${RESULTS_ROOT:-results}"
 
 TEST_DATA_PATH="${TEST_DATA_PATH:-data/${CATEGORY}/sft/test.json}"
 INDEX_PATH="${INDEX_PATH:-data/${CATEGORY}/id2sid.json}"
@@ -139,8 +141,8 @@ evaluate_one_model() {
 
   model_parent="$(basename "$(dirname "$model_path")")"
   model_basename="$(basename "$model_path")"
-  temp_dir="temp/eval-${CATEGORY}-sft3b-${model_parent}-${model_basename}"
-  output_dir="results/${model_parent}/${model_basename}"
+  temp_dir="${TEMP_ROOT}/eval-${CATEGORY}-sft3b-${model_parent}-${model_basename}"
+  output_dir="${RESULTS_ROOT}/${model_parent}/${model_basename}"
 
   echo "------------------------------------------"
   echo "Evaluate checkpoint: ${model_path}"

@@ -38,6 +38,11 @@ Examples:
     --results-root ./results \
     --manifest-path ./results/.wandb_eval_manifest.json \
     --wandb-mode online
+
+Environment overrides:
+  PYTHON_BIN=<python>
+  SIDECAR_PY=<path>
+  MANAGER_DIR=<dir>
 EOF
 }
 
