@@ -16,6 +16,13 @@
 - When updating existing analysis notebooks, prefer extending the current notebook over creating parallel variants.
 - Do not assume remote files are mirrored locally; make remote locations explicit in configuration cells.
 
+## Version Control
+- This repository is `jj-first`. Use `jj` for routine status, history, diff, commit-description, and push workflows.
+- Prefer `jj st`, `jj log`, `jj diff`, `jj new`, and `jj desc -m "..."` over the corresponding Git commands.
+- Treat Git as a compatibility layer for colocated repo plumbing or explicit user requests, not as the primary day-to-day interface.
+- Remember that colocated `jj` repos may look like detached HEADs from Git's point of view; trust `jj st` and `jj log` for the authoritative local state.
+- Before pushing, move or create the appropriate bookmark explicitly, then use `jj git push -b <bookmark>`.
+
 ## Training Context
 - RL train data mixes multiple tasks. Analyze task-level behavior separately when conclusions may differ across `task1_sid_sft`, `task4_hisTitle2sid`, and `task5_title_desc2sid`.
 - For hint-depth or fixed-hint analysis, treat cached `analyze_rl_beam_hint.py` outputs as the source of truth unless the user explicitly asks to regenerate them.
