@@ -1,0 +1,21 @@
+label,experiment,classification,best_checkpoint,best_ndcg10,best_hr50
+Dynamic hint + ranking,Instruments-grec-grpo-ranking-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft495,main_hint,checkpoint-1665,0.0911,0.1822
+Dynamic hint rule-only (old),Instruments-grec-grpo-rule-only-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft495,main_hint_superseded_by_gather_fix,checkpoint-1665,0.0919,0.1905
+Dynamic hint rule-only + gather fix,Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495,main_hint,checkpoint-2997,0.0936,0.1855
+Dynamic hint sid-only,Instruments-grec-grpo-rule-only-dynamic-hint-sid-only-qwen2.5-3b-qwen4B-4-256-from-sft495,main_hint,checkpoint-2394,0.0921,0.183
+Fixed hint mixed-single,Instruments-grec-grpo-rule-only-fixed-hint-mixed-single-generate-qwen2.5-3b-qwen4B-4-256-from-sft495,main_hint,checkpoint-3326,0.0953,0.1938
+Fixed hint task+index early,Instruments-grec-grpo-rule-only-fixed-hint-task-index-fix-beam16-mixed-single-generate-qwen2.5-3b-qwen4B-4-256-from-sft495,early_taskfix_run,checkpoint-666,0.0894,0.1864
+Fixed hint taskfix b16,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,main_hint,checkpoint-2997,0.0931,0.1941
+Prefix old alias,Instruments-grec-grpo-prefix-qwen2.5-3b-qwen4B-4-256-from-sft495,legacy_alias,checkpoint-1665,0.0863,0.1631
+Prefix backup,Instruments-grec-grpo-prefix-qwen2.5-3b-qwen4B-4-256-from-sft495-backup,partial_backup,checkpoint-333,0.0815,0.1608
+Prefix seq only broken run,Instruments-grec-grpo-prefix-seq-only-qwen2.5-3b-qwen4B-4-256-from-sft495,superseded_broken_run,checkpoint-1332,0.0389,0.1023
+Rule only old run,Instruments-grec-grpo-rule-only-qwen2.5-3b-qwen4B-4-256-from-sft495,superseded_old_run,checkpoint-333,0.0761,0.1494
+Baseline mixed GRPO,Instruments-grec-grpo-qwen2.5-3b-qwen4B-4-256-from-sft495,main_reward,checkpoint-1665,0.0952,0.1696
+Rule only rerun,Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495,main_reward,checkpoint-2997,0.096,0.1681
+Prefix only,Instruments-grec-grpo-prefixonly-ndcg-rule0-qwen2.5-3b-qwen4B-4-256-from-sft495,main_reward,checkpoint-1332,0.0862,0.1612
+Prefix seq only rerun,Instruments-grec-grpo-prefix-seq-only-fixbool-rerun-qwen2.5-3b-qwen4B-4-256-from-sft495,main_reward,checkpoint-1332,0.0857,0.1636
+Prefix token only,Instruments-grec-grpo-prefix-token-only-totalnorm-qwen2.5-3b-qwen4B-4-256-from-sft495,main_reward,checkpoint-1665,0.0815,0.1668
+Prefix tokenadv raw,Instruments-grec-grpo-prefix-tokenadv-ndcg-rule0-qwen2.5-3b-qwen4B-4-256-from-sft495,main_reward,checkpoint-999,0.0476,0.0991
+Prefix tokenadv totalnorm,Instruments-grec-grpo-prefix-tokenadv-totalnorm-ndcg-rule0-qwen2.5-3b-qwen4B-4-256-from-sft495,main_reward,checkpoint-3326,0.0906,0.1809
+Prefix tokenadv errtok,Instruments-grec-grpo-prefix-tokenadv-totalnorm-errtok-ndcg-rule0-qwen2.5-3b-qwen4B-4-256-from-sft495,main_reward,checkpoint-999,0.0796,0.1513
+Prefix backup single checkpoint,Instruments-grec-grpo-prefix-qwen2.5-3b-qwen4B-4-256-from-sft495-backup/checkpoint-333,single_checkpoint_backup,checkpoint-333,0.0815,0.1608

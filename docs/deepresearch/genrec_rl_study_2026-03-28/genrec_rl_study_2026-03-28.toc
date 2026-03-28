@@ -1,0 +1,38 @@
+\contentsline {section}{\numberline {1}执行摘要}{3}{section.1}%
+\contentsline {section}{\numberline {2}研究范围与方法}{3}{section.2}%
+\contentsline {section}{\numberline {3}实验版图与目录口径}{4}{section.3}%
+\contentsline {subsection}{\numberline {3.1}版本时间线与 bug 对齐}{5}{subsection.3.1}%
+\contentsline {section}{\numberline {4}主结果一：Reward Form Ablation}{5}{section.4}%
+\contentsline {subsection}{\numberline {4.1}rule-only 仍然是当前最强的无 hint top-10 基线}{6}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}纯 prefix reward 不能替代 exact reward}{6}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}token-level prefix advantage 不是不能用，但必须处理归一化}{7}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}errtok 版本目前没有带来额外收益}{7}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}reward 线的可信结论}{7}{subsection.4.5}%
+\contentsline {section}{\numberline {5}主结果二：Hint Scaffold Ablation}{8}{section.5}%
+\contentsline {subsection}{\numberline {5.1}fixed hint 是当前最平衡、也最值得写成主结果的方向}{9}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}task-aware fixed hint map 更安全，且仍然保住了 coverage}{9}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}旧 fixed 错版为什么反而更好：它本质上是一个更浅的 hint curriculum}{10}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}dynamic hint 有价值，但 canonical 版本应以 gather-fix 为准}{12}{subsection.5.4}%
+\contentsline {subsection}{\numberline {5.5}sid-only 更直接对齐评测任务，但目前仍未优于 mixed-task}{13}{subsection.5.5}%
+\contentsline {subsection}{\numberline {5.6}ranking 没有显示出明确收益，而且有机制层面的解释}{14}{subsection.5.6}%
+\contentsline {section}{\numberline {6}为什么 fixed 当前比 dynamic 更好}{15}{section.6}%
+\contentsline {subsection}{\numberline {6.1}先把误解去掉：dynamic 的“变化”不是错，问题在于 gate 与优化目标不一致}{15}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}fixed 比 dynamic 强，不是因为 fixed 理论更对，而是因为当前 dynamic gate 太脆}{16}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}为什么错版 fixed 反而更好：少一些 hint 可能更接近最终目标，但前提是要稳定}{17}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}如果要让 dynamic 真正赢 fixed，它需要改 stopping signal，而不是只靠在线变化}{17}{subsection.6.4}%
+\contentsline {section}{\numberline {7}代码层解释：为什么 ranking 不明显、为什么 prefix shaping 容易不稳定}{17}{section.7}%
+\contentsline {subsection}{\numberline {7.1}ranking reward 对 hardest case 几乎没有帮助}{17}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}prefix shaping 的问题不在“粒度”，而在“credit assignment”}{18}{subsection.7.2}%
+\contentsline {section}{\numberline {8}我们现在最可信的 contribution 是什么}{18}{section.8}%
+\contentsline {section}{\numberline {9}后续应该怎么做}{19}{section.9}%
+\contentsline {subsection}{\numberline {9.1}优先级最高：把 fixed hint 变成真正的主线方法}{19}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}第二优先级：把 dynamic hint 变成 scheduler ablation，而不是主结果}{19}{subsection.9.2}%
+\contentsline {subsection}{\numberline {9.3}第三优先级：reward 线只保留最必要的四条}{20}{subsection.9.3}%
+\contentsline {subsection}{\numberline {9.4}任务设计层面：不要过早只押 sid-only，要先做 clean ablation}{20}{subsection.9.4}%
+\contentsline {section}{\numberline {10}结论与后续问题}{20}{section.10}%
+\contentsline {subsection}{\numberline {10.1}已经被强支持的结论}{20}{subsection.10.1}%
+\contentsline {subsection}{\numberline {10.2}较大概率为真，但还需要补 cleaner ablation 的结论}{21}{subsection.10.2}%
+\contentsline {subsection}{\numberline {10.3}仍然未知、值得马上验证的问题}{21}{subsection.10.3}%
+\contentsline {section}{\numberline {A}用户指定目录的分类索引}{21}{appendix.A}%
+\contentsline {section}{\numberline {B}Legacy / Superseded Run 结果表}{22}{appendix.B}%
+\contentsline {section}{\numberline {C}来源清单}{22}{appendix.C}%
