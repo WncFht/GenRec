@@ -472,6 +472,16 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         self.assertIn("instruments_grec_rlsidonly_beam_hint", result.stdout)
         self.assertIn("--eval_on_start true", result.stdout)
 
+    def test_fixed_hint_sid_only_shell_dry_run_keeps_export_beam_size_aligned(self):
+        result = self._run_fixed_hint_sid_only_dry_run()
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertEqual(
+            result.stdout.count("--beam-sizes 16"),
+            2,
+            msg="Analyze and export commands should both stay on beam 16 instead of export falling back to 8,16.",
+        )
+
     def test_all_grec_rl_launchers_enable_eval_on_start_by_default(self):
         training_scripts = sorted(
             path
