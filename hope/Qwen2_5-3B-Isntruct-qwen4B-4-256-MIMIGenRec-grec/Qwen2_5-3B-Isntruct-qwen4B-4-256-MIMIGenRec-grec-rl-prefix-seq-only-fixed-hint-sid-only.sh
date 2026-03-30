@@ -4,7 +4,7 @@ set -eo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  bash Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-only.sh [options]
+  bash Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix-seq-only-fixed-hint-sid-only.sh [options]
 
 Run modes:
   --nohup                 Generate sid-only hint analysis if needed and start RL in background via nohup (default)
@@ -106,7 +106,7 @@ MODEL_PATH="${MODEL_PATH:-${REPO_ROOT}/saves/qwen2.5-3b/full/Instruments-grec-sf
 DATA_DIR="${DATA_DIR:-${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/rl}"
 INDEX_PATH="${INDEX_PATH:-${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/id2sid.json}"
 ADD_TOKENS_PATH="${ADD_TOKENS_PATH:-${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/new_tokens.json}"
-OUTPUT_DIR="${OUTPUT_DIR:-${REPO_ROOT}/rl_outputs/Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495}"
+OUTPUT_DIR="${OUTPUT_DIR:-${REPO_ROOT}/rl_outputs/Instruments-grec-grpo-prefix-seq-only-fixedhint-taskfix-b16-sid-only-sft495}"
 DS_CONFIG="${DS_CONFIG:-${REPO_ROOT}/config/zero2.yaml}"
 
 NUM_PROCESSES="${NUM_PROCESSES:-4}"
@@ -123,14 +123,10 @@ EVAL_ON_START="${EVAL_ON_START:-true}"
 MAX_COMPLETION_LENGTH="${MAX_COMPLETION_LENGTH:-128}"
 BETA="${BETA:-1e-3}"
 TEMPERATURE="${TEMPERATURE:-1.0}"
-REWARD_MODE="${REWARD_MODE:-rule_only}"
-PREFIX_REWARD_NORMALIZE="${PREFIX_REWARD_NORMALIZE:-true}"
-PROBE_RULE_ZERO_WEIGHT="${PROBE_RULE_ZERO_WEIGHT:-false}"
-TOKEN_LEVEL_PREFIX_ADV="${TOKEN_LEVEL_PREFIX_ADV:-false}"
 REPORT_TO="${REPORT_TO:-wandb}"
 RESUME_FROM_CHECKPOINT="${RESUME_FROM_CHECKPOINT:-auto}"
 
-RUN_NAME="${RUN_NAME:-instruments_grec_rl_rule_only_fixed_hint_taskfix_b16_sid_only_ckpt495}"
+RUN_NAME="${RUN_NAME:-instruments_grec_rl_prefix_seq_only_fixed_hint_taskfix_b16_sid_only_ckpt495}"
 ANALYSIS_RUN_NAME="${ANALYSIS_RUN_NAME:-instruments_grec_rlsidonly_beam_hint_qwen2_5_3b_qwen4b_4_256_ckpt495}"
 ANALYSIS_DIR_DEFAULT="${REPO_ROOT}/temp/rl_beam_hint"
 ANALYSIS_SUMMARY_PATH="${ANALYSIS_SUMMARY_PATH:-${ANALYSIS_DIR_DEFAULT}/instruments_grec_rlsidonly_beam_hint_cascade_summary.json}"
@@ -392,7 +388,7 @@ if [[ "$MODE" == "nohup" || "$MODE" == "detach" ]]; then
   fi
   nohup bash "$SCRIPT_PATH" "${CHILD_ARGS[@]}" >> "$LOG_FILE" 2>&1 &
   PID=$!
-  echo "[INFO] Fixed-hint sid-only RL pipeline started in background. pid=$PID"
+  echo "[INFO] Fixed-hint prefix-seq sid-only RL pipeline started in background. pid=$PID"
   echo "[INFO] Log file: $LOG_FILE"
   if [[ "$MODE" == "nohup" ]]; then
     echo "[INFO] Press Ctrl-C to stop following logs (job keeps running)."
@@ -472,10 +468,10 @@ TRAIN_CMD=(
   --max_completion_length "$MAX_COMPLETION_LENGTH"
   --beta "$BETA"
   --temperature "$TEMPERATURE"
-  --reward_mode "$REWARD_MODE"
-  --prefix_reward_normalize "$PREFIX_REWARD_NORMALIZE"
-  --probe_rule_with_zero_weight "$PROBE_RULE_ZERO_WEIGHT"
-  --token_level_prefix_advantage "$TOKEN_LEVEL_PREFIX_ADV"
+  --reward_mode prefix_rule_only
+  --prefix_reward_normalize true
+  --probe_rule_with_zero_weight false
+  --token_level_prefix_advantage false
   --save_total_limit 10
   --save_only_model true
   --report_to "$REPORT_TO"
@@ -529,10 +525,10 @@ echo "[INFO] EVAL_STEP=$EVAL_STEP"
 echo "[INFO] MAX_COMPLETION_LENGTH=$MAX_COMPLETION_LENGTH"
 echo "[INFO] BETA=$BETA"
 echo "[INFO] TEMPERATURE=$TEMPERATURE"
-echo "[INFO] REWARD_MODE=$REWARD_MODE"
-echo "[INFO] PREFIX_REWARD_NORMALIZE=$PREFIX_REWARD_NORMALIZE"
-echo "[INFO] PROBE_RULE_ZERO_WEIGHT=$PROBE_RULE_ZERO_WEIGHT"
-echo "[INFO] TOKEN_LEVEL_PREFIX_ADV=$TOKEN_LEVEL_PREFIX_ADV"
+echo "[INFO] REWARD_MODE=prefix_rule_only"
+echo "[INFO] PREFIX_REWARD_NORMALIZE=true"
+echo "[INFO] PROBE_RULE_ZERO_WEIGHT=false"
+echo "[INFO] TOKEN_LEVEL_PREFIX_ADV=false"
 echo "[INFO] REPORT_TO=$REPORT_TO"
 echo "[INFO] RESUME_FROM_CHECKPOINT=$RESUME_FROM_CHECKPOINT"
 echo "[INFO] ANALYSIS_RUN_NAME=$ANALYSIS_RUN_NAME"

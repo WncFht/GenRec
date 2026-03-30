@@ -51,6 +51,12 @@ FIXED_HINT_SID_ONLY_SCRIPT = (
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-only.sh"
 )
+FIXED_HINT_PREFIX_SEQ_SID_ONLY_SCRIPT = (
+    REPO_ROOT
+    / "hope"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix-seq-only-fixed-hint-sid-only.sh"
+)
 GREC_RL_SCRIPT_DIR = (
     REPO_ROOT
     / "hope"
@@ -68,10 +74,20 @@ def _load_trl_trainer_module(grpo_kwargs_sink: dict[str, object]):
     sys.modules["fire"] = fire_mod
 
     datasets_mod = types.ModuleType("datasets")
+
+    class _FakeDataset(list):
+        def map(self, fn, desc=None):
+            return _FakeDataset([fn(dict(item)) for item in self])
+
+        def __getitem__(self, key):
+            if isinstance(key, str):
+                return [item[key] for item in self]
+            return super().__getitem__(key)
+
     datasets_mod.load_dataset = lambda *args, **kwargs: {
-        "train": [],
-        "valid": [],
-        "test": [],
+        "train": _FakeDataset([{"prompt": "train-prompt", "reward_model": {"ground_truth": "<a_1>"}}]),
+        "valid": _FakeDataset([{"prompt": "valid-prompt", "reward_model": {"ground_truth": "<a_1>"}}]),
+        "test": _FakeDataset([{"prompt": "test-prompt", "reward_model": {"ground_truth": "<a_1>"}}]),
     }
     sys.modules["datasets"] = datasets_mod
 
@@ -104,7 +120,12 @@ def _load_trl_trainer_module(grpo_kwargs_sink: dict[str, object]):
     sys.modules["cli_utils"] = cli_utils_mod
 
     fixed_hint_utils_mod = types.ModuleType("fixed_hint_utils")
-    fixed_hint_utils_mod.apply_fixed_hint_depth_to_example = lambda example, hint_map, **kwargs: example
+    fixed_hint_utils_mod.apply_fixed_hint_depth_to_example = lambda example, hint_map, **kwargs: {
+        **example,
+        "oracle_hint_depth": 0,
+        "oracle_hint_text": "",
+        "oracle_hint_unsolved": False,
+    }
     fixed_hint_utils_mod.load_fixed_hint_depth_map = lambda path: {}
     sys.modules["fixed_hint_utils"] = fixed_hint_utils_mod
 
@@ -309,6 +330,52 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
                 check=False,
             )
 
+    def _run_fixed_hint_prefix_seq_sid_only_dry_run(
+        self, extra_args: Optional[list[str]] = None
+    ) -> subprocess.CompletedProcess:
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            model_dir = temp_root_path / "model"
+            data_dir = temp_root_path / "data" / "rl"
+            index_path = temp_root_path / "data" / "id2sid.json"
+            add_tokens_path = temp_root_path / "data" / "new_tokens.json"
+            ds_config_path = temp_root_path / "config" / "zero2.yaml"
+            model_dir.mkdir(parents=True)
+            data_dir.mkdir(parents=True)
+            ds_config_path.parent.mkdir(parents=True)
+            (data_dir / "train.json").write_text("[]", encoding="utf-8")
+            (data_dir / "valid.json").write_text("[]", encoding="utf-8")
+            (data_dir / "test.json").write_text("[]", encoding="utf-8")
+            index_path.write_text("{}", encoding="utf-8")
+            add_tokens_path.write_text("[]", encoding="utf-8")
+            ds_config_path.write_text("train_micro_batch_size_per_gpu: 1\n", encoding="utf-8")
+
+            command = [
+                "bash",
+                str(FIXED_HINT_PREFIX_SEQ_SID_ONLY_SCRIPT),
+                "--run",
+                "--dry-run",
+                "--model-path",
+                str(model_dir),
+                "--data-dir",
+                str(data_dir),
+                "--index-path",
+                str(index_path),
+                "--add-tokens-path",
+                str(add_tokens_path),
+                "--ds-config",
+                str(ds_config_path),
+            ]
+            if extra_args:
+                command.extend(extra_args)
+            return subprocess.run(
+                command,
+                cwd=REPO_ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
     def test_fixed_and_dynamic_launchers_keep_step_count_driving_defaults_aligned(self):
         fixed_text = FIXED_HINT_SCRIPT.read_text(encoding="utf-8")
         dynamic_text = DYNAMIC_HINT_SCRIPT.read_text(encoding="utf-8")
@@ -482,6 +549,42 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
             msg="Analyze and export commands should both stay on beam 16 instead of export falling back to 8,16.",
         )
 
+    def test_fixed_hint_prefix_seq_sid_only_shell_dry_run_uses_sequence_prefix_rule_mode(self):
+        result = self._run_fixed_hint_prefix_seq_sid_only_dry_run()
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn(
+            "Instruments-grec-grpo-prefix-seq-only-fixedhint-taskfix-b16-sid-only-sft495",
+            result.stdout,
+        )
+        self.assertIn("--reward_mode prefix_rule_only", result.stdout)
+        self.assertIn("--prefix_reward_normalize true", result.stdout)
+        self.assertIn("--probe_rule_with_zero_weight false", result.stdout)
+        self.assertIn("--token_level_prefix_advantage false", result.stdout)
+        self.assertIn("--fixed_hint_depth_map_path", result.stdout)
+        self.assertIn("instruments_grec_rlsidonly_beam_hint", result.stdout)
+
+    def test_fixed_hint_prefix_seq_sid_only_shell_is_standalone_launcher(self):
+        script_text = FIXED_HINT_PREFIX_SEQ_SID_ONLY_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("analyze_rl_beam_hint.py", script_text)
+        self.assertIn("trl_trainer.py", script_text)
+        self.assertNotIn("BASE_SCRIPT=", script_text)
+        self.assertNotIn('exec bash "$BASE_SCRIPT" "$@"', script_text)
+        self.assertNotIn(
+            "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-only.sh",
+            script_text,
+        )
+
+    def test_fixed_hint_sid_only_shell_keeps_dedicated_rule_only_train_defaults(self):
+        script_text = FIXED_HINT_SID_ONLY_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("--reward_mode rule_only", script_text)
+        self.assertIn("--prefix_reward_normalize true", script_text)
+        self.assertIn("--probe_rule_with_zero_weight false", script_text)
+        self.assertIn("--token_level_prefix_advantage false", script_text)
+        self.assertNotIn("--reward_mode \"$REWARD_MODE\"", script_text)
+
     def test_all_grec_rl_launchers_enable_eval_on_start_by_default(self):
         training_scripts = sorted(
             path
@@ -545,6 +648,25 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
                 reward_mode="ranking",
                 num_beams=4,
                 dynamic_hint_max_depth=3,
+            )
+
+    def test_fixed_hint_accepts_prefix_rule_only_reward_mode(self):
+        grpo_kwargs = {}
+        module = _load_trl_trainer_module(grpo_kwargs)
+
+        with self.assertRaises(StopAfterTrainerInit):
+            module.main(
+                model="dummy-model",
+                data_dir="dummy-data",
+                index_path="dummy-index",
+                output_dir="dummy-output",
+                report_to="wandb",
+                run_name="fixed-hint-prefix-seq-test-run",
+                token_level_prefix_advantage=False,
+                reward_mode="prefix_rule_only",
+                num_beams=4,
+                fixed_hint_depth_map_path="dummy-fixed-hint-map.json",
+                fixed_hint_unsolved_depth=3,
             )
 
 

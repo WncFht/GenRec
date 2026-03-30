@@ -131,8 +131,11 @@ def main(
     tokenizer = AutoTokenizer.from_pretrained(model)
 
     if fixed_hint_depth_map_path is not None:
-        if normalized_reward_mode != "rule_only":
-            raise NotImplementedError("Fixed oracle hint-depth training currently supports reward_mode=rule_only only.")
+        if normalized_reward_mode not in {"rule_only", "prefix_rule_only"}:
+            raise NotImplementedError(
+                "Fixed oracle hint-depth training currently supports reward_mode=rule_only or "
+                "reward_mode=prefix_rule_only only."
+            )
 
         fixed_hint_map = load_fixed_hint_depth_map(fixed_hint_depth_map_path)
 

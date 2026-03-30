@@ -42,6 +42,12 @@ INDUSTRIAL_INDEX_PATH="${INDUSTRIAL_INDEX_PATH:-$DATA_ROOT/Industrial_and_Scient
 INSTRUMENTS_TEST_DATA_PATH="${INSTRUMENTS_TEST_DATA_PATH:-$DATA_ROOT/Instruments/sft/test.json}"
 INSTRUMENTS_INDEX_PATH="${INSTRUMENTS_INDEX_PATH:-$DATA_ROOT/Instruments/id2sid.json}"
 
+GAMES_TEST_DATA_PATH="${GAMES_TEST_DATA_PATH:-$DATA_ROOT/Games/sft/test.json}"
+GAMES_INDEX_PATH="${GAMES_INDEX_PATH:-$DATA_ROOT/Games/id2sid.json}"
+
+ARTS_TEST_DATA_PATH="${ARTS_TEST_DATA_PATH:-$DATA_ROOT/Arts/sft/test.json}"
+ARTS_INDEX_PATH="${ARTS_INDEX_PATH:-$DATA_ROOT/Arts/id2sid.json}"
+
 INSTRUMENTS_GREC_FALLBACK_VARIANT_DIR="${INSTRUMENTS_GREC_FALLBACK_VARIANT_DIR:-$DATA_ROOT/Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47}"
 INSTRUMENTS_GREC_TEST_DATA_PATH="${INSTRUMENTS_GREC_TEST_DATA_PATH:-$INSTRUMENTS_GREC_FALLBACK_VARIANT_DIR/sft/test.json}"
 INSTRUMENTS_GREC_INDEX_PATH="${INSTRUMENTS_GREC_INDEX_PATH:-$INSTRUMENTS_GREC_FALLBACK_VARIANT_DIR/id2sid.json}"
@@ -187,6 +193,41 @@ pick_latest_variant_dir_by_cb() {
   return 1
 }
 
+pick_latest_variant_dir_by_prefix() {
+  local variant_prefix="$1"
+  local best_dir=""
+  local best_mtime=0
+  local candidate candidate_mtime
+
+  [[ -d "$DATA_ROOT" ]] || return 1
+
+  while IFS= read -r candidate; do
+    candidate_mtime="$(dir_mtime_epoch "$candidate")"
+    if [[ -z "$best_dir" || "$candidate_mtime" -gt "$best_mtime" ]]; then
+      best_dir="$candidate"
+      best_mtime="$candidate_mtime"
+    fi
+  done < <(find "$DATA_ROOT" -mindepth 1 -maxdepth 1 -type d -name "${variant_prefix}_index_emb-*")
+
+  if [[ -n "$best_dir" ]]; then
+    echo "$best_dir"
+    return 0
+  fi
+  return 1
+}
+
+resolve_base_category_from_model_name() {
+  local model_name="$1"
+  local candidate
+  for candidate in Industrial_and_Scientific Instruments Games Arts; do
+    if [[ "$model_name" == "$candidate"* ]]; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
 matches_filter() {
   local model_name="$1"
   if [[ -z "$MODEL_FILTER" ]]; then
@@ -216,6 +257,9 @@ resolve_eval_profile() {
   cb_width="$(extract_cb_width "$model_name" || true)"
   RES_CB_WIDTH="${cb_width:-n/a}"
 
+  local base_category=""
+  base_category="$(resolve_base_category_from_model_name "$model_name" || true)"
+
   if [[ "$model_name" == Industrial_and_Scientific* ]]; then
     RES_CATEGORY="Industrial_and_Scientific"
     RES_TEST_DATA_PATH="$INDUSTRIAL_TEST_DATA_PATH"
@@ -224,12 +268,12 @@ resolve_eval_profile() {
     return
   fi
 
-  if [[ "$model_name" == Instruments-grec* || "$model_name" == Instruments_grec* ]]; then
-    RES_CATEGORY="Instruments_grec"
+  if [[ -n "$base_category" && ( "$model_name" == "${base_category}-grec"* || "$model_name" == "${base_category}_grec"* ) ]]; then
+    RES_CATEGORY="${base_category}_grec"
 
     if [[ "$AUTO_DATA_MAPPING" == "1" && -n "$cb_width" ]]; then
       local variant_dir
-      variant_dir="$(pick_latest_variant_dir_by_cb "Instruments_grec" "$cb_width" || true)"
+      variant_dir="$(pick_latest_variant_dir_by_cb "${RES_CATEGORY}" "$cb_width" || true)"
       if [[ -n "$variant_dir" ]]; then
         local candidate_test candidate_index
         candidate_test="$variant_dir/sft/test.json"
@@ -243,22 +287,52 @@ resolve_eval_profile() {
       fi
     fi
 
-    RES_TEST_DATA_PATH="$INSTRUMENTS_GREC_TEST_DATA_PATH"
-    RES_INDEX_PATH="$INSTRUMENTS_GREC_INDEX_PATH"
-    if [[ "$RES_TEST_DATA_PATH" == "$INSTRUMENTS_GREC_FALLBACK_VARIANT_DIR/sft/test.json" && "$RES_INDEX_PATH" == "$INSTRUMENTS_GREC_FALLBACK_VARIANT_DIR/id2sid.json" ]]; then
-      RES_PROFILE_INFO="fallback:fixed_grec_cb256"
-    else
-      RES_PROFILE_INFO="fallback:env_INSTRUMENTS_GREC_*"
+    if [[ "$base_category" == "Instruments" ]]; then
+      if [[ -z "$cb_width" ]]; then
+        RES_TEST_DATA_PATH="$INSTRUMENTS_GREC_TEST_DATA_PATH"
+        RES_INDEX_PATH="$INSTRUMENTS_GREC_INDEX_PATH"
+        if [[ "$RES_TEST_DATA_PATH" == "$INSTRUMENTS_GREC_FALLBACK_VARIANT_DIR/sft/test.json" && "$RES_INDEX_PATH" == "$INSTRUMENTS_GREC_FALLBACK_VARIANT_DIR/id2sid.json" ]]; then
+          RES_PROFILE_INFO="fallback:fixed_grec_cb256"
+        else
+          RES_PROFILE_INFO="fallback:env_INSTRUMENTS_GREC_*"
+        fi
+        return
+      fi
+    fi
+
+    local latest_variant_dir=""
+    latest_variant_dir="$(pick_latest_variant_dir_by_prefix "${RES_CATEGORY}" || true)"
+    if [[ -n "$latest_variant_dir" ]]; then
+      local candidate_test candidate_index
+      candidate_test="$latest_variant_dir/sft/test.json"
+      candidate_index="$latest_variant_dir/id2sid.json"
+      if [[ -f "$candidate_test" && -f "$candidate_index" ]]; then
+        RES_TEST_DATA_PATH="$candidate_test"
+        RES_INDEX_PATH="$candidate_index"
+        RES_PROFILE_INFO="fallback:latest_variant_dir=$latest_variant_dir"
+        return
+      fi
+    fi
+
+    if [[ "$base_category" == "Instruments" ]]; then
+      RES_TEST_DATA_PATH="$INSTRUMENTS_GREC_TEST_DATA_PATH"
+      RES_INDEX_PATH="$INSTRUMENTS_GREC_INDEX_PATH"
+      if [[ "$RES_TEST_DATA_PATH" == "$INSTRUMENTS_GREC_FALLBACK_VARIANT_DIR/sft/test.json" && "$RES_INDEX_PATH" == "$INSTRUMENTS_GREC_FALLBACK_VARIANT_DIR/id2sid.json" ]]; then
+        RES_PROFILE_INFO="fallback:fixed_grec_cb256"
+      else
+        RES_PROFILE_INFO="fallback:env_INSTRUMENTS_GREC_*"
+      fi
+      return
     fi
     return
   fi
 
-  if [[ "$model_name" == Instruments-mimionerec* || "$model_name" == Instruments_mimionerec* ]]; then
-    RES_CATEGORY="Instruments_mimionerec"
+  if [[ -n "$base_category" && ( "$model_name" == "${base_category}-mimionerec"* || "$model_name" == "${base_category}_mimionerec"* ) ]]; then
+    RES_CATEGORY="${base_category}_mimionerec"
 
     if [[ "$AUTO_DATA_MAPPING" == "1" && -n "$cb_width" ]]; then
       local variant_dir
-      variant_dir="$(pick_latest_variant_dir_by_cb "Instruments_mimionerec" "$cb_width" || true)"
+      variant_dir="$(pick_latest_variant_dir_by_cb "${RES_CATEGORY}" "$cb_width" || true)"
       if [[ -n "$variant_dir" ]]; then
         local candidate_test candidate_index
         candidate_test="$variant_dir/sft/test.json"
@@ -272,9 +346,26 @@ resolve_eval_profile() {
       fi
     fi
 
-    RES_TEST_DATA_PATH="$INSTRUMENTS_MIMIONEREC_TEST_DATA_PATH"
-    RES_INDEX_PATH="$INSTRUMENTS_MIMIONEREC_INDEX_PATH"
-    RES_PROFILE_INFO="fallback:env_INSTRUMENTS_MIMIONEREC_*"
+    local latest_variant_dir=""
+    latest_variant_dir="$(pick_latest_variant_dir_by_prefix "${RES_CATEGORY}" || true)"
+    if [[ -n "$latest_variant_dir" ]]; then
+      local candidate_test candidate_index
+      candidate_test="$latest_variant_dir/sft/test.json"
+      candidate_index="$latest_variant_dir/id2sid.json"
+      if [[ -f "$candidate_test" && -f "$candidate_index" ]]; then
+        RES_TEST_DATA_PATH="$candidate_test"
+        RES_INDEX_PATH="$candidate_index"
+        RES_PROFILE_INFO="fallback:latest_variant_dir=$latest_variant_dir"
+        return
+      fi
+    fi
+
+    if [[ "$base_category" == "Instruments" ]]; then
+      RES_TEST_DATA_PATH="$INSTRUMENTS_MIMIONEREC_TEST_DATA_PATH"
+      RES_INDEX_PATH="$INSTRUMENTS_MIMIONEREC_INDEX_PATH"
+      RES_PROFILE_INFO="fallback:env_INSTRUMENTS_MIMIONEREC_*"
+      return
+    fi
     return
   fi
 
@@ -283,6 +374,22 @@ resolve_eval_profile() {
     RES_TEST_DATA_PATH="$INSTRUMENTS_TEST_DATA_PATH"
     RES_INDEX_PATH="$INSTRUMENTS_INDEX_PATH"
     RES_PROFILE_INFO="fixed:instruments_default"
+    return
+  fi
+
+  if [[ "$model_name" == Games* ]]; then
+    RES_CATEGORY="Games"
+    RES_TEST_DATA_PATH="$GAMES_TEST_DATA_PATH"
+    RES_INDEX_PATH="$GAMES_INDEX_PATH"
+    RES_PROFILE_INFO="fixed:games_default"
+    return
+  fi
+
+  if [[ "$model_name" == Arts* ]]; then
+    RES_CATEGORY="Arts"
+    RES_TEST_DATA_PATH="$ARTS_TEST_DATA_PATH"
+    RES_INDEX_PATH="$ARTS_INDEX_PATH"
+    RES_PROFILE_INFO="fixed:arts_default"
     return
   fi
 
