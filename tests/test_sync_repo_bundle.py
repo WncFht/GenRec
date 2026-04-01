@@ -11,12 +11,11 @@ SYNC_REPO_BUNDLE_SCRIPT = REPO_ROOT / "scripts" / "sync_repo_bundle.sh"
 
 
 class SyncRepoBundleTests(unittest.TestCase):
-    def test_pack_and_unpack_restores_mixed_paths_under_dest_root(self):
+    def test_pack_without_archive_name_creates_timestamped_bundle_and_unpack_deletes_it(self):
         with tempfile.TemporaryDirectory() as temp_root:
             temp_root_path = Path(temp_root)
             source_root = temp_root_path / "source_repo"
             dest_root = temp_root_path / "dest_repo"
-            archive_path = temp_root_path / "bundle.tar.gz"
 
             (source_root / "logs").mkdir(parents=True)
             (source_root / "results" / "runA").mkdir(parents=True)
@@ -30,18 +29,19 @@ class SyncRepoBundleTests(unittest.TestCase):
                     "bash",
                     str(SYNC_REPO_BUNDLE_SCRIPT),
                     "pack",
-                    str(archive_path),
                     "logs/train.log",
                     "results/runA",
                 ],
-                cwd=REPO_ROOT,
+                cwd=temp_root_path,
                 env=env,
                 text=True,
                 capture_output=True,
                 check=False,
             )
             self.assertEqual(pack_result.returncode, 0, msg=pack_result.stderr or pack_result.stdout)
-            self.assertTrue(archive_path.is_file(), msg="Expected a single archive for small payloads")
+            archives = sorted(temp_root_path.glob("genrec_repo_bundle_*.tar.gz"))
+            self.assertEqual(len(archives), 1, msg="Expected one timestamped bundle archive")
+            archive_path = archives[0]
 
             env["DEST_REPO_ROOT"] = str(dest_root)
             unpack_result = subprocess.run(
@@ -58,6 +58,7 @@ class SyncRepoBundleTests(unittest.TestCase):
                 (dest_root / "results" / "runA" / "metrics.json").read_text(encoding="utf-8"),
                 '{"ndcg": 0.1}\n',
             )
+            self.assertFalse(archive_path.exists(), msg="Unpack should remove the source tar.gz by default")
 
     def test_pack_splits_large_archive_and_unpack_accepts_first_part(self):
         with tempfile.TemporaryDirectory() as temp_root:
@@ -107,6 +108,8 @@ class SyncRepoBundleTests(unittest.TestCase):
             )
             self.assertEqual(unpack_result.returncode, 0, msg=unpack_result.stderr or unpack_result.stdout)
             self.assertEqual((dest_root / "artifacts" / "big.bin").read_bytes(), payload_path.read_bytes())
+            self.assertFalse(first_part.exists(), msg="Unpack should remove split part 000 by default")
+            self.assertFalse(second_part.exists(), msg="Unpack should remove all split parts by default")
 
 
 if __name__ == "__main__":

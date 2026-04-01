@@ -17,6 +17,7 @@ DEST_REPO_ROOT="${DEST_REPO_ROOT:-}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 BUNDLE_NAME="${BUNDLE_NAME:-genrec_repo_bundle}"
 CHUNK_SIZE="${CHUNK_SIZE:-10485760}"  # 10MB
+KEEP_ARCHIVE="${KEEP_ARCHIVE:-0}"
 
 usage() {
   cat <<'USAGE'
@@ -49,6 +50,7 @@ Other overrides:
   PYTHON_BIN
   BUNDLE_NAME
   CHUNK_SIZE
+  KEEP_ARCHIVE=1   # keep source archive/parts after unpack
 
 Examples:
   bash scripts/sync_repo_bundle.sh pack results_sync.tar.gz \
@@ -106,7 +108,7 @@ normalize_archive_path() {
   local archive_arg="$1"
   local archive_path
   if [[ -z "$archive_arg" ]]; then
-    archive_path="$(pwd)/${BUNDLE_NAME}.tar.gz"
+    archive_path="$(pwd)/${BUNDLE_NAME}_$(date +%Y%m%d_%H%M%S).tar.gz"
   elif [[ "$archive_arg" =~ \.part\.[0-9]{3}$ ]]; then
     archive_path="$archive_arg"
   elif [[ "$archive_arg" = /* ]]; then
@@ -120,6 +122,27 @@ normalize_archive_path() {
   fi
 
   printf '%s\n' "$archive_path"
+}
+
+path_exists_under_root() {
+  local root="$1"
+  local path_arg="$2"
+
+  "$PYTHON_BIN" - "$root" "$path_arg" <<'PY'
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1]).expanduser().resolve()
+path_arg = Path(sys.argv[2]).expanduser()
+path = (path_arg if path_arg.is_absolute() else root / path_arg).resolve()
+
+try:
+    path.relative_to(root)
+except ValueError:
+    sys.exit(1)
+
+sys.exit(0 if path.exists() else 1)
+PY
 }
 
 archive_part_prefix() {
@@ -264,8 +287,8 @@ restore_from_stage() {
 }
 
 pack_bundle() {
-  if [[ $# -lt 2 ]]; then
-    echo "Error: pack requires an archive path and at least one file or directory." >&2
+  if [[ $# -lt 1 ]]; then
+    echo "Error: pack requires at least one file or directory." >&2
     usage
     exit 1
   fi
@@ -276,16 +299,27 @@ pack_bundle() {
     exit 1
   fi
 
-  local archive_path
-  archive_path="$(normalize_archive_path "$1")"
-  shift
-
   local source_root
   source_root="$(resolve_source_root)"
   if [[ ! -d "$source_root" ]]; then
     echo "Error: source repo root not found: $source_root" >&2
     exit 1
   fi
+
+  local archive_arg=""
+  if ! path_exists_under_root "$source_root" "$1"; then
+    archive_arg="$1"
+    shift
+  fi
+
+  if [[ $# -lt 1 ]]; then
+    echo "Error: pack requires at least one source path after archive resolution." >&2
+    usage
+    exit 1
+  fi
+
+  local archive_path
+  archive_path="$(normalize_archive_path "$archive_arg")"
 
   local stage_root bundle_root payload_root
   stage_root="$(mktemp -d)"
@@ -391,6 +425,7 @@ unpack_bundle() {
   ensure_python
   local archive_path
   archive_path="$(resolve_archive_input "${1:-}")"
+  local requested_archive_path="$archive_path"
   if [[ $# -ge 2 && -n "${2:-}" ]]; then
     DEST_REPO_ROOT="$2"
   fi
@@ -399,6 +434,7 @@ unpack_bundle() {
   mkdir -p "$dest_root"
 
   local tmp_archive_path=""
+  local -a source_archives=()
   if [[ ! -f "$archive_path" ]]; then
     if [[ "$archive_path" =~ \.part\.[0-9]{3}$ || -f "$(archive_part_prefix "$archive_path")000" ]]; then
       :
@@ -409,9 +445,20 @@ unpack_bundle() {
   fi
 
   if [[ "$archive_path" =~ \.part\.[0-9]{3}$ || ! -f "$archive_path" ]]; then
+    local part_prefix
+    if [[ "$requested_archive_path" =~ \.part\.[0-9]{3}$ ]]; then
+      part_prefix="${requested_archive_path%.part.[0-9][0-9][0-9]}.part."
+    else
+      part_prefix="$(archive_part_prefix "$requested_archive_path")"
+    fi
+    shopt -s nullglob
+    source_archives=("${part_prefix}"[0-9][0-9][0-9])
+    shopt -u nullglob
     tmp_archive_path="$(mktemp "${TMPDIR:-/tmp}/sync_repo_bundle_XXXXXX.tar.gz")"
     rebuild_archive_from_parts "$archive_path" "$tmp_archive_path"
     archive_path="$tmp_archive_path"
+  else
+    source_archives=("$archive_path")
   fi
 
   local temp_extract_dir bundle_dir_name bundle_root manifest_path payload_root
@@ -463,6 +510,12 @@ unpack_bundle() {
   rm -rf "$temp_extract_dir"
   if [[ -n "$tmp_archive_path" ]]; then
     rm -f "$tmp_archive_path"
+  fi
+  if [[ "$KEEP_ARCHIVE" != "1" ]]; then
+    local archive_file
+    for archive_file in "${source_archives[@]}"; do
+      [[ -f "$archive_file" ]] && rm -f "$archive_file"
+    done
   fi
 }
 
