@@ -44,7 +44,14 @@ METRIC_KEYS = [
     "NDCG@5",
     "NDCG@10",
 ]
-TABLE_COLUMNS = ["checkpoint_step", "checkpoint_name", *METRIC_KEYS, "metrics_path"]
+TABLE_COLUMNS = [
+    "checkpoint_step",
+    "checkpoint_index",
+    "epoch_progress",
+    "checkpoint_name",
+    *METRIC_KEYS,
+    "metrics_path",
+]
 
 
 @dataclass(frozen=True)
@@ -63,6 +70,8 @@ class ModelSpec:
     seed: int
     num_beams: int
     sid_levels: int
+    num_train_epochs: float | None
+    wandb_group: str | None
     wandb_project: str
     wandb_entity: str | None
     wandb_run_id: str
@@ -264,6 +273,10 @@ def build_model_manifest_item(
     seed = int(merged.get("seed", defaults["seed"]))
     num_beams = int(merged.get("num_beams", defaults["num_beams"]))
     sid_levels = int(merged.get("sid_levels", defaults["sid_levels"]))
+    num_train_epochs_raw = merged.get("num_train_epochs", defaults.get("num_train_epochs"))
+    num_train_epochs = None if num_train_epochs_raw in (None, "") else float(num_train_epochs_raw)
+    wandb_group_raw = merged.get("wandb_group", defaults.get("wandb_group"))
+    wandb_group = str(wandb_group_raw) if wandb_group_raw not in (None, "") else None
     wandb_project = str(merged.get("wandb_project") or defaults["wandb_project"])
     wandb_entity = merged.get("wandb_entity", defaults["wandb_entity"])
     wandb_entity = str(wandb_entity) if wandb_entity not in (None, "") else None
@@ -280,6 +293,8 @@ def build_model_manifest_item(
         "seed": seed,
         "num_beams": num_beams,
         "sid_levels": sid_levels,
+        "num_train_epochs": num_train_epochs,
+        "wandb_group": wandb_group,
         "wandb_project": wandb_project,
         "wandb_entity": wandb_entity,
         "wandb_run_id": wandb_run_id,
@@ -303,6 +318,8 @@ def cmd_prepare_manifest(args: argparse.Namespace) -> int:
             "seed": 42,
             "num_beams": 50,
             "sid_levels": -1,
+            "num_train_epochs": args.default_num_train_epochs,
+            "wandb_group": args.default_wandb_group,
             "wandb_project": args.default_project,
             "wandb_entity": args.default_entity,
         }
@@ -358,6 +375,10 @@ def parse_model_spec(raw: dict[str, Any], idx: int) -> ModelSpec:
 
     entity_raw = raw.get("wandb_entity")
     wandb_entity = str(entity_raw) if entity_raw not in (None, "") else None
+    num_train_epochs_raw = raw.get("num_train_epochs")
+    num_train_epochs = None if num_train_epochs_raw in (None, "") else float(num_train_epochs_raw)
+    wandb_group_raw = raw.get("wandb_group")
+    wandb_group = str(wandb_group_raw) if wandb_group_raw not in (None, "") else None
 
     return ModelSpec(
         model_dir=str(raw["model_dir"]),
@@ -367,6 +388,8 @@ def parse_model_spec(raw: dict[str, Any], idx: int) -> ModelSpec:
         seed=int(raw["seed"]),
         num_beams=int(raw["num_beams"]),
         sid_levels=int(raw["sid_levels"]),
+        num_train_epochs=num_train_epochs,
+        wandb_group=wandb_group,
         wandb_project=str(raw["wandb_project"]),
         wandb_entity=wandb_entity,
         wandb_run_id=str(raw["wandb_run_id"]),
@@ -496,9 +519,35 @@ def load_metrics(metrics_path: Path) -> dict[str, float]:
     return parsed
 
 
-def build_row(ckpt: CheckpointInfo, metrics: dict[str, float], metrics_path: Path) -> dict[str, Any]:
+def build_progress_fields(
+    checkpoints: list[CheckpointInfo], ckpt: CheckpointInfo, model: ModelSpec
+) -> dict[str, int | float | None]:
+    checkpoint_index = next(
+        (idx for idx, candidate in enumerate(checkpoints, start=1) if candidate.step == ckpt.step),
+        None,
+    )
+    max_checkpoint_step = checkpoints[-1].step if checkpoints else None
+
+    epoch_progress = None
+    if model.num_train_epochs is not None and max_checkpoint_step not in (None, 0):
+        epoch_progress = ckpt.step / max_checkpoint_step * model.num_train_epochs
+
+    return {
+        "checkpoint_index": checkpoint_index,
+        "epoch_progress": epoch_progress,
+    }
+
+
+def build_row(
+    ckpt: CheckpointInfo,
+    metrics: dict[str, float],
+    metrics_path: Path,
+    progress_fields: dict[str, int | float | None],
+) -> dict[str, Any]:
     row: dict[str, Any] = {
         "checkpoint_step": ckpt.step,
+        "checkpoint_index": progress_fields.get("checkpoint_index"),
+        "epoch_progress": progress_fields.get("epoch_progress"),
         "checkpoint_name": ckpt.name,
         "metrics_path": str(metrics_path),
     }
@@ -518,6 +567,7 @@ def init_wandb_run(args: argparse.Namespace, model: ModelSpec):
         entity=model.wandb_entity,
         id=model.wandb_run_id,
         name=model.wandb_run_name,
+        group=model.wandb_group,
         resume=args.wandb_resume,
         job_type=args.wandb_job_type,
         mode=args.wandb_mode,
@@ -528,6 +578,7 @@ def init_wandb_run(args: argparse.Namespace, model: ModelSpec):
             "seed": model.seed,
             "num_beams": model.num_beams,
             "sid_levels": model.sid_levels,
+            "num_train_epochs": model.num_train_epochs,
             "eval_split": model.eval_split,
         },
         reinit=True,
@@ -545,6 +596,7 @@ def log_metrics_to_wandb(
     ckpt: CheckpointInfo,
     metrics: dict[str, float],
     metrics_path: Path,
+    progress_fields: dict[str, int | float | None],
     table_rows: list[dict[str, Any]],
 ) -> None:
     payload: dict[str, Any] = {
@@ -552,6 +604,12 @@ def log_metrics_to_wandb(
         "eval/checkpoint_name": ckpt.name,
         "eval/metrics_path": str(metrics_path),
     }
+    checkpoint_index = progress_fields.get("checkpoint_index")
+    if checkpoint_index is not None:
+        payload["checkpoint_index"] = int(checkpoint_index)
+    epoch_progress = progress_fields.get("epoch_progress")
+    if epoch_progress is not None:
+        payload["epoch_progress"] = float(epoch_progress)
     for key, value in metrics.items():
         payload[f"eval/{key}"] = float(value)
 
@@ -626,7 +684,8 @@ def process_model_once(args: argparse.Namespace, model: ModelSpec) -> tuple[int,
                 failed_steps.pop(str(ckpt.step), None)
                 state["failed_steps"] = failed_steps
 
-                row = build_row(ckpt, metrics, metrics_path)
+                progress_fields = build_progress_fields(checkpoints, ckpt, model)
+                row = build_row(ckpt, metrics, metrics_path, progress_fields)
                 state["table_rows"] = upsert_table_row(state.get("table_rows", []), row)
                 state["last_update_time"] = now_utc_iso()
 
@@ -637,6 +696,7 @@ def process_model_once(args: argparse.Namespace, model: ModelSpec) -> tuple[int,
                         ckpt=ckpt,
                         metrics=metrics,
                         metrics_path=metrics_path,
+                        progress_fields=progress_fields,
                         table_rows=state["table_rows"],
                     )
 
@@ -723,6 +783,17 @@ def build_parser() -> argparse.ArgumentParser:
     prepare.add_argument("--default-project", default="MIMIGenRec-Eval", help="Default W&B project")
     prepare.add_argument("--default-entity", default="", help="Default W&B entity")
     prepare.add_argument("--default-eval-split", default="test", help="Default eval split")
+    prepare.add_argument(
+        "--default-num-train-epochs",
+        type=float,
+        default=None,
+        help="Optional default num_train_epochs metadata stored in the manifest",
+    )
+    prepare.add_argument(
+        "--default-wandb-group",
+        default="",
+        help="Optional default W&B group stored in the manifest",
+    )
     prepare.add_argument("--run-id-prefix", default="eval", help="Run ID prefix for generated run IDs")
     prepare.add_argument("--log-level", default="INFO")
 

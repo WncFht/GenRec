@@ -44,6 +44,8 @@
 - `seed`
 - `num_beams`
 - `sid_levels`
+- `num_train_epochs`（可选；用于把 `checkpoint_step` 归一化到 epoch 进度）
+- `wandb_group`（可选；用于把 run 归到同一个 W&B group，例如 `epoch` 或 `ckpt_step`）
 - `wandb_project`
 - `wandb_entity`
 - `wandb_run_id`
@@ -133,6 +135,8 @@ bash eval_wandb_sidecar.sh stop --instance eval_uploader
 - `--default-project`
 - `--default-entity`
 - `--default-eval-split`
+- `--default-num-train-epochs`
+- `--default-wandb-group`
 - `--run-id-prefix`
 
 ### 6.2 `eval_wandb_sidecar.py upload`
@@ -181,6 +185,18 @@ bash eval_wandb_sidecar.sh stop --instance eval_uploader
 
 上传器使用 `run.log(..., step=checkpoint_step)`，W&B 图建议把 X 轴设置为 `checkpoint_step`。
 
+同时，上传器现在还会额外记录：
+
+- `checkpoint_index`：当前模型目录内第几个 checkpoint（从 1 开始）
+- `epoch_progress`：如果 manifest 或 overrides 里提供了 `num_train_epochs`，则按 `checkpoint_step / last_checkpoint_step * num_train_epochs` 计算出的归一化 epoch 进度
+
+当不同 run 的总 `checkpoint_step` 不一致时，建议把 W&B 图的 X 轴切到 `epoch_progress`，这样 sid-only 与非 sid-only run 可以按训练进度对齐。
+
+如果你同时希望在 W&B 左侧把这些 run 管理成一个 cohort，可以在 manifest 或 overrides 里设置 `wandb_group`。例如：
+
+- 旧的 step 轴 run 放到 `ckpt_step`
+- 新的 epoch 对齐 rerun 放到 `epoch`
+
 ### 8.2 如何保证同一模型持续写同一 run？
 
 - 固定 `model_dir -> wandb_run_id`（manifest 明确指定或默认稳定哈希）。
@@ -201,6 +217,7 @@ PYTHON_BIN=python bash eval_wandb_sidecar.sh once \
 
 - 如果本地存在 `config/wandb_eval_manifest_overrides.json`，`upload` 会在读取 manifest 后自动覆盖对应模型字段。
 - 这允许你用本地 overrides 修复“某个 run id 已在 W&B 被删除”的情况，而不必先手动重生成同步回来的 manifest。
+- 同样也可以在 overrides 里补 `num_train_epochs`，让本地上传时额外产出 `epoch_progress`。
 - 如果远端也需要拿到一致的新 run id，仍建议在下一次打包前重新执行 `prepare-manifest`。
 
 ### 8.5 Python 3.9 兼容吗？

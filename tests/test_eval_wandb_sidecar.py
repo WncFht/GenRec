@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import json
 import sys
+import types
 from pathlib import Path
+
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
@@ -98,3 +101,120 @@ def test_upload_applies_local_overrides_to_stale_manifest(tmp_path: Path, monkey
     assert not old_state.exists()
     assert new_state.exists()
     assert sidecar.load_json(new_state)["run_id"] == new_run_id
+
+
+def test_upload_persists_checkpoint_index_and_epoch_progress(tmp_path: Path, monkeypatch) -> None:
+    model_dir = "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495"
+    state_dir = tmp_path / "state" / "wandb_eval_uploader"
+
+    for checkpoint_step in (266, 532, 798):
+        _write_json(
+            tmp_path / "results" / model_dir / f"checkpoint-{checkpoint_step}" / "metrics.json",
+            {
+                "HR@1": 0.1,
+                "HR@3": 0.2,
+                "HR@5": 0.3,
+                "HR@10": 0.4,
+                "NDCG@1": 0.1,
+                "NDCG@3": 0.2,
+                "NDCG@5": 0.3,
+                "NDCG@10": 0.4,
+            },
+        )
+
+    _write_json(
+        tmp_path / "results" / ".wandb_eval_manifest.json",
+        {
+            "version": sidecar.MANIFEST_VERSION,
+            "generated_at": "2026-04-01T00:00:00+00:00",
+            "results_root": "./results",
+            "models": [
+                {
+                    "model_dir": model_dir,
+                    "dataset": "Instruments_grec",
+                    "cb_setting": "none",
+                    "eval_split": "test",
+                    "seed": 42,
+                    "num_beams": 50,
+                    "sid_levels": -1,
+                    "num_train_epochs": 2,
+                    "wandb_project": "MIMIGenRec-Eval",
+                    "wandb_entity": None,
+                    "wandb_run_id": "eval-244685544728aa7e29a6",
+                    "wandb_run_name": f"{model_dir}-eval",
+                }
+            ],
+        },
+    )
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "eval_wandb_sidecar.py",
+            "upload",
+            "--results-root",
+            "./results",
+            "--manifest-path",
+            "./results/.wandb_eval_manifest.json",
+            "--state-dir",
+            str(state_dir),
+            "--once",
+            "--disable-wandb",
+        ],
+    )
+
+    assert sidecar.main() == 0
+
+    state_suffix = sidecar.stable_hash({"model_dir": model_dir, "run_id": "eval-244685544728aa7e29a6"}, 12)
+    state_path = state_dir / f"{model_dir}_{state_suffix}.json"
+    state = sidecar.load_json(state_path)
+
+    assert state["processed_steps"] == [266, 532, 798]
+    assert [row["checkpoint_index"] for row in state["table_rows"]] == [1, 2, 3]
+    assert [row["epoch_progress"] for row in state["table_rows"]] == [
+        pytest.approx(266 / 798 * 2, rel=1e-6),
+        pytest.approx(532 / 798 * 2, rel=1e-6),
+        pytest.approx(2.0, rel=1e-6),
+    ]
+
+
+def test_init_wandb_run_passes_group_from_model_spec(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    fake_wandb = types.SimpleNamespace()
+
+    def fake_init(**kwargs):
+        captured.update(kwargs)
+        return object()
+
+    fake_wandb.init = fake_init
+    fake_wandb.define_metric = lambda *args, **kwargs: None
+
+    monkeypatch.setitem(sys.modules, "wandb", fake_wandb)
+
+    args = types.SimpleNamespace(
+        wandb_resume="allow",
+        wandb_job_type="eval",
+        wandb_mode="offline",
+    )
+    model = types.SimpleNamespace(
+        model_dir="Instruments-grec-grpo-prefix-qwen2.5-3b-qwen4B-4-256-from-sft495",
+        dataset="Instruments_grec",
+        cb_setting="cb256",
+        seed=42,
+        num_beams=50,
+        sid_levels=-1,
+        num_train_epochs=2,
+        eval_split="test",
+        wandb_project="MIMIGenRec-Eval",
+        wandb_entity=None,
+        wandb_run_id="eval-a8fc2bd06d188292bd17-epoch-20260401",
+        wandb_run_name="instruments-prefix-eval-epoch-20260401",
+        wandb_group="epoch",
+    )
+
+    sidecar.init_wandb_run(args, model)
+
+    assert captured["group"] == "epoch"
