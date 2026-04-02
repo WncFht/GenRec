@@ -175,6 +175,13 @@ ms_cache/
 om_cache/
 llamaboard_cache/
 llamaboard_config/
+*.tar
+*.tar.gz
+*.tar.gz.part.*
+*.tgz
+*.zip
+*.7z
+*.rar
 config/wandb_eval_manifest_overrides.json
 data/_preprocess_input/
 log/
