@@ -16,7 +16,7 @@
 新流程：
 
 - `prepare-manifest`：只生成上报清单。
-- `upload`：只做增量上传，不调用评测脚本、不依赖 GPU。
+- `upload`：只做增量上传，不调用评测脚本、不依赖 GPU，默认同时写 `ckpt_step` 和 `epoch` 两套 run。
 
 ## 2. 关键脚本
 
@@ -50,6 +50,7 @@
 - `wandb_entity`
 - `wandb_run_id`
 - `wandb_run_name`
+- `variants`（可选；用于按变体覆盖 `wandb_run_id` / `wandb_run_name` / `wandb_group`）
 
 默认 run id 规则：
 
@@ -154,6 +155,7 @@ bash eval_wandb_sidecar.sh stop --instance eval_uploader
 - `--wandb-mode`（默认 `online`）
 - `--wandb-resume`（默认 `allow`）
 - `--wandb-job-type`（默认 `eval`）
+- `--variants`（默认 `ckpt_step,epoch`；可显式限制成单一变体）
 
 ### 6.3 `eval_wandb_sidecar.sh`
 
@@ -176,6 +178,13 @@ bash eval_wandb_sidecar.sh stop --instance eval_uploader
 - `table_rows`
 - `last_seen_step`
 - `last_update_time`
+
+默认情况下，`upload` 会把每个模型展开成两个上传变体：
+
+- `ckpt_step`：使用基础 manifest 里的 run id / run name，默认分到 `ckpt_step` group
+- `epoch`：派生的 `-epoch` run id / run name，默认分到 `epoch` group
+
+每个变体都有自己的本地 state 文件，因此两套上传互不覆盖，且都保持幂等。
 
 重复执行 `upload --once` 时，已处理 step 不会重复写入（幂等增量）。
 
@@ -213,11 +222,21 @@ PYTHON_BIN=python bash eval_wandb_sidecar.sh once \
   --model-filter Instruments-grec-sft-qwen4B-4-256-dsz0
 ```
 
+如果只想上传某一种变体，例如只写 step 版：
+
+```bash
+PYTHON_BIN=python bash eval_wandb_sidecar.sh once \
+  --results-root ./results \
+  --manifest-path ./results/.wandb_eval_manifest.json \
+  --variants ckpt_step
+```
+
 ### 8.4 manifest 里的 run id 过期了怎么办？
 
 - 如果本地存在 `config/wandb_eval_manifest_overrides.json`，`upload` 会在读取 manifest 后自动覆盖对应模型字段。
 - 这允许你用本地 overrides 修复“某个 run id 已在 W&B 被删除”的情况，而不必先手动重生成同步回来的 manifest。
 - 同样也可以在 overrides 里补 `num_train_epochs`，让本地上传时额外产出 `epoch_progress`。
+- 推荐的新写法是在 overrides 里使用 `variants.epoch` / `variants.ckpt_step` 做按变体覆盖；旧的“顶层直接写 epoch run id / group”写法仍兼容，并会自动视为 epoch 变体覆盖。
 - 如果远端也需要拿到一致的新 run id，仍建议在下一次打包前重新执行 `prepare-manifest`。
 
 ### 8.5 Python 3.9 兼容吗？

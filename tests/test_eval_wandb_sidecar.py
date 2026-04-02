@@ -201,6 +201,7 @@ def test_init_wandb_run_passes_group_from_model_spec(monkeypatch) -> None:
     )
     model = types.SimpleNamespace(
         model_dir="Instruments-grec-grpo-prefix-qwen2.5-3b-qwen4B-4-256-from-sft495",
+        variant="epoch",
         dataset="Instruments_grec",
         cb_setting="cb256",
         seed=42,
@@ -218,3 +219,129 @@ def test_init_wandb_run_passes_group_from_model_spec(monkeypatch) -> None:
     sidecar.init_wandb_run(args, model)
 
     assert captured["group"] == "epoch"
+
+
+def test_parse_models_from_manifest_expands_ckpt_step_and_epoch_variants() -> None:
+    manifest = {
+        "version": sidecar.MANIFEST_VERSION,
+        "generated_at": "2026-04-02T00:00:00+00:00",
+        "results_root": "./results",
+        "models": [
+            {
+                "model_dir": "Instruments-grec-grpo-prefix-qwen2.5-3b-qwen4B-4-256-from-sft495",
+                "dataset": "Instruments_grec",
+                "cb_setting": "cb256",
+                "eval_split": "test",
+                "seed": 42,
+                "num_beams": 50,
+                "sid_levels": -1,
+                "num_train_epochs": 2,
+                "wandb_project": "MIMIGenRec-Eval",
+                "wandb_entity": None,
+                "wandb_run_id": "eval-a8fc2bd06d188292bd17",
+                "wandb_run_name": "instruments-prefix-eval",
+            }
+        ],
+    }
+
+    specs = sidecar.parse_models_from_manifest(
+        manifest,
+        model_filter=set(),
+        upload_variants=sidecar.parse_upload_variants("ckpt_step,epoch"),
+    )
+
+    assert [(spec.variant, spec.wandb_group) for spec in specs] == [
+        ("ckpt_step", "ckpt_step"),
+        ("epoch", "epoch"),
+    ]
+    assert specs[0].wandb_run_id == "eval-a8fc2bd06d188292bd17"
+    assert specs[1].wandb_run_id == "eval-a8fc2bd06d188292bd17-epoch"
+    assert specs[1].wandb_run_name == "instruments-prefix-eval-epoch"
+
+
+def test_upload_defaults_to_dual_variants_with_legacy_epoch_override(
+    tmp_path: Path, monkeypatch
+) -> None:
+    model_dir = "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495"
+    ckpt_run_id = "eval-7496742c37888e35b425"
+    epoch_run_id = f"{ckpt_run_id}-epoch-20260402"
+    state_dir = tmp_path / "state" / "wandb_eval_uploader"
+
+    _write_json(
+        tmp_path / "results" / model_dir / "checkpoint-333" / "metrics.json",
+        {
+            "HR@1": 0.1,
+            "HR@3": 0.2,
+            "HR@5": 0.3,
+            "HR@10": 0.4,
+            "NDCG@1": 0.1,
+            "NDCG@3": 0.2,
+            "NDCG@5": 0.3,
+            "NDCG@10": 0.4,
+        },
+    )
+    _write_json(
+        tmp_path / "results" / ".wandb_eval_manifest.json",
+        {
+            "version": sidecar.MANIFEST_VERSION,
+            "generated_at": "2026-04-02T00:00:00+00:00",
+            "results_root": "./results",
+            "models": [
+                {
+                    "model_dir": model_dir,
+                    "dataset": "Instruments",
+                    "cb_setting": "none",
+                    "eval_split": "test",
+                    "seed": 42,
+                    "num_beams": 50,
+                    "sid_levels": -1,
+                    "num_train_epochs": 2,
+                    "wandb_project": "MIMIGenRec-Eval",
+                    "wandb_entity": None,
+                    "wandb_run_id": ckpt_run_id,
+                    "wandb_run_name": f"{model_dir}-eval",
+                }
+            ],
+        },
+    )
+    _write_json(
+        tmp_path / "config" / "wandb_eval_manifest_overrides.json",
+        {
+            "models": {
+                model_dir: {
+                    "num_train_epochs": 2,
+                    "wandb_group": "epoch",
+                    "wandb_run_id": epoch_run_id,
+                    "wandb_run_name": f"{model_dir}-eval-epoch-20260402",
+                }
+            }
+        },
+    )
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "eval_wandb_sidecar.py",
+            "upload",
+            "--results-root",
+            "./results",
+            "--manifest-path",
+            "./results/.wandb_eval_manifest.json",
+            "--state-dir",
+            str(state_dir),
+            "--once",
+            "--disable-wandb",
+        ],
+    )
+
+    assert sidecar.main() == 0
+
+    ckpt_suffix = sidecar.stable_hash({"model_dir": model_dir, "run_id": ckpt_run_id}, 12)
+    epoch_suffix = sidecar.stable_hash({"model_dir": model_dir, "run_id": epoch_run_id}, 12)
+    ckpt_state = sidecar.load_json(state_dir / f"{model_dir}_{ckpt_suffix}.json")
+    epoch_state = sidecar.load_json(state_dir / f"{model_dir}_{epoch_suffix}.json")
+
+    assert ckpt_state["run_id"] == ckpt_run_id
+    assert epoch_state["run_id"] == epoch_run_id

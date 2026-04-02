@@ -33,6 +33,8 @@ CB_RE = re.compile(r"(cb\d+(?:-\d+)*)", re.IGNORECASE)
 WIDTH_CB_RE = re.compile(r"(?:^|-)4-(\d+)(?:-|$)")
 
 MANIFEST_VERSION = 1
+VALID_UPLOAD_VARIANTS = ("ckpt_step", "epoch")
+UPLOAD_VARIANT_ORDER = {name: idx for idx, name in enumerate(VALID_UPLOAD_VARIANTS)}
 
 METRIC_KEYS = [
     "HR@1",
@@ -62,8 +64,27 @@ class CheckpointInfo:
 
 
 @dataclass(frozen=True)
+class BaseModelSpec:
+    model_dir: str
+    dataset: str
+    cb_setting: str
+    eval_split: str
+    seed: int
+    num_beams: int
+    sid_levels: int
+    num_train_epochs: float | None
+    wandb_group: str | None
+    wandb_project: str
+    wandb_entity: str | None
+    wandb_run_id: str
+    wandb_run_name: str
+    variant_overrides: dict[str, dict[str, Any]]
+
+
+@dataclass(frozen=True)
 class ModelSpec:
     model_dir: str
+    variant: str
     dataset: str
     cb_setting: str
     eval_split: str
@@ -233,6 +254,76 @@ def load_overrides(path: Path | None) -> dict[str, dict[str, Any]]:
     return parsed
 
 
+def normalize_variant_override_map(raw: Any) -> dict[str, dict[str, Any]]:
+    if not isinstance(raw, dict):
+        return {}
+
+    parsed: dict[str, dict[str, Any]] = {}
+    for variant, payload in raw.items():
+        if variant in VALID_UPLOAD_VARIANTS and isinstance(payload, dict):
+            parsed[variant] = dict(payload)
+    return parsed
+
+
+def merge_variant_override_maps(*variant_maps: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    merged: dict[str, dict[str, Any]] = {}
+    for variant_map in variant_maps:
+        for variant, payload in variant_map.items():
+            combined = dict(merged.get(variant, {}))
+            combined.update(payload)
+            merged[variant] = combined
+    return merged
+
+
+def looks_like_epoch_variant(value: Any) -> bool:
+    if value in (None, ""):
+        return False
+
+    token = str(value)
+    return token == "epoch" or token.endswith("-epoch") or "-epoch-" in token
+
+
+def split_model_override(override: dict[str, Any]) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+    base_override = dict(override)
+    variant_overrides = normalize_variant_override_map(base_override.pop("variants", None))
+
+    if "epoch" not in variant_overrides:
+        if any(
+            looks_like_epoch_variant(base_override.get(key))
+            for key in ("wandb_group", "wandb_run_id", "wandb_run_name")
+        ):
+            epoch_override: dict[str, Any] = {}
+            for key in ("wandb_group", "wandb_run_id", "wandb_run_name"):
+                if key in base_override:
+                    epoch_override[key] = base_override.pop(key)
+            if epoch_override:
+                epoch_override.setdefault("wandb_group", "epoch")
+                variant_overrides["epoch"] = epoch_override
+
+    return base_override, variant_overrides
+
+
+def parse_upload_variants(raw: str) -> tuple[str, ...]:
+    parsed: list[str] = []
+    seen: set[str] = set()
+
+    for item in raw.split(","):
+        variant = item.strip()
+        if not variant:
+            continue
+        if variant not in VALID_UPLOAD_VARIANTS:
+            raise ValueError(f"Unsupported upload variant: {variant}")
+        if variant in seen:
+            continue
+        seen.add(variant)
+        parsed.append(variant)
+
+    if not parsed:
+        raise ValueError("At least one upload variant must be specified")
+
+    return tuple(parsed)
+
+
 def apply_manifest_overrides(
     manifest: dict[str, Any], overrides: dict[str, dict[str, Any]]
 ) -> dict[str, Any]:
@@ -248,8 +339,16 @@ def apply_manifest_overrides(
         if not isinstance(item, dict):
             raise ValueError(f"Manifest models[{idx}] must be an object")
         override = overrides.get(str(item.get("model_dir") or ""), {})
+        base_override, variant_overrides = split_model_override(override)
         merged_item = dict(item)
-        merged_item.update(override)
+        merged_item.update(base_override)
+
+        merged_variants = merge_variant_override_maps(
+            normalize_variant_override_map(item.get("variants")),
+            variant_overrides,
+        )
+        if merged_variants:
+            merged_item["variants"] = merged_variants
         merged_models.append(merged_item)
 
     merged_manifest = dict(manifest)
@@ -264,8 +363,9 @@ def build_model_manifest_item(
     override: dict[str, Any],
     run_id_prefix: str,
 ) -> dict[str, Any]:
+    base_override, variant_overrides = split_model_override(override)
     merged = dict(defaults)
-    merged.update(override)
+    merged.update(base_override)
 
     dataset = str(merged.get("dataset") or defaults["dataset"])
     cb_setting = str(merged.get("cb_setting") or defaults["cb_setting"])
@@ -285,7 +385,7 @@ def build_model_manifest_item(
     wandb_run_id = str(merged.get("wandb_run_id") or default_run_id)
     wandb_run_name = str(merged.get("wandb_run_name") or f"{sanitize_token(model_dir)}-eval")
 
-    return {
+    item = {
         "model_dir": model_dir,
         "dataset": dataset,
         "cb_setting": cb_setting,
@@ -300,6 +400,11 @@ def build_model_manifest_item(
         "wandb_run_id": wandb_run_id,
         "wandb_run_name": wandb_run_name,
     }
+
+    if variant_overrides:
+        item["variants"] = variant_overrides
+
+    return item
 
 
 def cmd_prepare_manifest(args: argparse.Namespace) -> int:
@@ -355,7 +460,7 @@ def cmd_prepare_manifest(args: argparse.Namespace) -> int:
     return 0
 
 
-def parse_model_spec(raw: dict[str, Any], idx: int) -> ModelSpec:
+def parse_base_model_spec(raw: dict[str, Any], idx: int) -> BaseModelSpec:
     required = [
         "model_dir",
         "dataset",
@@ -380,7 +485,7 @@ def parse_model_spec(raw: dict[str, Any], idx: int) -> ModelSpec:
     wandb_group_raw = raw.get("wandb_group")
     wandb_group = str(wandb_group_raw) if wandb_group_raw not in (None, "") else None
 
-    return ModelSpec(
+    return BaseModelSpec(
         model_dir=str(raw["model_dir"]),
         dataset=str(raw["dataset"]),
         cb_setting=str(raw["cb_setting"]),
@@ -394,6 +499,7 @@ def parse_model_spec(raw: dict[str, Any], idx: int) -> ModelSpec:
         wandb_entity=wandb_entity,
         wandb_run_id=str(raw["wandb_run_id"]),
         wandb_run_name=str(raw["wandb_run_name"]),
+        variant_overrides=normalize_variant_override_map(raw.get("variants")),
     )
 
 
@@ -411,22 +517,60 @@ def load_manifest(path: Path, overrides: dict[str, dict[str, Any]] | None = None
     return manifest
 
 
-def parse_models_from_manifest(manifest: dict[str, Any], model_filter: set[str]) -> list[ModelSpec]:
+def build_variant_model_spec(base: BaseModelSpec, variant: str) -> ModelSpec:
+    override = base.variant_overrides.get(variant, {})
+
+    if variant == "ckpt_step":
+        run_id = str(override.get("wandb_run_id") or base.wandb_run_id)
+        run_name = str(override.get("wandb_run_name") or base.wandb_run_name)
+        group_raw = override.get("wandb_group", base.wandb_group or "ckpt_step")
+    elif variant == "epoch":
+        run_id = str(override.get("wandb_run_id") or f"{base.wandb_run_id}-epoch")
+        run_name = str(override.get("wandb_run_name") or f"{base.wandb_run_name}-epoch")
+        group_raw = override.get("wandb_group") or "epoch"
+    else:
+        raise ValueError(f"Unsupported upload variant: {variant}")
+
+    wandb_group = str(group_raw) if group_raw not in (None, "") else None
+
+    return ModelSpec(
+        model_dir=base.model_dir,
+        variant=variant,
+        dataset=base.dataset,
+        cb_setting=base.cb_setting,
+        eval_split=base.eval_split,
+        seed=base.seed,
+        num_beams=base.num_beams,
+        sid_levels=base.sid_levels,
+        num_train_epochs=base.num_train_epochs,
+        wandb_group=wandb_group,
+        wandb_project=base.wandb_project,
+        wandb_entity=base.wandb_entity,
+        wandb_run_id=run_id,
+        wandb_run_name=run_name,
+    )
+
+
+def parse_models_from_manifest(
+    manifest: dict[str, Any], model_filter: set[str], upload_variants: tuple[str, ...]
+) -> list[ModelSpec]:
     seen: set[str] = set()
     specs: list[ModelSpec] = []
 
     for idx, model_raw in enumerate(manifest["models"]):
         if not isinstance(model_raw, dict):
             raise ValueError(f"Manifest models[{idx}] must be an object")
-        spec = parse_model_spec(model_raw, idx)
-        if model_filter and spec.model_dir not in model_filter:
+        base_spec = parse_base_model_spec(model_raw, idx)
+        if model_filter and base_spec.model_dir not in model_filter:
             continue
-        if spec.model_dir in seen:
-            raise ValueError(f"Duplicate model_dir in manifest: {spec.model_dir}")
-        seen.add(spec.model_dir)
-        specs.append(spec)
+        if base_spec.model_dir in seen:
+            raise ValueError(f"Duplicate model_dir in manifest: {base_spec.model_dir}")
+        seen.add(base_spec.model_dir)
 
-    specs.sort(key=lambda m: m.model_dir)
+        for variant in upload_variants:
+            specs.append(build_variant_model_spec(base_spec, variant))
+
+    specs.sort(key=lambda m: (m.model_dir, UPLOAD_VARIANT_ORDER.get(m.variant, len(UPLOAD_VARIANT_ORDER))))
     return specs
 
 
@@ -443,6 +587,8 @@ def normalize_upload_state(raw: dict[str, Any], model: ModelSpec) -> dict[str, A
     return {
         "version": 1,
         "model_dir": model.model_dir,
+        "variant": model.variant,
+        "wandb_group": model.wandb_group,
         "run_id": model.wandb_run_id,
         "run_name": model.wandb_run_name,
         "processed_steps": processed_steps,
@@ -573,6 +719,7 @@ def init_wandb_run(args: argparse.Namespace, model: ModelSpec):
         mode=args.wandb_mode,
         config={
             "model_name": model.model_dir,
+            "upload_variant": model.variant,
             "dataset": model.dataset,
             "cb_setting": model.cb_setting,
             "seed": model.seed,
@@ -733,13 +880,14 @@ def parse_model_filter(raw_values: list[str]) -> set[str]:
 
 def cmd_upload(args: argparse.Namespace) -> int:
     model_filter = parse_model_filter(args.model_filter)
+    upload_variants = parse_upload_variants(args.variants)
     lock_file = args.state_dir / ".upload.lock"
 
     with exclusive_lock(lock_file):
         while True:
             overrides = load_overrides(args.manifest_overrides)
             manifest = load_manifest(args.manifest_path, overrides=overrides)
-            models = parse_models_from_manifest(manifest, model_filter)
+            models = parse_models_from_manifest(manifest, model_filter, upload_variants)
 
             if not models:
                 logging.info("No models to process (manifest + model filter).")
@@ -816,6 +964,11 @@ def build_parser() -> argparse.ArgumentParser:
     upload.add_argument("--wandb-mode", default=os.environ.get("WANDB_MODE", "online"))
     upload.add_argument("--wandb-resume", default=os.environ.get("WANDB_RESUME", "allow"))
     upload.add_argument("--wandb-job-type", default=os.environ.get("WANDB_JOB_TYPE", "eval"))
+    upload.add_argument(
+        "--variants",
+        default=os.environ.get("WANDB_UPLOAD_VARIANTS", "ckpt_step,epoch"),
+        help="Upload variants to emit. Comma-separated. Default: ckpt_step,epoch",
+    )
     upload.add_argument(
         "--model-filter",
         action="append",
