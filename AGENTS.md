@@ -24,6 +24,7 @@
 - Avoid introducing extra helper modules unless they clearly reduce complexity.
 - When updating existing analysis notebooks, prefer extending the current notebook over creating parallel variants.
 - Do not assume remote files are mirrored locally; make remote locations explicit in configuration cells.
+- For repo shell scripts, especially ones that run on or get synced to the remote training machine, avoid `set -u` / `set -euo pipefail`; that environment can trip nounset on partially populated envs. Prefer `set -eo pipefail` plus explicit defaults instead.
 
 ## Version Control
 - This repository is `jj-first`. Use `jj` for routine status, history, diff, commit-description, and push workflows.

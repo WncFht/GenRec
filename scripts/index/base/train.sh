@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -eo pipefail
 
 # Limit BLAS threads to avoid OpenBLAS "too many memory regions" on high-core machines.
 : "${INDEX_BLAS_NUM_THREADS:=32}"

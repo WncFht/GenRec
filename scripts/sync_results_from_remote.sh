@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOCAL_GENREC_REPO_DIR_DEFAULT="$(cd "$SCRIPT_DIR/.." && pwd)"

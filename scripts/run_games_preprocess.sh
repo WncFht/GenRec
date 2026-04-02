@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eo pipefail
 
 # Step-by-step runner for Games preprocessing on remote training machine.
 # Modes:

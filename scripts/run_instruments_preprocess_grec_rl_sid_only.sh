@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eo pipefail
 
 # Wrapper: build the Instruments GRec split, but keep only task1 SID samples in RL output.
 # SFT generation remains unchanged.
