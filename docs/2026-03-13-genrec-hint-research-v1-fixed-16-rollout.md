@@ -1,4 +1,7 @@
-# GenRec Hint 方案调研笔记（2026-03-12）
+# GenRec Hint 方案调研补充：固定 16 Rollout 的 V1 策略（2026-03-13）
+
+> 这份文档复用了 [2026-03-12-genrec-hint-research.md](/Users/fanghaotian/Desktop/src/GenRec/docs/2026-03-12-genrec-hint-research.md) 的主体研究背景，并在末尾追加固定 `16 rollout` 约束下的 V1 落地策略。
+> 它是历史设计快照，不应替代后续实验结果文档。
 
 本文档聚焦于 4 篇与你当前问题最相关的论文，并结合 `GenRec` 现有 RL pipeline，回答一个核心问题：
 
