@@ -2,14 +2,47 @@ import os
 import subprocess
 import tempfile
 import unittest
+import importlib.util
+import json
+import sys
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 EVALUATE_ALL_CHECKPOINTS_SCRIPT = REPO_ROOT / "scripts" / "evaluate_all_checkpoints.sh"
+EVALUATE_ALL_CHECKPOINTS_SIDECAR_SCRIPT = (
+    REPO_ROOT / "scripts" / "evaluate_all_checkpoints_sidecar.py"
+)
+
+
+def load_sidecar_module():
+    spec = importlib.util.spec_from_file_location(
+        "evaluate_all_checkpoints_sidecar",
+        EVALUATE_ALL_CHECKPOINTS_SIDECAR_SCRIPT,
+    )
+    module = importlib.util.module_from_spec(spec)
+    assert spec is not None and spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 class EvaluateAllCheckpointsTests(unittest.TestCase):
+    def test_remote_shell_entrypoints_do_not_enable_nounset(self):
+        for script_path in (
+            REPO_ROOT / "scripts" / "evaluate_all_checkpoints.sh",
+            REPO_ROOT / "evaluate_sft_3b.sh",
+        ):
+            script_text = script_path.read_text(encoding="utf-8")
+            self.assertNotIn("set -u", script_text, msg=f"{script_path} should not enable nounset")
+            self.assertNotIn("set -euo pipefail", script_text, msg=f"{script_path} should avoid nounset")
+
+    def test_repo_shell_scripts_do_not_enable_nounset(self):
+        for script_path in sorted((REPO_ROOT / "scripts").rglob("*.sh")) + sorted(REPO_ROOT.glob("*.sh")):
+            script_text = script_path.read_text(encoding="utf-8")
+            self.assertNotIn("set -u", script_text, msg=f"{script_path} should not enable nounset")
+            self.assertNotIn("set -euo pipefail", script_text, msg=f"{script_path} should avoid nounset")
+
     def test_instruments_grec_legacy_fixed_hint_name_defaults_to_cb256_variant(self):
         with tempfile.TemporaryDirectory() as temp_root:
             temp_root_path = Path(temp_root)
@@ -170,6 +203,158 @@ class EvaluateAllCheckpointsTests(unittest.TestCase):
             self.assertIn(f"test_data={cb256_variant_dir / 'sft' / 'test.json'}", result.stdout)
             self.assertIn(f"index={cb256_variant_dir / 'id2sid.json'}", result.stdout)
             self.assertNotIn(f"test_data={cb128_variant_dir / 'sft' / 'test.json'}", result.stdout)
+
+
+class EvaluateAllCheckpointWatcherTests(unittest.TestCase):
+    def make_config(self, sidecar, temp_root: Path):
+        data_root = temp_root / "data"
+        results_root = temp_root / "results"
+        sft_root = temp_root / "saves"
+        rl_root = temp_root / "rl_outputs"
+
+        for category in ("Games", "Arts"):
+            test_path = data_root / category / "sft" / "test.json"
+            index_path = data_root / category / "id2sid.json"
+            test_path.parent.mkdir(parents=True, exist_ok=True)
+            index_path.parent.mkdir(parents=True, exist_ok=True)
+            test_path.write_text("[]", encoding="utf-8")
+            index_path.write_text("{}", encoding="utf-8")
+
+        return sidecar.WatcherConfig(
+            repo_root=REPO_ROOT,
+            results_root=results_root,
+            eval_script=REPO_ROOT / "evaluate_sft_3b.sh",
+            python_bin="python",
+            cuda_list="0",
+            data_root=data_root,
+            auto_data_mapping=True,
+            sft_root=sft_root,
+            rl_root=rl_root,
+            include_sft=True,
+            include_rl=True,
+            model_filter="",
+            force_reeval=False,
+            stable_age_seconds=60,
+            stable_confirmation_polls=2,
+            poll_interval_seconds=30,
+            state_path=temp_root / "state" / "watch_state.json",
+        )
+
+    @staticmethod
+    def write_file(path: Path, content: str, mtime_epoch: int) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+        os.utime(path, (mtime_epoch, mtime_epoch))
+
+    def test_watcher_requires_complete_sharded_weights_and_stability(self):
+        sidecar = load_sidecar_module()
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            now_epoch = 1_800_000_000
+            old_epoch = now_epoch - 600
+            config = self.make_config(sidecar, temp_root_path)
+            state = sidecar.normalize_watch_state({})
+
+            model_root = config.sft_root / "Games-sft-qwen4B-4-256-dsz0"
+            checkpoint_dir = model_root / "checkpoint-128"
+            self.write_file(checkpoint_dir / "config.json", "{}", old_epoch)
+            self.write_file(
+                checkpoint_dir / "model.safetensors.index.json",
+                json.dumps(
+                    {
+                        "weight_map": {
+                            "layer0": "model-00001-of-00002.safetensors",
+                            "layer1": "model-00002-of-00002.safetensors",
+                        }
+                    }
+                ),
+                old_epoch,
+            )
+            self.write_file(
+                checkpoint_dir / "model-00001-of-00002.safetensors",
+                "shard-1",
+                old_epoch,
+            )
+
+            state, tasks = sidecar.scan_pending_tasks(config, state, now_epoch=now_epoch)
+            self.assertEqual(tasks, [])
+
+            self.write_file(
+                checkpoint_dir / "model-00002-of-00002.safetensors",
+                "shard-2",
+                old_epoch,
+            )
+
+            state, tasks = sidecar.scan_pending_tasks(config, state, now_epoch=now_epoch)
+            self.assertEqual(tasks, [])
+
+            state, tasks = sidecar.scan_pending_tasks(config, state, now_epoch=now_epoch)
+            self.assertEqual(len(tasks), 1)
+            self.assertEqual(tasks[0].model_name, "Games-sft-qwen4B-4-256-dsz0")
+            self.assertEqual(tasks[0].checkpoint_name, "checkpoint-128")
+
+    def test_watcher_orders_tasks_by_model_name_then_checkpoint_step(self):
+        sidecar = load_sidecar_module()
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            now_epoch = 1_800_000_000
+            old_epoch = now_epoch - 600
+            config = self.make_config(sidecar, temp_root_path)
+            state = sidecar.normalize_watch_state({})
+
+            checkpoints = [
+                config.sft_root / "Games-sft-qwen4B-4-256-dsz0" / "checkpoint-128",
+                config.sft_root / "Arts-sft-qwen4B-4-256-dsz0" / "checkpoint-512",
+                config.sft_root / "Games-sft-qwen4B-4-256-dsz0" / "checkpoint-64",
+            ]
+            for checkpoint_dir in checkpoints:
+                self.write_file(checkpoint_dir / "config.json", "{}", old_epoch)
+                self.write_file(checkpoint_dir / "model.safetensors", "weights", old_epoch)
+
+            state, tasks = sidecar.scan_pending_tasks(config, state, now_epoch=now_epoch)
+            self.assertEqual(tasks, [])
+
+            state, tasks = sidecar.scan_pending_tasks(config, state, now_epoch=now_epoch)
+            self.assertEqual(
+                [(task.model_name, task.checkpoint_step) for task in tasks],
+                [
+                    ("Arts-sft-qwen4B-4-256-dsz0", 512),
+                    ("Games-sft-qwen4B-4-256-dsz0", 64),
+                    ("Games-sft-qwen4B-4-256-dsz0", 128),
+                ],
+            )
+
+    def test_failed_task_is_sticky_and_skipped(self):
+        sidecar = load_sidecar_module()
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            now_epoch = 1_800_000_000
+            old_epoch = now_epoch - 600
+            config = self.make_config(sidecar, temp_root_path)
+            state = sidecar.normalize_watch_state({})
+
+            first_ckpt = config.sft_root / "Arts-sft-qwen4B-4-256-dsz0" / "checkpoint-64"
+            second_ckpt = config.sft_root / "Games-sft-qwen4B-4-256-dsz0" / "checkpoint-64"
+            for checkpoint_dir in (first_ckpt, second_ckpt):
+                self.write_file(checkpoint_dir / "config.json", "{}", old_epoch)
+                self.write_file(checkpoint_dir / "model.safetensors", "weights", old_epoch)
+
+            state, _ = sidecar.scan_pending_tasks(config, state, now_epoch=now_epoch)
+            state, tasks = sidecar.scan_pending_tasks(config, state, now_epoch=now_epoch)
+            self.assertEqual(len(tasks), 2)
+
+            state = sidecar.record_task_failure(
+                state,
+                tasks[0],
+                exit_code=1,
+                command=["bash", "evaluate_sft_3b.sh"],
+                failed_at="2026-04-02T10:30:00+00:00",
+            )
+
+            state, tasks = sidecar.scan_pending_tasks(config, state, now_epoch=now_epoch)
+            self.assertEqual(len(tasks), 1)
+            self.assertEqual(tasks[0].model_name, "Games-sft-qwen4B-4-256-dsz0")
+            self.assertEqual(tasks[0].checkpoint_step, 64)
 
 
 if __name__ == "__main__":
