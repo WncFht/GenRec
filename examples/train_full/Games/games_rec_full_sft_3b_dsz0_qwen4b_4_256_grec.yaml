@@ -20,10 +20,10 @@ logging_steps: 1
 save_steps: 0.05
 plot_loss: true
 overwrite_output_dir: true
-save_only_model: false
+save_only_model: true
 save_strategy: steps
-load_best_model_at_end: true
-save_total_limit: 2
+load_best_model_at_end: false
+save_total_limit: 10
 ### experiment
 report_to: wandb
 run_name: Games-grec-qwen2.5-3b-sft-qwen4B-4-256-dsz0
