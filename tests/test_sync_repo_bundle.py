@@ -3,6 +3,7 @@ import secrets
 import subprocess
 import tempfile
 import unittest
+import gzip
 from pathlib import Path
 
 
@@ -11,6 +12,108 @@ SYNC_REPO_BUNDLE_SCRIPT = REPO_ROOT / "scripts" / "sync_repo_bundle.sh"
 
 
 class SyncRepoBundleTests(unittest.TestCase):
+    def test_pack_jj_collects_changed_paths_from_revision_range(self):
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            source_root = temp_root_path / "source_repo"
+            dest_root = temp_root_path / "dest_repo"
+            archive_path = temp_root_path / "jj_bundle.tar.gz"
+
+            source_root.mkdir(parents=True)
+            subprocess.run(["jj", "git", "init", "--colocate"], cwd=source_root, check=True, capture_output=True, text=True)
+            (source_root / "keep.txt").write_text("keep\n", encoding="utf-8")
+            (source_root / "change.txt").write_text("base\n", encoding="utf-8")
+            subprocess.run(["jj", "desc", "-m", "base"], cwd=source_root, check=True, capture_output=True, text=True)
+            subprocess.run(["jj", "new", "-m", "work"], cwd=source_root, check=True, capture_output=True, text=True)
+
+            (source_root / "change.txt").write_text("updated\n", encoding="utf-8")
+            (source_root / "nested").mkdir(parents=True)
+            (source_root / "nested" / "new.txt").write_text("new\n", encoding="utf-8")
+
+            env = dict(os.environ)
+            env["SOURCE_REPO_ROOT"] = str(source_root)
+            pack_result = subprocess.run(
+                [
+                    "bash",
+                    str(SYNC_REPO_BUNDLE_SCRIPT),
+                    "pack-jj",
+                    str(archive_path),
+                    "--from",
+                    "@-",
+                    "--to",
+                    "@",
+                ],
+                cwd=REPO_ROOT,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(pack_result.returncode, 0, msg=pack_result.stderr or pack_result.stdout)
+            self.assertTrue(archive_path.is_file(), msg="Expected bundle archive from pack-jj")
+
+            env["DEST_REPO_ROOT"] = str(dest_root)
+            unpack_result = subprocess.run(
+                ["bash", str(SYNC_REPO_BUNDLE_SCRIPT), "unpack", str(archive_path)],
+                cwd=REPO_ROOT,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(unpack_result.returncode, 0, msg=unpack_result.stderr or unpack_result.stdout)
+            self.assertEqual((dest_root / "change.txt").read_text(encoding="utf-8"), "updated\n")
+            self.assertEqual((dest_root / "nested" / "new.txt").read_text(encoding="utf-8"), "new\n")
+            self.assertFalse((dest_root / "keep.txt").exists(), msg="pack-jj should only include changed paths")
+
+    def test_pack_script_disables_macos_metadata_in_tar_creation(self):
+        script_text = SYNC_REPO_BUNDLE_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("COPYFILE_DISABLE=1", script_text)
+        self.assertIn("--disable-copyfile", script_text)
+        self.assertIn("--no-xattrs", script_text)
+        self.assertIn("--no-acls", script_text)
+
+    def test_pack_archive_omits_apple_xattr_headers(self):
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            source_root = temp_root_path / "source_repo"
+            archive_path = temp_root_path / "bundle.tar.gz"
+            payload_path = source_root / "notes" / "bundle.txt"
+            payload_path.parent.mkdir(parents=True)
+            payload_path.write_text("hello\n", encoding="utf-8")
+
+            xattr_result = subprocess.run(
+                ["xattr", "-w", "com.apple.provenance", "test", str(payload_path)],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(xattr_result.returncode, 0, msg=xattr_result.stderr or xattr_result.stdout)
+
+            env = dict(os.environ)
+            env["SOURCE_REPO_ROOT"] = str(source_root)
+
+            pack_result = subprocess.run(
+                [
+                    "bash",
+                    str(SYNC_REPO_BUNDLE_SCRIPT),
+                    "pack",
+                    str(archive_path),
+                    "notes/bundle.txt",
+                ],
+                cwd=REPO_ROOT,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(pack_result.returncode, 0, msg=pack_result.stderr or pack_result.stdout)
+
+            archive_bytes = gzip.decompress(archive_path.read_bytes())
+            self.assertNotIn(b"LIBARCHIVE.xattr.com.apple.provenance", archive_bytes)
+            self.assertNotIn(b"LIBARCHIVE.xattr.com.apple.macl", archive_bytes)
+
     def test_pack_without_archive_name_creates_timestamped_bundle_and_unpack_deletes_it(self):
         with tempfile.TemporaryDirectory() as temp_root:
             temp_root_path = Path(temp_root)

@@ -23,6 +23,7 @@ usage() {
   cat <<'USAGE'
 Usage:
   bash scripts/sync_repo_bundle.sh pack [archive_path] <path> [<path> ...]
+  bash scripts/sync_repo_bundle.sh pack-jj [archive_path] [--from REV] [--to REV]
   bash scripts/sync_repo_bundle.sh unpack [archive_path|archive.part.000] [dest_root]
   bash scripts/sync_repo_bundle.sh list [archive_path|archive.part.000]
 
@@ -34,6 +35,9 @@ Description:
   - unpack:
       Restore bundled paths into the destination GenRec root. Existing target
       files/directories for bundled paths are replaced.
+  - pack-jj:
+      Collect changed paths from a `jj diff --name-only` revision range under
+      the source repo root, then pack the currently existing paths.
   - list:
       Print bundled relative paths without restoring them.
 
@@ -57,6 +61,8 @@ Examples:
     log/train.log results/MyRun/checkpoint-100
 
   bash scripts/sync_repo_bundle.sh unpack results_sync.tar.gz
+
+  bash scripts/sync_repo_bundle.sh pack-jj --from @- --to @
 
   DEST_PROFILE=remote bash scripts/sync_repo_bundle.sh unpack results_sync.tar.gz.part.000
 USAGE
@@ -179,6 +185,42 @@ split_archive_if_needed() {
   ls -1 "${part_prefix}"[0-9][0-9][0-9]
 }
 
+tar_create_archive() {
+  local archive_path="$1"
+  local stage_root="$2"
+  local bundle_name="$3"
+  local -a tar_args=()
+
+  if tar --version 2>/dev/null | grep -qi 'bsdtar'; then
+    tar_args+=(--format pax --disable-copyfile --no-xattrs --no-acls)
+  else
+    if tar --help 2>&1 | grep -q -- '--no-mac-metadata'; then
+      tar_args+=(--no-mac-metadata)
+    fi
+    if tar --help 2>&1 | grep -q -- '--no-xattrs'; then
+      tar_args+=(--no-xattrs)
+    fi
+    if tar --help 2>&1 | grep -q -- '--no-acls'; then
+      tar_args+=(--no-acls)
+    fi
+  fi
+
+  COPYFILE_DISABLE=1 COPY_EXTENDED_ATTRIBUTES_DISABLE=1 \
+    tar "${tar_args[@]}" -czf "$archive_path" -C "$stage_root" "$bundle_name"
+}
+
+tar_extract_archive() {
+  local archive_path="$1"
+  local temp_dir="$2"
+  local -a tar_args=()
+
+  if tar --help 2>&1 | grep -q -- '--warning'; then
+    tar_args+=(--warning=no-unknown-keyword)
+  fi
+
+  tar "${tar_args[@]}" -xzf "$archive_path" -C "$temp_dir"
+}
+
 rebuild_archive_from_parts() {
   local input_path="$1"
   local output_path="$2"
@@ -275,6 +317,22 @@ copy_to_stage() {
   cp -a "$src" "$dest"
 }
 
+create_bundle_archive() {
+  local archive_path="$1"
+  local stage_root="$2"
+  local bundle_root="$3"
+  local -a rel_paths=("${@:4}")
+
+  mkdir -p "$(dirname "$archive_path")"
+  rm -f "$archive_path" "$(archive_part_prefix "$archive_path")"[0-9][0-9][0-9]
+  tar_create_archive "$archive_path" "$stage_root" "$bundle_root"
+  split_archive_if_needed "$archive_path" "$CHUNK_SIZE"
+
+  echo "Bundle root inside archive: $bundle_root"
+  echo "Included paths:"
+  printf '  %s\n' "${rel_paths[@]}"
+}
+
 restore_from_stage() {
   local payload_root="$1"
   local rel="$2"
@@ -341,16 +399,96 @@ pack_bundle() {
   done
 
   manifest_write "$bundle_root/bundle_manifest.json" "$source_root" "${rel_paths[@]}"
-
-  mkdir -p "$(dirname "$archive_path")"
-  rm -f "$archive_path" "$(archive_part_prefix "$archive_path")"[0-9][0-9][0-9]
-  tar -czf "$archive_path" -C "$stage_root" "$BUNDLE_NAME"
-  split_archive_if_needed "$archive_path" "$CHUNK_SIZE"
+  create_bundle_archive "$archive_path" "$stage_root" "$BUNDLE_NAME" "${rel_paths[@]}"
 
   echo "Created repo bundle from: $source_root"
-  echo "Bundle root inside archive: $BUNDLE_NAME"
-  echo "Included paths:"
-  printf '  %s\n' "${rel_paths[@]}"
+
+  rm -rf "$stage_root"
+}
+
+pack_jj_bundle() {
+  ensure_python
+
+  local source_root
+  source_root="$(resolve_source_root)"
+  if [[ ! -d "$source_root" ]]; then
+    echo "Error: source repo root not found: $source_root" >&2
+    exit 1
+  fi
+
+  local archive_arg=""
+  local from_rev="@-"
+  local to_rev="@"
+
+  if [[ $# -gt 0 && "${1:-}" != --* ]]; then
+    archive_arg="$1"
+    shift
+  fi
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --from)
+        from_rev="${2:-}"
+        [[ -n "$from_rev" ]] || { echo "Error: --from requires a revision." >&2; exit 1; }
+        shift 2
+        ;;
+      --to)
+        to_rev="${2:-}"
+        [[ -n "$to_rev" ]] || { echo "Error: --to requires a revision." >&2; exit 1; }
+        shift 2
+        ;;
+      *)
+        echo "Error: unknown pack-jj argument: $1" >&2
+        usage
+        exit 1
+        ;;
+    esac
+  done
+
+  local archive_path
+  archive_path="$(normalize_archive_path "$archive_arg")"
+
+  local -a changed_paths=()
+  local rel
+  while IFS= read -r rel; do
+    [[ -n "$rel" ]] && changed_paths+=("$rel")
+  done < <(
+    cd "$source_root" &&
+      jj diff --name-only --from "$from_rev" --to "$to_rev"
+  )
+
+  if [[ ${#changed_paths[@]} -eq 0 ]]; then
+    echo "Error: no changed paths found for jj range --from $from_rev --to $to_rev" >&2
+    exit 1
+  fi
+
+  local stage_root bundle_root payload_root
+  stage_root="$(mktemp -d)"
+  bundle_root="$stage_root/$BUNDLE_NAME"
+  payload_root="$bundle_root/payload"
+  mkdir -p "$payload_root"
+
+  local -a existing_paths=()
+  for rel in "${changed_paths[@]}"; do
+    if [[ -e "$source_root/$rel" ]]; then
+      existing_paths+=("$rel")
+      copy_to_stage "$source_root" "$rel" "$payload_root"
+    else
+      echo "[WARN] skip missing path from jj diff: $rel"
+    fi
+  done
+
+  if [[ ${#existing_paths[@]} -eq 0 ]]; then
+    echo "Error: jj diff only contained deleted paths; nothing to pack." >&2
+    rm -rf "$stage_root"
+    exit 1
+  fi
+
+  manifest_write "$bundle_root/bundle_manifest.json" "$source_root" "${existing_paths[@]}"
+  create_bundle_archive "$archive_path" "$stage_root" "$BUNDLE_NAME" "${existing_paths[@]}"
+
+  echo "Created repo bundle from jj range: $source_root"
+  echo "jj range: --from $from_rev --to $to_rev"
 
   rm -rf "$stage_root"
 }
@@ -358,7 +496,7 @@ pack_bundle() {
 extract_bundle_to_temp() {
   local archive_path="$1"
   local temp_dir="$2"
-  tar -xzf "$archive_path" -C "$temp_dir"
+  tar_extract_archive "$archive_path" "$temp_dir"
 }
 
 resolve_archive_input() {
@@ -525,6 +663,10 @@ main() {
     pack)
       shift
       pack_bundle "$@"
+      ;;
+    pack-jj)
+      shift
+      pack_jj_bundle "$@"
       ;;
     unpack)
       shift
