@@ -201,6 +201,42 @@ bash scripts/run_games_preprocess_grec.sh build
 - `eval/loss` 在前期大幅下降，2 到 3 epoch 左右达到较低区间，后段略有回升；
 - `train/loss` 则持续下降并在后段进入缓慢收敛区。
 
+### 4.5 已完成的 checkpoint 评测结果
+
+截至 `2026-04-03`，本地 `results/Games-grec-sft-qwen4B-4-256-dsz0/` 下已经有 8 个 checkpoint 的评测结果：
+
+| Checkpoint | NDCG@10 | HR@10 | NDCG@5 | HR@5 | NDCG@50 | HR@50 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `checkpoint-128` | `0.0036` | `0.0075` | `0.0026` | `0.0044` | `0.0059` | `0.0177` |
+| `checkpoint-256` | `0.0184` | `0.0348` | `0.0144` | `0.0222` | `0.0320` | `0.0981` |
+| `checkpoint-384` | `0.0326` | `0.0598` | `0.0258` | `0.0385` | `0.0536` | `0.1568` |
+| `checkpoint-512` | `0.0377` | `0.0700` | `0.0292` | `0.0437` | `0.0622` | `0.1833` |
+| `checkpoint-640` | `0.0426` | `0.0788` | `0.0333` | `0.0499` | `0.0680` | `0.1958` |
+| `checkpoint-768` | `0.0433` | `0.0804` | `0.0336` | `0.0503` | `0.0691` | `0.1998` |
+| `checkpoint-896` | `0.0430` | `0.0790` | `0.0340` | `0.0507` | `0.0687` | `0.1970` |
+| `checkpoint-1024` | `0.0374` | `0.0692` | `0.0294` | `0.0443` | `0.0597` | `0.1729` |
+
+可以直接记住这几个结论：
+
+- 按 `NDCG@10` 看，当前最优点是 `checkpoint-768`，达到 `0.0433`。
+- `checkpoint-896` 不是全局最优，但与 `768` 非常接近，且 `NDCG@5` / `HR@5` 略高。
+- `checkpoint-1024` 出现了比较明显的回落，因此不建议再把它当作 RL 初始化点。
+
+### 4.6 RL 起跑点选择
+
+当前建议把 `checkpoint-896` 作为后续 RL 的初始化点。
+
+原因：
+
+- 它处在后段高性能区间，指标与 `768` 很接近，没有明显掉出平台期。
+- 相比 `1024`，`896` 避开了末尾已经出现的退化。
+- 如果目标是从一个“接近最优、但还没明显过拟合/回落”的点继续做 RL，`896` 是比 `1024` 更稳妥的选择。
+
+换句话说：
+
+- 如果你想追求最强 SFT 单点基线，文档里应记 `768` 是当前 best `NDCG@10`；
+- 如果你想挑一个更适合继续接 RL 的后段 checkpoint，当前可以优先用 `896`。
+
 ## 5. 现在能不能直接用统一评测脚本
 
 可以。
@@ -245,28 +281,18 @@ MODEL_FILTER="Games-grec-sft-qwen4B-4-256-dsz0" \
 bash scripts/evaluate_all_checkpoints.sh
 ```
 
-### 6.2 再跑 `rule_only` RL
-
-```bash
-bash hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-Games-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-Games-grec-rl-rule-only.sh
-```
-
-默认会从：
-
-- `saves/qwen2.5-3b/full/Games-grec-sft-qwen4B-4-256-dsz0/checkpoint-495`
-
-继续训练。因为你当前远端目录里可见的是 `checkpoint-1024`，所以实际开跑前建议明确指定一次：
+### 6.2 再跑 `rule_only` RL（从 `checkpoint-896` 开始）
 
 ```bash
 bash hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-Games-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-Games-grec-rl-rule-only.sh \
-  --model-path /mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/saves/qwen2.5-3b/full/Games-grec-sft-qwen4B-4-256-dsz0/checkpoint-1024
+  --model-path /mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/saves/qwen2.5-3b/full/Games-grec-sft-qwen4B-4-256-dsz0/checkpoint-896
 ```
 
-### 6.3 然后跑 `fixed_hint` RL
+### 6.3 然后跑 `fixed_hint` RL（同样从 `checkpoint-896` 开始）
 
 ```bash
 bash hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-Games-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-Games-grec-rl-rule-only-fixed-hint.sh \
-  --model-path /mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/saves/qwen2.5-3b/full/Games-grec-sft-qwen4B-4-256-dsz0/checkpoint-1024
+  --model-path /mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/saves/qwen2.5-3b/full/Games-grec-sft-qwen4B-4-256-dsz0/checkpoint-896
 ```
 
 ### 6.4 RL 完成后统一评测
