@@ -30,6 +30,7 @@ Treat dated notes as snapshots, not evergreen source-of-truth docs. Current inve
 - `2026-03-17-genrec-training-speed-optimization-notes.md`: training-speed optimization ideas without changing step counts. Historical snapshot.
 - `2026-03-18-genrec-main-results-weekly.md`: detailed weekly report for the 2026-03-18 Instruments-grec result set. Historical snapshot.
 - `2026-03-19-genrec-results-weekly-summary.md`: condensed summary of the 2026-03-18 weekly report. Convenience note, not an independent source of truth.
+- `2026-04-02-genrec-results-since-2026-03-19-epoch-report.md`: epoch-aligned inventory and analysis of experiments visible in `results/` since the 2026-03-19 reporting boundary.
 - `2026-04-01-games-grec-qwen4b-4-256-full-pipeline.md`: current Games pipeline note. As of 2026-04-02, the local `results/` tree still has no `*Games*` result directories, so the "RL not started" status remains current.
 
 ## Generated Planning Artifacts
