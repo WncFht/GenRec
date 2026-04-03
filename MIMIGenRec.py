@@ -23,6 +23,30 @@ def _make_mimigenrec_generate(
     _gen_config = _gen_config.to_dict() if _gen_config else {}
     _gen_config.pop("max_length", None)
 
+    def _reset_logits_processor_state(proc: Any) -> None:
+        if proc is None:
+            return
+        if hasattr(proc, "reset"):
+            proc.reset()
+            return
+        if hasattr(proc, "count"):
+            proc.count = 0
+
+    def _reset_logits_processor_collection_state(proc: Any) -> None:
+        if proc is None:
+            return
+        if isinstance(proc, (list, tuple)):
+            for item in proc:
+                _reset_logits_processor_state(item)
+            return
+        try:
+            iterator = iter(proc)
+        except TypeError:
+            _reset_logits_processor_state(proc)
+            return
+        for item in iterator:
+            _reset_logits_processor_state(item)
+
     def generate(*args, **kwargs):
         kwargs.pop("token_type_ids", None)
         proc = kwargs.get("logits_processor")
@@ -31,6 +55,7 @@ def _make_mimigenrec_generate(
         if proc is None:
             proc = logits_processor
         if proc is not None:
+            _reset_logits_processor_collection_state(proc)
             kwargs["logits_processor"] = proc
         merged = {
             **_gen_config,

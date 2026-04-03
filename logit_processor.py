@@ -23,6 +23,9 @@ class ConstrainedLogitsProcessor(LogitsProcessor):
         self.prefix_ids = prefix_ids
         self.count = 0
 
+    def reset(self) -> None:
+        self.count = 0
+
     def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor) -> torch.FloatTensor:
         scores = torch.nn.functional.log_softmax(scores, dim=-1)
         mask = torch.full_like(scores, float("-inf"))

@@ -212,6 +212,13 @@ class GamesPipelineLauncherTests(unittest.TestCase):
         self.assertIn("--details-path", result.stdout)
         self.assertIn("--eval_on_start true", result.stdout)
 
+    def test_games_fixed_hint_shell_dry_run_locks_analysis_beam_to_16(self):
+        result = self._run_games_fixed_hint_dry_run()
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("--beam-sizes 16", result.stdout)
+        self.assertNotIn("--beam-sizes 8\\,16", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

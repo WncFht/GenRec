@@ -68,6 +68,7 @@ except ModuleNotFoundError:
 from rewards.ranking_reward import get_ndcg_rule_reward, get_prefix_rule_reward, rule_reward
 from fixed_hint_logit_processor import find_last_prefix_match_start
 from logit_processor import ConstrainedLogitsProcessor
+from MIMIGenRec import _make_mimigenrec_generate
 import util
 
 
@@ -102,6 +103,41 @@ def test_default_constrained_logits_processor_keeps_count_based_behavior():
     processor(input_ids, scores)
 
     assert calls == [[101, 102, 103], [101, 102, 103]]
+
+
+class MIMIGenRecGenerationStateTests(unittest.TestCase):
+    def test_mimigenrec_generate_resets_stateful_logits_processor_before_generation(self):
+        if not HAS_TORCH:
+            raise unittest.SkipTest("torch is not installed in this local verification environment")
+
+        class _StatefulProcessor:
+            def __init__(self):
+                self.count = 7
+
+        processor = _StatefulProcessor()
+        seen_counts = []
+
+        def _original_generate(*args, **kwargs):
+            logits_processor = kwargs["logits_processor"]
+            seen_counts.append(logits_processor[0].count)
+            return "ok"
+
+        model = types.SimpleNamespace(generation_config=None, _logits_processor=[processor])
+        wrapped_generate = _make_mimigenrec_generate(
+            model,
+            _original_generate,
+            logits_processor=[processor],
+            num_beams=2,
+        )
+
+        import torch
+
+        input_ids = torch.zeros((2, 3), dtype=torch.long)
+        attention_mask = torch.ones((2, 3), dtype=torch.long)
+
+        wrapped_generate(input_ids=input_ids, attention_mask=attention_mask)
+
+        self.assertEqual(seen_counts, [0])
 
 
 def test_rule_reward_reconstructs_full_completion_with_oracle_hint_text():

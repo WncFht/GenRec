@@ -416,6 +416,7 @@ EXPORT_CMD=(
   --add-tokens-path "$ADD_TOKENS_PATH"
   --summary-path "$ANALYSIS_SUMMARY_PATH"
   --details-path "$ANALYSIS_DETAILS_PATH"
+  --beam-sizes "$BEAM_SIZE"
   --export-fixed-hint-depth-map-path "$FIXED_HINT_MAP_PATH"
   --export-fixed-hint-beam-size "$BEAM_SIZE"
   --export-fixed-hint-unsolved-depth "$UNSOLVED_DEPTH"
