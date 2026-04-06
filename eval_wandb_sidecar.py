@@ -54,6 +54,7 @@ TABLE_COLUMNS = [
     *METRIC_KEYS,
     "metrics_path",
 ]
+DELETED_RUN_MARKER = "was previously created and deleted; try a new run id"
 
 
 @dataclass(frozen=True)
@@ -702,34 +703,82 @@ def build_row(
     return row
 
 
+def find_deleted_run_log_line(run_id: str, wandb_root: Path) -> tuple[Path, str] | None:
+    if not run_id or not wandb_root.is_dir():
+        return None
+
+    candidates: list[tuple[float, Path]] = []
+    for path in wandb_root.glob(f"run-*-{run_id}/logs/debug-internal.log"):
+        try:
+            sort_key = path.stat().st_mtime
+        except OSError:
+            sort_key = 0.0
+        candidates.append((sort_key, path))
+
+    for _, log_path in sorted(candidates, key=lambda item: item[0], reverse=True):
+        try:
+            lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue
+        for line in reversed(lines):
+            if DELETED_RUN_MARKER in line and run_id in line:
+                return log_path, line.strip()
+
+    return None
+
+
+def maybe_raise_deleted_run_id_error(exc: Exception, model: ModelSpec) -> None:
+    deleted_run_log = find_deleted_run_log_line(model.wandb_run_id, Path.cwd() / "wandb")
+    if deleted_run_log is None:
+        return
+
+    log_path, _ = deleted_run_log
+    try:
+        display_path = str(log_path.relative_to(Path.cwd()))
+    except ValueError:
+        display_path = str(log_path)
+
+    raise RuntimeError(
+        f"W&B run id {model.wandb_run_id} for {model.model_dir} [{model.variant}] "
+        f"was previously created and deleted. Update config/wandb_eval_manifest_overrides.json "
+        f"with a fresh run id under models.{model.model_dir}.variants.{model.variant}.wandb_run_id "
+        f"(and the matching wandb_run_name) before retrying. Matched log: {display_path}"
+    ) from exc
+
+
 def init_wandb_run(args: argparse.Namespace, model: ModelSpec):
     try:
         import wandb  # pylint: disable=import-outside-toplevel
     except ImportError as exc:
         raise RuntimeError("wandb is not installed in current environment") from exc
 
-    run = wandb.init(
-        project=model.wandb_project,
-        entity=model.wandb_entity,
-        id=model.wandb_run_id,
-        name=model.wandb_run_name,
-        group=model.wandb_group,
-        resume=args.wandb_resume,
-        job_type=args.wandb_job_type,
-        mode=args.wandb_mode,
-        config={
-            "model_name": model.model_dir,
-            "upload_variant": model.variant,
-            "dataset": model.dataset,
-            "cb_setting": model.cb_setting,
-            "seed": model.seed,
-            "num_beams": model.num_beams,
-            "sid_levels": model.sid_levels,
-            "num_train_epochs": model.num_train_epochs,
-            "eval_split": model.eval_split,
-        },
-        reinit=True,
-    )
+    try:
+        run = wandb.init(
+            project=model.wandb_project,
+            entity=model.wandb_entity,
+            id=model.wandb_run_id,
+            name=model.wandb_run_name,
+            group=model.wandb_group,
+            resume=args.wandb_resume,
+            job_type=args.wandb_job_type,
+            mode=args.wandb_mode,
+            config={
+                "model_name": model.model_dir,
+                "upload_variant": model.variant,
+                "dataset": model.dataset,
+                "cb_setting": model.cb_setting,
+                "seed": model.seed,
+                "num_beams": model.num_beams,
+                "sid_levels": model.sid_levels,
+                "num_train_epochs": model.num_train_epochs,
+                "eval_split": model.eval_split,
+            },
+            reinit=True,
+        )
+    except Exception as exc:  # pylint: disable=broad-except
+        maybe_raise_deleted_run_id_error(exc, model)
+        raise
+
     wandb.define_metric("checkpoint_step")
     wandb.define_metric("eval/*", step_metric="checkpoint_step")
 

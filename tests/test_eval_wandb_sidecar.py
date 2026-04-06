@@ -259,6 +259,72 @@ def test_parse_models_from_manifest_expands_ckpt_step_and_epoch_variants() -> No
     assert specs[1].wandb_run_name == "instruments-prefix-eval-epoch"
 
 
+def test_init_wandb_run_surfaces_deleted_run_id_guidance(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake_wandb = types.SimpleNamespace()
+
+    def fake_init(**kwargs):
+        raise RuntimeError(
+            "Run initialization has timed out after 90.0 sec. Please try increasing the timeout."
+        )
+
+    fake_wandb.init = fake_init
+    fake_wandb.define_metric = lambda *args, **kwargs: None
+
+    log_path = (
+        tmp_path
+        / "wandb"
+        / "run-20260411_130940-eval-7496742c37888e35b425"
+        / "logs"
+        / "debug-internal.log"
+    )
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    log_path.write_text(
+        "\n".join(
+            [
+                '{"time":"2026-04-11T13:09:42.71467+08:00","level":"INFO","msg":"api: retrying HTTP error","status":409}',
+                (
+                    '{"errors":[{"message":"run eval-7496742c37888e35b425 was previously '
+                    'created and deleted; try a new run id"}]}'
+                ),
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setitem(sys.modules, "wandb", fake_wandb)
+
+    args = types.SimpleNamespace(
+        wandb_resume="allow",
+        wandb_job_type="eval",
+        wandb_mode="online",
+    )
+    model = types.SimpleNamespace(
+        model_dir="Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
+        variant="ckpt_step",
+        dataset="Instruments_grec",
+        cb_setting="none",
+        seed=42,
+        num_beams=50,
+        sid_levels=-1,
+        num_train_epochs=2,
+        eval_split="test",
+        wandb_project="MIMIGenRec-Eval",
+        wandb_entity=None,
+        wandb_run_id="eval-7496742c37888e35b425",
+        wandb_run_name="instruments-fixedhint-eval",
+        wandb_group="ckpt_step",
+    )
+
+    with pytest.raises(RuntimeError, match="previously created and deleted") as exc_info:
+        sidecar.init_wandb_run(args, model)
+
+    assert "config/wandb_eval_manifest_overrides.json" in str(exc_info.value)
+    assert "variants.ckpt_step.wandb_run_id" in str(exc_info.value)
+
+
 def test_upload_defaults_to_dual_variants_with_legacy_epoch_override(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -345,3 +411,40 @@ def test_upload_defaults_to_dual_variants_with_legacy_epoch_override(
 
     assert ckpt_state["run_id"] == ckpt_run_id
     assert epoch_state["run_id"] == epoch_run_id
+
+
+def test_repo_overrides_rebind_deleted_ckpt_step_run_id() -> None:
+    model_dir = "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495"
+    manifest = {
+        "version": sidecar.MANIFEST_VERSION,
+        "generated_at": "2026-04-11T00:00:00+00:00",
+        "results_root": "./results",
+        "models": [
+            {
+                "model_dir": model_dir,
+                "dataset": "Instruments_grec",
+                "cb_setting": "none",
+                "eval_split": "test",
+                "seed": 42,
+                "num_beams": 50,
+                "sid_levels": -1,
+                "num_train_epochs": None,
+                "wandb_project": "MIMIGenRec-Eval",
+                "wandb_entity": None,
+                "wandb_run_id": "eval-7496742c37888e35b425",
+                "wandb_run_name": f"{model_dir}-eval",
+            }
+        ],
+    }
+
+    overrides = sidecar.load_overrides(REPO_ROOT / "config" / "wandb_eval_manifest_overrides.json")
+    merged_manifest = sidecar.apply_manifest_overrides(manifest, overrides)
+    specs = sidecar.parse_models_from_manifest(
+        merged_manifest,
+        model_filter=set(),
+        upload_variants=sidecar.parse_upload_variants("ckpt_step,epoch"),
+    )
+
+    specs_by_variant = {spec.variant: spec for spec in specs}
+    assert specs_by_variant["ckpt_step"].wandb_run_id == "eval-7496742c37888e35b425-rerun-20260411"
+    assert specs_by_variant["epoch"].wandb_run_id == "eval-7496742c37888e35b425-epoch-20260401"

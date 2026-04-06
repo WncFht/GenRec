@@ -3,14 +3,13 @@
 - 记录日期：2026-04-01
 - 维护日期：2026-04-02
 - 记录目的：把 `Games` 数据集从 `index -> grec preprocess -> SFT -> 后续 RL / evaluate` 的关键信息集中到一份文档里，后面继续往同一篇里补 `rule_only`、`fixed_hint` 等 RL 结果。
-- 当前阶段：`index` 已训练并导出，`Games_grec` 数据已构建，`Games-grec` SFT 已完成，RL 尚未开始。
-- 本地核对：截至 `2026-04-02`，`results/` 下还没有 `*Games*` 结果目录，因此“RL 尚未开始”与当前本地状态一致。
+- 当前阶段：`index` 已训练并导出，`Games_grec` 数据已构建，`Games-grec` SFT 已完成，`rule_only` / `fixed_hint` / `dynamic-hint` 三条 RL 线已经产出首批 checkpoint 评测结果。
 - 相关 W&B：
   `https://wandb.ai/wncfht/MIMIGenRec-SFT/runs/2trpxzle`
 
 ## 一句话结论
 
-`Games` 单数据集的 `qwen3-embedding-4B + rq4(cb256x4)` semantic index 已成功训练并导出，最终 generate 阶段碰撞率为 `0.0075873`；基于该 index 的 `Games_grec` 下游数据也已构建完成。随后 `Games-grec-sft-qwen4B-4-256-dsz0` 完成到 `checkpoint-1024`，本地保存的最终汇总结果显示 `eval_loss=1.5389`、`train_loss=1.0617`，训练日志末尾对应 `epoch=4.0157`、`current_steps=1024`。接下来可以直接进入 `rule_only` 和 `fixed_hint` 的 RL 训练与统一评测。
+`Games` 单数据集的 `qwen3-embedding-4B + rq4(cb256x4)` semantic index 已成功训练并导出，最终 generate 阶段碰撞率为 `0.0075873`；基于该 index 的 `Games_grec` 下游数据也已构建完成。`Games-grec-sft-qwen4B-4-256-dsz0` 的当前最佳 SFT 点按 `NDCG@10` 看是 `checkpoint-768`（`0.0433`），而后续 RL 默认从更稳妥的 `checkpoint-896` 起跑。当前本地 `results` 显示，三条 RL 线里最好的是 `dynamic-hint`，在 `checkpoint-4380` 达到 `NDCG@10=0.0464`、`HR@10=0.0823`、`HR@50=0.1980`；`fixed-hint` 与它接近，`rule_only` 稍弱但仍整体优于 SFT。
 
 ## 1. 本地整理后的材料
 
@@ -318,3 +317,88 @@ bash scripts/evaluate_all_checkpoints.sh
 2. `rule_only` RL 的训练轨迹和 checkpoint 评测
 3. `fixed_hint` RL 的训练轨迹和 checkpoint 评测
 4. 三条线（SFT / RL rule_only / RL fixed_hint）的横向对比结论
+
+## 8. RL 首批结果（2026-04-11 同步）
+
+### 8.1 `rule_only` 结果
+
+目录：
+`results/Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft896`
+
+| Checkpoint | NDCG@10 | HR@10 | NDCG@5 | HR@5 | NDCG@50 | HR@50 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `checkpoint-876` | `0.0411` | `0.0730` | `0.0331` | `0.0482` | `0.0627` | `0.1728` |
+| `checkpoint-1752` | `0.0439` | `0.0785` | `0.0351` | `0.0509` | `0.0660` | `0.1806` |
+| `checkpoint-2628` | `0.0447` | `0.0787` | `0.0365` | `0.0531` | `0.0671` | `0.1818` |
+
+观察：
+
+- `rule_only` 相比 SFT `checkpoint-896`（`NDCG@10=0.0430`）有稳定提升。
+- 当前最好点是 `checkpoint-2628`，但提升幅度不算大，主要增益体现在 `NDCG@5` 和 `NDCG@10`。
+- `HR@50` 仍低于另外两条 hint 系列 RL。
+
+### 8.2 `fixed_hint` 结果
+
+目录：
+`results/Games-grec-grpo-rule-only-fixedhint-taskfix-b16-sft896`
+
+| Checkpoint | NDCG@10 | HR@10 | NDCG@5 | HR@5 | NDCG@50 | HR@50 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `checkpoint-876` | `0.0432` | `0.0775` | `0.0345` | `0.0504` | `0.0679` | `0.1912` |
+| `checkpoint-1752` | `0.0456` | `0.0823` | `0.0365` | `0.0539` | `0.0708` | `0.1978` |
+| `checkpoint-2628` | `0.0461` | `0.0833` | `0.0367` | `0.0540` | `0.0714` | `0.2001` |
+
+观察：
+
+- `fixed_hint` 从第一个 checkpoint 开始就显著强于 plain `rule_only`。
+- 当前最好点是 `checkpoint-2628`，`NDCG@10=0.0461`，已经明显超过当前 SFT best。
+- `HR@50=0.2001` 是目前三条线里第一个破 `0.20` 的结果。
+
+### 8.3 `dynamic-hint` 结果
+
+目录：
+`results/Games-grec-grpo-rule-only-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft896`
+
+| Checkpoint | NDCG@10 | HR@10 | NDCG@5 | HR@5 | NDCG@50 | HR@50 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `checkpoint-876` | `0.0431` | `0.0785` | `0.0341` | `0.0506` | `0.0680` | `0.1937` |
+| `checkpoint-1752` | `0.0442` | `0.0792` | `0.0352` | `0.0512` | `0.0692` | `0.1945` |
+| `checkpoint-2628` | `0.0452` | `0.0808` | `0.0363` | `0.0533` | `0.0705` | `0.1976` |
+| `checkpoint-3504` | `0.0461` | `0.0822` | `0.0372` | `0.0544` | `0.0714` | `0.1981` |
+| `checkpoint-4380` | `0.0464` | `0.0823` | `0.0374` | `0.0543` | `0.0716` | `0.1980` |
+
+观察：
+
+- `dynamic-hint` 的增长更持续，checkpoint 数更多，而且从 `2628` 往后还在缓慢提升。
+- 当前最好点是 `checkpoint-4380`，按 `NDCG@10` 看是目前 `Games-grec` 的全场最好结果。
+- 相比 `fixed_hint`，`dynamic-hint` 的优势主要体现在 `NDCG@10` / `NDCG@5`，而 `HR@50` 两者接近。
+
+### 8.4 三条 RL 线横向对比
+
+按当前已同步到本地的最好 checkpoint 比：
+
+| 路线 | Best checkpoint | NDCG@10 | HR@10 | NDCG@50 | HR@50 |
+| --- | --- | ---: | ---: | ---: | ---: |
+| SFT | `checkpoint-768` | `0.0433` | `0.0804` | `0.0691` | `0.1998` |
+| RL `rule_only` | `checkpoint-2628` | `0.0447` | `0.0787` | `0.0671` | `0.1818` |
+| RL `fixed_hint` | `checkpoint-2628` | `0.0461` | `0.0833` | `0.0714` | `0.2001` |
+| RL `dynamic-hint` | `checkpoint-4380` | `0.0464` | `0.0823` | `0.0716` | `0.1980` |
+
+当前可以直接写进结论里的版本：
+
+- plain `rule_only` 能把 `NDCG@10` 从 SFT 的 `0.0433` 提升到 `0.0447`，但对 `HR@50` 没有优势。
+- `fixed_hint` 和 `dynamic-hint` 都明显优于 plain `rule_only`。
+- 按当前本地结果，`dynamic-hint` 是 `NDCG@10` 最优（`0.0464`），`fixed_hint` 非常接近（`0.0461`）。
+- 如果更看重 `HR@50`，当前 `fixed_hint` 的 `0.2001` 略优；如果更看重 `NDCG@10` / `NDCG@5`，当前 `dynamic-hint` 更强。
+
+### 8.5 当前下一步
+
+如果你现在要继续推进实验，建议顺序是：
+
+1. 先把 `dynamic-hint` / `fixed_hint` 的更多 checkpoint 同步齐，确认后段是否还继续上升。
+2. 如果要写阶段性结论，现在已经足够写一版：
+   `dynamic-hint ≳ fixed-hint > rule_only > SFT`（按 `NDCG@10`）。
+3. 后续若要继续扩展，可以考虑：
+   - 做更长训练，确认 `dynamic-hint` 是否在 `4380` 后继续涨
+   - 检查 `fixed_hint` 是否存在更好的 beam/depth 组合
+   - 补一张三条 RL 线与 SFT 的 epoch-aligned 曲线图
