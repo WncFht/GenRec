@@ -53,6 +53,12 @@ GAMES_GREC_FIXED_HINT_SCRIPT = (
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-Games-grec"
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-Games-grec-rl-rule-only-fixed-hint.sh"
 )
+GAMES_GREC_DYNAMIC_HINT_SCRIPT = (
+    REPO_ROOT
+    / "hope"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-Games-grec"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-Games-grec-rl-rule-only-dynamic-hint.sh"
+)
 
 
 class GamesPipelineLauncherTests(unittest.TestCase):
@@ -218,6 +224,23 @@ class GamesPipelineLauncherTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("--beam-sizes 16", result.stdout)
         self.assertNotIn("--beam-sizes 8\\,16", result.stdout)
+
+    def test_games_dynamic_hint_shell_dry_run_uses_games_defaults(self):
+        result = subprocess.run(
+            ["bash", str(GAMES_GREC_DYNAMIC_HINT_SCRIPT), "--dry-run"],
+            cwd=REPO_ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("Games_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsGames", result.stdout)
+        self.assertIn("Games-grec-grpo-rule-only-dynamic-hint", result.stdout)
+        self.assertIn("--reward_mode rule_only", result.stdout)
+        self.assertIn("--dynamic_hint_max_depth 3", result.stdout)
+        self.assertIn("--num_beams 16", result.stdout)
+        self.assertIn("--eval_on_start true", result.stdout)
 
 
 if __name__ == "__main__":
