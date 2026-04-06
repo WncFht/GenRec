@@ -98,11 +98,11 @@ REPO_ROOT="${REPO_ROOT:-$DEFAULT_REPO_ROOT}"
 PYTHON_BIN="${PYTHON_BIN:-python}"
 
 DATA_VARIANT_DEFAULT="${DATA_VARIANT_DEFAULT:-Games_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsGames}"
-MODEL_PATH="${MODEL_PATH:-${REPO_ROOT}/saves/qwen2.5-3b/full/Games-grec-sft-qwen4B-4-256-dsz0/checkpoint-495}"
+MODEL_PATH="${MODEL_PATH:-${REPO_ROOT}/saves/qwen2.5-3b/full/Games-grec-sft-qwen4B-4-256-dsz0/checkpoint-896}"
 DATA_DIR="${DATA_DIR:-${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/rl}"
 INDEX_PATH="${INDEX_PATH:-${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/id2sid.json}"
 ADD_TOKENS_PATH="${ADD_TOKENS_PATH:-${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/new_tokens.json}"
-OUTPUT_DIR="${OUTPUT_DIR:-${REPO_ROOT}/rl_outputs/Games-grec-grpo-rule-only-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft495}"
+OUTPUT_DIR="${OUTPUT_DIR:-${REPO_ROOT}/rl_outputs/Games-grec-grpo-rule-only-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft896}"
 DS_CONFIG="${DS_CONFIG:-${REPO_ROOT}/config/zero2.yaml}"
 
 NUM_PROCESSES="${NUM_PROCESSES:-4}"
@@ -124,7 +124,7 @@ DYNAMIC_HINT_APPLY_TO_EVAL="${DYNAMIC_HINT_APPLY_TO_EVAL:-false}"
 REPORT_TO="${REPORT_TO:-wandb}"
 RESUME_FROM_CHECKPOINT="${RESUME_FROM_CHECKPOINT:-auto}"
 
-RUN_NAME="${RUN_NAME:-games_grec_rl_rule_only_dynamic_hint_cascade_qwen2_5_3b_qwen4b_4_256_from_ckpt495}"
+RUN_NAME="${RUN_NAME:-games_grec_rl_rule_only_dynamic_hint_cascade_qwen2_5_3b_qwen4b_4_256_from_ckpt896}"
 LOG_DIR="${LOG_DIR:-${REPO_ROOT}/log}"
 
 export WANDB_PROJECT="${WANDB_PROJECT:-MIMIGenRec-GRPO}"

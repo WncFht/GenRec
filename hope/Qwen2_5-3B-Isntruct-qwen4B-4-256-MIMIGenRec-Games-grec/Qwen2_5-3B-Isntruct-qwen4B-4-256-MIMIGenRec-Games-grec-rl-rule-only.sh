@@ -99,11 +99,11 @@ CONDA_ENV_NAME="${CONDA_ENV_NAME:-genrec}"
 REPO_ROOT="${REPO_ROOT:-$DEFAULT_REPO_ROOT}"
 DATA_VARIANT_DEFAULT="${DATA_VARIANT_DEFAULT:-Games_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsGames}"
 
-# continue from provided SFT checkpoint-495 by default
-MODEL_PATH="${MODEL_PATH:-${REPO_ROOT}/saves/qwen2.5-3b/full/Games-grec-sft-qwen4B-4-256-dsz0/checkpoint-495}"
+# continue from provided SFT checkpoint-896 by default
+MODEL_PATH="${MODEL_PATH:-${REPO_ROOT}/saves/qwen2.5-3b/full/Games-grec-sft-qwen4B-4-256-dsz0/checkpoint-896}"
 DATA_DIR="${DATA_DIR:-${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/rl}"
 INDEX_PATH="${INDEX_PATH:-${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/id2sid.json}"
-OUTPUT_DIR="${OUTPUT_DIR:-${REPO_ROOT}/rl_outputs/Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495}"
+OUTPUT_DIR="${OUTPUT_DIR:-${REPO_ROOT}/rl_outputs/Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft896}"
 DS_CONFIG="${DS_CONFIG:-${REPO_ROOT}/config/zero2.yaml}"
 
 PYTHON_BIN="${PYTHON_BIN:-python}"
@@ -133,7 +133,7 @@ RESUME_FROM_CHECKPOINT="${RESUME_FROM_CHECKPOINT:-auto}"
 export WANDB_PROJECT="${WANDB_PROJECT:-MIMIGenRec-GRPO}"
 export WANDB_MODE="${WANDB_MODE:-offline}"
 export WANDB_API_KEY="${WANDB_API_KEY:-}"
-export WANDB_RUN_NAME="${WANDB_RUN_NAME:-games_grec_rl_rule_only_rerun_quietlog_qwen2_5_3b_qwen4b_4_256_from_ckpt495}"
+export WANDB_RUN_NAME="${WANDB_RUN_NAME:-games_grec_rl_rule_only_rerun_quietlog_qwen2_5_3b_qwen4b_4_256_from_ckpt896}"
 
 LOG_DIR="${LOG_DIR:-${REPO_ROOT}/log}"
 

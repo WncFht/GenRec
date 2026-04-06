@@ -203,17 +203,17 @@ class GamesPipelineLauncherTests(unittest.TestCase):
             'DATA_VARIANT_DEFAULT="${DATA_VARIANT_DEFAULT:-Games_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsGames}"',
             script_text,
         )
-        self.assertIn("Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495", result.stdout)
-        self.assertIn("--output_dir /Users/fanghaotian/Desktop/src/GenRec/rl_outputs/Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495", result.stdout)
-        self.assertIn("games_grec_rl_rule_only_rerun_quietlog_qwen2_5_3b_qwen4b_4_256_from_ckpt495", script_text)
+        self.assertIn("Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft896", result.stdout)
+        self.assertIn("--output_dir /Users/fanghaotian/Desktop/src/GenRec/rl_outputs/Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft896", result.stdout)
+        self.assertIn("games_grec_rl_rule_only_rerun_quietlog_qwen2_5_3b_qwen4b_4_256_from_ckpt896", script_text)
         self.assertIn("--eval_on_start true", result.stdout)
 
     def test_games_fixed_hint_shell_dry_run_uses_games_grec_defaults(self):
         result = self._run_games_fixed_hint_dry_run()
 
         self.assertEqual(result.returncode, 0, msg=result.stderr)
-        self.assertIn("Games-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495", result.stdout)
-        self.assertIn("--run_name games_grec_rl_rule_only_fixed_hint_taskfix_b16_ckpt495", result.stdout)
+        self.assertIn("Games-grec-grpo-rule-only-fixedhint-taskfix-b16-sft896", result.stdout)
+        self.assertIn("--run_name games_grec_rl_rule_only_fixed_hint_taskfix_b16_ckpt896", result.stdout)
         self.assertIn("--summary-path", result.stdout)
         self.assertIn("--details-path", result.stdout)
         self.assertIn("--eval_on_start true", result.stdout)
@@ -236,7 +236,7 @@ class GamesPipelineLauncherTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("Games_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsGames", result.stdout)
-        self.assertIn("Games-grec-grpo-rule-only-dynamic-hint", result.stdout)
+        self.assertIn("Games-grec-grpo-rule-only-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft896", result.stdout)
         self.assertIn("--reward_mode rule_only", result.stdout)
         self.assertIn("--dynamic_hint_max_depth 3", result.stdout)
         self.assertIn("--num_beams 16", result.stdout)
