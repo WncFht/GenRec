@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import re
 from typing import Any, Union
 
@@ -42,7 +43,41 @@ def _compute_rule_hit_rewards(
     return rewards
 
 
+def build_prompt_hint_shift_mask(prompt_lengths: list[int], hint_token_counts: list[int]) -> list[list[int]]:
+    if len(prompt_lengths) != len(hint_token_counts):
+        raise ValueError(
+            f"prompt_lengths and hint_token_counts must have the same length, got "
+            f"{len(prompt_lengths)} and {len(hint_token_counts)}."
+        )
+
+    masks: list[list[int]] = []
+    for prompt_length, hint_token_count in zip(prompt_lengths, hint_token_counts):
+        prompt_length = int(prompt_length)
+        hint_token_count = max(int(hint_token_count), 0)
+        shift_length = max(prompt_length - 1, 0)
+        effective_hint_token_count = min(hint_token_count, shift_length)
+        suffix_start = shift_length - effective_hint_token_count
+        masks.append([1 if index >= suffix_start else 0 for index in range(shift_length)])
+    return masks
+
+
+def _selective_log_softmax(logits: torch.Tensor, target_ids: torch.Tensor) -> torch.Tensor:
+    log_probs = torch.nn.functional.log_softmax(logits, dim=-1)
+    return log_probs.gather(dim=-1, index=target_ids.unsqueeze(-1)).squeeze(-1)
+
+
+def _entropy_from_logits(logits: torch.Tensor) -> torch.Tensor:
+    probs = torch.nn.functional.softmax(logits, dim=-1)
+    log_probs = torch.nn.functional.log_softmax(logits, dim=-1)
+    return -(probs * log_probs).sum(dim=-1)
+
+
 class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
+    def __init__(self, *args, hint_ce_loss_coef: float = 0.0, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.hint_ce_loss_coef = float(hint_ce_loss_coef)
+        self._cached_prompt_shift_logits: torch.Tensor | None = None
+
     def _build_hinted_prompts(self, inputs: list[dict[str, Union[torch.Tensor, Any]]]) -> list[str]:
         return [
             build_prompt_with_hint(
@@ -67,6 +102,162 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
         if images is not None:
             self._logs["images"].extend(gather_object(images))
 
+    def _get_hint_token_counts(self, inputs: list[dict[str, Union[torch.Tensor, Any]]]) -> list[int]:
+        return [max(int(example.get("oracle_hint_depth", 0)), 0) for example in inputs]
+
+    def _build_prompt_hint_ce_mask(
+        self,
+        prompt_ids_list: list[Any],
+        hint_token_counts: list[int],
+        device: torch.device,
+    ) -> torch.Tensor:
+        prompt_lengths = [len(ids) for ids in prompt_ids_list]
+        shift_masks = build_prompt_hint_shift_mask(prompt_lengths, hint_token_counts)
+        mask_tensors = [torch.tensor(mask, device=device, dtype=torch.float32) for mask in shift_masks]
+        return pad(mask_tensors, padding_value=0.0, padding_side="left")
+
+    def _compute_prompt_hint_ce_loss(self, model, inputs) -> torch.Tensor:
+        prompt_hint_ce_mask = inputs.get("prompt_hint_ce_mask")
+        prompt_ids = inputs["prompt_ids"]
+        zero = prompt_ids.new_zeros((), dtype=torch.float32)
+
+        if prompt_hint_ce_mask is None:
+            return zero
+
+        prompt_hint_ce_mask = prompt_hint_ce_mask.float()
+        hint_token_count = prompt_hint_ce_mask.sum()
+        mode = "train" if self.model.training else "eval"
+        if torch.isclose(hint_token_count, zero):
+            self._metrics[mode]["hint_ce/loss"].append(0.0)
+            self._metrics[mode]["hint_ce/token_count"].append(0.0)
+            return zero
+
+        prompt_shift_logits = inputs.get("prompt_shift_logits")
+        if prompt_shift_logits is None:
+            prompt_shift_logits = getattr(self, "_cached_prompt_shift_logits", None)
+        if prompt_shift_logits is None:
+            completion_ids, completion_mask = inputs["completion_ids"], inputs["completion_mask"]
+            input_ids = torch.cat([prompt_ids, completion_ids], dim=1)
+            attention_mask = torch.cat([inputs["prompt_mask"], completion_mask], dim=1)
+            logits = model(input_ids=input_ids, attention_mask=attention_mask, use_cache=False).logits
+            prompt_shift_logits = logits[:, : prompt_ids.size(1) - 1, :]
+        prompt_shift_labels = prompt_ids[:, 1:]
+
+        prompt_token_losses = torch.nn.functional.cross_entropy(
+            prompt_shift_logits.reshape(-1, prompt_shift_logits.size(-1)),
+            prompt_shift_labels.reshape(-1),
+            reduction="none",
+        ).view_as(prompt_shift_labels)
+        hint_ce_loss = (prompt_token_losses * prompt_hint_ce_mask).sum() / hint_token_count.clamp(min=1.0)
+
+        gathered_hint_ce_loss = self.accelerator.gather(hint_ce_loss.detach())
+        self._metrics[mode]["hint_ce/loss"].append(gathered_hint_ce_loss.nanmean().item())
+        gathered_hint_token_count = self.accelerator.gather(hint_token_count.detach())
+        self._metrics[mode]["hint_ce/token_count"].append(gathered_hint_token_count.sum().item())
+        return hint_ce_loss / self.current_gradient_accumulation_steps
+
+    def _get_per_token_logps_and_entropies(
+        self,
+        model,
+        input_ids,
+        attention_mask,
+        logits_to_keep,
+        batch_size=None,
+        compute_entropy=False,
+        pixel_values=None,
+        image_grid_thw=None,
+        num_images=None,
+        pixel_attention_mask=None,
+        image_sizes=None,
+        token_type_ids=None,
+        mm_token_type_ids=None,
+        image_position_ids=None,
+    ) -> tuple[torch.Tensor, torch.Tensor | None]:
+        if getattr(self, "hint_ce_loss_coef", 0.0) <= 0.0 or not compute_entropy:
+            super_method = super()._get_per_token_logps_and_entropies
+            supported_params = set(inspect.signature(super_method).parameters)
+            kwargs = {
+                "batch_size": batch_size,
+                "compute_entropy": compute_entropy,
+                "pixel_values": pixel_values,
+                "image_grid_thw": image_grid_thw,
+                "num_images": num_images,
+                "pixel_attention_mask": pixel_attention_mask,
+                "image_sizes": image_sizes,
+                "token_type_ids": token_type_ids,
+                "mm_token_type_ids": mm_token_type_ids,
+                "image_position_ids": image_position_ids,
+            }
+            filtered_kwargs = {key: value for key, value in kwargs.items() if key in supported_params}
+            return super_method(
+                model,
+                input_ids,
+                attention_mask,
+                logits_to_keep,
+                **filtered_kwargs,
+            )
+
+        batch_size = batch_size or input_ids.size(0)
+        prompt_width = input_ids.size(1) - logits_to_keep
+        all_logps = []
+        all_entropies = []
+        all_prompt_shift_logits = []
+        model_kwarg_keys = getattr(self, "model_kwarg_keys", set())
+
+        for start in range(0, input_ids.size(0), batch_size):
+            input_ids_batch = input_ids[start : start + batch_size]
+            attention_mask_batch = attention_mask[start : start + batch_size]
+
+            model_inputs = {"input_ids": input_ids_batch, "attention_mask": attention_mask_batch}
+            if image_grid_thw is not None and pixel_values is not None:
+                rows_per_image = image_grid_thw.prod(dim=-1)
+                rows_per_sample = torch.split(rows_per_image, num_images)
+                rows_per_sample = torch.stack([s.sum() for s in rows_per_sample])
+                cum_rows = torch.cat([torch.tensor([0], device=rows_per_sample.device), rows_per_sample.cumsum(0)])
+                row_start, row_end = cum_rows[start].item(), cum_rows[start + batch_size].item()
+                model_inputs["pixel_values"] = pixel_values[row_start:row_end]
+                cum_imgs = torch.tensor([0] + num_images).cumsum(0)
+                img_start, img_end = cum_imgs[start], cum_imgs[start + batch_size]
+                model_inputs["image_grid_thw"] = image_grid_thw[img_start:img_end]
+            elif image_position_ids is not None and pixel_values is not None:
+                cum_imgs = torch.tensor([0] + num_images).cumsum(0)
+                img_start, img_end = cum_imgs[start], cum_imgs[start + batch_size]
+                model_inputs["pixel_values"] = pixel_values[img_start:img_end]
+                model_inputs["image_position_ids"] = image_position_ids[img_start:img_end]
+            elif pixel_values is not None:
+                model_inputs["pixel_values"] = pixel_values[start : start + batch_size]
+            if pixel_attention_mask is not None:
+                model_inputs["pixel_attention_mask"] = pixel_attention_mask[start : start + batch_size]
+            if image_sizes is not None:
+                model_inputs["image_sizes"] = image_sizes[start : start + batch_size]
+            if token_type_ids is not None:
+                model_inputs["token_type_ids"] = token_type_ids[start : start + batch_size]
+            if mm_token_type_ids is not None:
+                model_inputs["mm_token_type_ids"] = mm_token_type_ids[start : start + batch_size]
+
+            # We intentionally avoid logits_to_keep here so the same forward can
+            # also supply prompt-side logits for the hint CE auxiliary loss.
+            if "logits_to_keep" in model_kwarg_keys:
+                pass
+
+            model_inputs["use_cache"] = False
+            logits = model(**model_inputs).logits
+            shift_logits = logits[:, :-1, :]
+            prompt_shift_logits = shift_logits[:, : prompt_width - 1, :]
+            completion_logits = shift_logits[:, -logits_to_keep:, :]
+            completion_logits = completion_logits / self.temperature
+            completion_ids = input_ids_batch[:, -logits_to_keep:]
+
+            all_prompt_shift_logits.append(prompt_shift_logits)
+            all_logps.append(_selective_log_softmax(completion_logits, completion_ids))
+            if compute_entropy:
+                all_entropies.append(_entropy_from_logits(completion_logits))
+
+        self._cached_prompt_shift_logits = torch.cat(all_prompt_shift_logits, dim=0)
+        logps = torch.cat(all_logps, dim=0)
+        entropies = torch.cat(all_entropies, dim=0) if compute_entropy else None
+        return logps, entropies
+
     def _generate_and_score_completions(
         self, inputs: list[dict[str, Union[torch.Tensor, Any]]]
     ) -> dict[str, Union[torch.Tensor, Any]]:
@@ -89,6 +280,11 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
             raise NotImplementedError("Fixed hint trainer currently supports text-only generation batches.")
         if sampling_per_token_logps_list is not None:
             raise NotImplementedError("Fixed hint trainer does not support sampling log-prob correction yet.")
+
+        prompt_hint_ce_mask = None
+        if getattr(self, "hint_ce_loss_coef", 0.0) > 0.0:
+            hint_token_counts = self._get_hint_token_counts(inputs)
+            prompt_hint_ce_mask = self._build_prompt_hint_ce_mask(prompt_ids_list, hint_token_counts, device=device)
 
         prompt_ids = [torch.tensor(ids, device=device) for ids in prompt_ids_list]
         prompt_mask = [torch.ones_like(ids, dtype=torch.long) for ids in prompt_ids]
@@ -200,7 +396,7 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
             self._logs["rewards"][name].extend(rewards_per_func[:, i].tolist())
         self._logs["advantages"].extend(all_process_advantages.tolist())
 
-        return {
+        output = {
             "prompt_ids": prompt_ids,
             "prompt_mask": prompt_mask,
             "completion_ids": completion_ids,
@@ -210,6 +406,20 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
             "advantages": advantages,
             "num_items_in_batch": num_items_in_batch,
         }
+        if prompt_hint_ce_mask is not None:
+            output["prompt_hint_ce_mask"] = prompt_hint_ce_mask
+        return output
+
+    def _compute_loss(self, model, inputs):
+        self._cached_prompt_shift_logits = None
+        loss = super()._compute_loss(model, inputs)
+        if getattr(self, "hint_ce_loss_coef", 0.0) <= 0.0:
+            return loss
+        try:
+            hint_ce_loss = self._compute_prompt_hint_ce_loss(model, inputs)
+            return loss + self.hint_ce_loss_coef * hint_ce_loss
+        finally:
+            self._cached_prompt_shift_logits = None
 
 
 class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
@@ -258,12 +468,15 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
         return prompt_ids_list, completion_ids_list
 
     def _has_global_unresolved_groups(self, unresolved_group_count: int) -> bool:
+        accelerator = getattr(self, "accelerator", None)
+        if accelerator is None or not hasattr(accelerator, "device") or not hasattr(accelerator, "gather"):
+            return unresolved_group_count > 0
         local_flag = torch.tensor(
             [1 if unresolved_group_count > 0 else 0],
-            device=self.accelerator.device,
+            device=accelerator.device,
             dtype=torch.int32,
         )
-        gathered_flags = self.accelerator.gather(local_flag)
+        gathered_flags = accelerator.gather(local_flag)
         return bool(gathered_flags.max().item())
 
     def _log_selected_batch_generation_metrics(

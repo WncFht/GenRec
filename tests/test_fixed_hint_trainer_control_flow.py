@@ -50,7 +50,40 @@ def _install_trainer_stubs():
     sys.modules["accelerate.utils"] = accelerate_utils_mod
 
     trl_mod = types.ModuleType("trl")
-    trl_mod.GRPOTrainer = type("GRPOTrainer", (), {})
+
+    class _GRPOTrainer:
+        def _get_per_token_logps_and_entropies(
+            self,
+            model,
+            input_ids,
+            attention_mask,
+            logits_to_keep,
+            batch_size=None,
+            compute_entropy=False,
+            pixel_values=None,
+            image_grid_thw=None,
+            num_images=None,
+            pixel_attention_mask=None,
+            image_sizes=None,
+            token_type_ids=None,
+        ):
+            self._super_logps_call = {
+                "model": model,
+                "input_ids": input_ids,
+                "attention_mask": attention_mask,
+                "logits_to_keep": logits_to_keep,
+                "batch_size": batch_size,
+                "compute_entropy": compute_entropy,
+                "pixel_values": pixel_values,
+                "image_grid_thw": image_grid_thw,
+                "num_images": num_images,
+                "pixel_attention_mask": pixel_attention_mask,
+                "image_sizes": image_sizes,
+                "token_type_ids": token_type_ids,
+            }
+            return "super-logps", "super-entropies"
+
+    trl_mod.GRPOTrainer = _GRPOTrainer
     sys.modules["trl"] = trl_mod
 
     trl_data_utils_mod = types.ModuleType("trl.data_utils")
@@ -88,6 +121,166 @@ def _load_trainer_module():
 
 
 class FixedHintTrainerControlFlowTests(unittest.TestCase):
+    def test_hint_ce_shift_mask_marks_only_suffix_hint_predictions(self):
+        module = _load_trainer_module()
+
+        mask = module.build_prompt_hint_shift_mask(
+            prompt_lengths=[5, 4, 3],
+            hint_token_counts=[2, 0, 1],
+        )
+
+        self.assertEqual(
+            mask,
+            [
+                [0, 0, 1, 1],
+                [0, 0, 0],
+                [0, 1],
+            ],
+        )
+
+    def test_hint_ce_shift_mask_is_empty_for_single_token_prompt(self):
+        module = _load_trainer_module()
+
+        mask = module.build_prompt_hint_shift_mask(
+            prompt_lengths=[1],
+            hint_token_counts=[0],
+        )
+
+        self.assertEqual(mask, [[]])
+
+    def test_hint_ce_loss_uses_cached_prompt_logits_without_second_model_call(self):
+        module = _load_trainer_module()
+
+        class FakeScalar:
+            def __init__(self, value):
+                self.value = float(value)
+
+            def item(self):
+                return self.value
+
+            def nanmean(self):
+                return self
+
+            def sum(self):
+                return self
+
+            def detach(self):
+                return self
+
+            def clamp(self, min=0.0):
+                return FakeScalar(max(self.value, min))
+
+            def __truediv__(self, other):
+                other_value = other.value if isinstance(other, FakeScalar) else other
+                return FakeScalar(self.value / other_value)
+
+            def __mul__(self, other):
+                other_value = other.value if isinstance(other, FakeScalar) else other
+                return FakeScalar(self.value * other_value)
+
+        class FakeVector:
+            def __init__(self, values):
+                self.values = [float(v) for v in values]
+
+            def float(self):
+                return self
+
+            def sum(self):
+                return FakeScalar(sum(self.values))
+
+            def view_as(self, other):
+                return self
+
+            def detach(self):
+                return self
+
+            def nanmean(self):
+                return FakeScalar(sum(self.values) / len(self.values))
+
+            def __mul__(self, other):
+                return FakeVector([a * b for a, b in zip(self.values, other.values)])
+
+        class FakePromptIds:
+            def new_zeros(self, shape, dtype=None):
+                return FakeScalar(0.0)
+
+            def size(self, dim):
+                return 3
+
+            def __getitem__(self, key):
+                return self
+
+            def reshape(self, *shape):
+                return self
+
+        class FakePromptShiftLogits:
+            def size(self, dim):
+                return 5
+
+            def reshape(self, *shape):
+                return self
+
+        cross_entropy_calls = []
+
+        def fake_cross_entropy(logits, labels, reduction="none"):
+            cross_entropy_calls.append((logits, labels, reduction))
+            return FakeVector([0.25, 0.75])
+
+        module.torch = types.SimpleNamespace(
+            float32="float32",
+            isclose=lambda a, b: a.value == b.value,
+            cat=lambda tensors, dim=1: "concatenated",
+            nn=types.SimpleNamespace(functional=types.SimpleNamespace(cross_entropy=fake_cross_entropy)),
+        )
+
+        trainer = object.__new__(module.FixedHintRuleOnlyGRPOTrainer)
+        trainer.model = types.SimpleNamespace(training=True)
+        trainer.accelerator = types.SimpleNamespace(gather=lambda value: value)
+        trainer._metrics = {"train": defaultdict(list), "eval": defaultdict(list)}
+        trainer.current_gradient_accumulation_steps = 2
+        trainer._cached_prompt_shift_logits = FakePromptShiftLogits()
+
+        class FailModel:
+            def __call__(self, **kwargs):
+                raise AssertionError("hint CE should reuse cached prompt logits instead of calling model again")
+
+        loss = trainer._compute_prompt_hint_ce_loss(
+            FailModel(),
+            {
+                "prompt_hint_ce_mask": FakeVector([1.0, 1.0]),
+                "prompt_ids": FakePromptIds(),
+                "prompt_mask": "prompt-mask",
+                "completion_ids": "completion-ids",
+                "completion_mask": "completion-mask",
+            },
+        )
+
+        self.assertEqual(len(cross_entropy_calls), 1)
+        self.assertIs(cross_entropy_calls[0][0], trainer._cached_prompt_shift_logits)
+        self.assertEqual(trainer._metrics["train"]["hint_ce/loss"], [0.5])
+        self.assertEqual(trainer._metrics["train"]["hint_ce/token_count"], [2.0])
+        self.assertEqual(loss.item(), 0.25)
+
+    def test_hint_ce_super_logps_call_filters_kwargs_unsupported_by_older_trl(self):
+        module = _load_trainer_module()
+        trainer = object.__new__(module.FixedHintRuleOnlyGRPOTrainer)
+        trainer.hint_ce_loss_coef = 0.001
+
+        logps, entropies = trainer._get_per_token_logps_and_entropies(
+            model="model",
+            input_ids="input_ids",
+            attention_mask="attention_mask",
+            logits_to_keep=8,
+            batch_size=2,
+            compute_entropy=False,
+            token_type_ids="token_type_ids",
+            mm_token_type_ids="mm_token_type_ids",
+            image_position_ids="image_position_ids",
+        )
+
+        self.assertEqual((logps, entropies), ("super-logps", "super-entropies"))
+        self.assertEqual(trainer._super_logps_call["token_type_ids"], "token_type_ids")
+
     def test_mixed_depth_batch_uses_single_generate_call(self):
         module = _load_trainer_module()
         trainer = object.__new__(module.FixedHintRuleOnlyGRPOTrainer)

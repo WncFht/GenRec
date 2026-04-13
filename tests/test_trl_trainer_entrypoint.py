@@ -45,6 +45,12 @@ FIXED_HINT_SCRIPT = (
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint.sh"
 )
+FIXED_HINT_CE_SCRIPT = (
+    REPO_ROOT
+    / "hope"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-ce.sh"
+)
 FIXED_HINT_SID_ONLY_SCRIPT = (
     REPO_ROOT
     / "hope"
@@ -68,7 +74,10 @@ class StopAfterTrainerInit(RuntimeError):
     pass
 
 
-def _load_trl_trainer_module(grpo_kwargs_sink: dict[str, object]):
+def _load_trl_trainer_module(
+    grpo_kwargs_sink: dict[str, object],
+    fixed_hint_trainer_kwargs_sink: Optional[dict[str, object]] = None,
+):
     fire_mod = types.ModuleType("fire")
     fire_mod.Fire = lambda fn: fn
     sys.modules["fire"] = fire_mod
@@ -130,8 +139,16 @@ def _load_trl_trainer_module(grpo_kwargs_sink: dict[str, object]):
     sys.modules["fixed_hint_utils"] = fixed_hint_utils_mod
 
     fixed_hint_trainer_mod = types.ModuleType("fixed_hint_grpo_trainer")
+
+    class _FixedHintTrainer(_GRPOTrainer):
+        def __init__(self, *args, **kwargs):
+            if fixed_hint_trainer_kwargs_sink is not None:
+                fixed_hint_trainer_kwargs_sink.clear()
+                fixed_hint_trainer_kwargs_sink.update(kwargs)
+            raise StopAfterTrainerInit("stop after capturing fixed-hint trainer kwargs")
+
     fixed_hint_trainer_mod.DynamicHintRuleOnlyGRPOTrainer = _GRPOTrainer
-    fixed_hint_trainer_mod.FixedHintRuleOnlyGRPOTrainer = _GRPOTrainer
+    fixed_hint_trainer_mod.FixedHintRuleOnlyGRPOTrainer = _FixedHintTrainer
     sys.modules["fixed_hint_grpo_trainer"] = fixed_hint_trainer_mod
 
     mimigenrec_mod = types.ModuleType("MIMIGenRec")
@@ -259,6 +276,59 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
             command = [
                 "bash",
                 str(FIXED_HINT_SCRIPT),
+                "--run",
+                "--dry-run",
+                "--model-path",
+                str(model_dir),
+                "--data-dir",
+                str(data_dir),
+                "--index-path",
+                str(index_path),
+                "--add-tokens-path",
+                str(add_tokens_path),
+                "--analysis-summary-path",
+                str(analysis_summary_path),
+                "--analysis-details-path",
+                str(analysis_details_path),
+                "--ds-config",
+                str(ds_config_path),
+            ]
+            if extra_args:
+                command.extend(extra_args)
+            return subprocess.run(
+                command,
+                cwd=REPO_ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+    def _run_fixed_hint_ce_dry_run(self, extra_args: Optional[list[str]] = None) -> subprocess.CompletedProcess:
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            model_dir = temp_root_path / "model"
+            data_dir = temp_root_path / "data" / "rl"
+            index_path = temp_root_path / "data" / "id2sid.json"
+            add_tokens_path = temp_root_path / "data" / "new_tokens.json"
+            analysis_summary_path = temp_root_path / "analysis" / "summary.json"
+            analysis_details_path = temp_root_path / "analysis" / "details.json"
+            ds_config_path = temp_root_path / "config" / "zero2.yaml"
+            model_dir.mkdir(parents=True)
+            data_dir.mkdir(parents=True)
+            analysis_summary_path.parent.mkdir(parents=True)
+            ds_config_path.parent.mkdir(parents=True)
+            (data_dir / "train.json").write_text("[]", encoding="utf-8")
+            (data_dir / "valid.json").write_text("[]", encoding="utf-8")
+            (data_dir / "test.json").write_text("[]", encoding="utf-8")
+            index_path.write_text("{}", encoding="utf-8")
+            add_tokens_path.write_text("[]", encoding="utf-8")
+            analysis_summary_path.write_text("{}", encoding="utf-8")
+            analysis_details_path.write_text("{}", encoding="utf-8")
+            ds_config_path.write_text("train_micro_batch_size_per_gpu: 1\n", encoding="utf-8")
+
+            command = [
+                "bash",
+                str(FIXED_HINT_CE_SCRIPT),
                 "--run",
                 "--dry-run",
                 "--model-path",
@@ -521,6 +591,65 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
             result.stdout,
         )
         self.assertIn("--eval_on_start true", result.stdout)
+
+    def test_fixed_hint_shell_forwards_hint_ce_loss_coef_to_fixed_hint_trainer(self):
+        grpo_kwargs = {}
+        fixed_hint_trainer_kwargs = {}
+        module = _load_trl_trainer_module(grpo_kwargs, fixed_hint_trainer_kwargs)
+
+        with self.assertRaises(StopAfterTrainerInit):
+            module.main(
+                model="dummy-model",
+                data_dir="dummy-data",
+                index_path="dummy-index",
+                output_dir="dummy-output",
+                report_to="wandb",
+                run_name="fixed-hint-ce-test-run",
+                token_level_prefix_advantage=False,
+                reward_mode="rule_only",
+                num_beams=4,
+                fixed_hint_depth_map_path="dummy-fixed-hint-map.json",
+                hint_ce_loss_coef=0.0025,
+            )
+
+        self.assertEqual(fixed_hint_trainer_kwargs["hint_ce_loss_coef"], 0.0025)
+        self.assertTrue(grpo_kwargs["gradient_checkpointing"])
+        self.assertEqual(
+            grpo_kwargs["gradient_checkpointing_kwargs"],
+            {"use_reentrant": False},
+        )
+
+    def test_fixed_hint_ce_shell_dry_run_forwards_hint_ce_loss(self):
+        result = self._run_fixed_hint_ce_dry_run()
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn(
+            "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495",
+            result.stdout,
+        )
+        self.assertIn("--hint_ce_loss_coef 0.001", result.stdout)
+        self.assertIn("--reward_mode rule_only", result.stdout)
+        self.assertIn("--eval_on_start false", result.stdout)
+
+    def test_fixed_hint_ce_shell_dry_run_keeps_beam16_only_defaults(self):
+        result = self._run_fixed_hint_ce_dry_run()
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("--num_beams 16", result.stdout)
+        self.assertIn("--export-fixed-hint-beam-size 16", result.stdout)
+        self.assertNotIn("--beam-sizes 8\\,16", result.stdout)
+
+    def test_fixed_hint_ce_shell_is_standalone_launcher(self):
+        script_text = FIXED_HINT_CE_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("trl_trainer.py", script_text)
+        self.assertIn("analyze_rl_beam_hint.py", script_text)
+        self.assertNotIn("BASE_SCRIPT=", script_text)
+        self.assertNotIn("exec bash", script_text)
+        self.assertNotIn(
+            "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint.sh",
+            script_text,
+        )
 
     def test_fixed_hint_sid_only_shell_dry_run_uses_sid_only_variant_and_cache_names(self):
         script_text = FIXED_HINT_SID_ONLY_SCRIPT.read_text(encoding="utf-8")
