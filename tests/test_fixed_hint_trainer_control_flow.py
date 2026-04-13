@@ -52,6 +52,9 @@ def _install_trainer_stubs():
     trl_mod = types.ModuleType("trl")
 
     class _GRPOTrainer:
+        def _compute_loss(self, model, inputs):
+            return None
+
         def _get_per_token_logps_and_entropies(
             self,
             model,
@@ -260,6 +263,52 @@ class FixedHintTrainerControlFlowTests(unittest.TestCase):
         self.assertEqual(trainer._metrics["train"]["hint_ce/loss"], [0.5])
         self.assertEqual(trainer._metrics["train"]["hint_ce/token_count"], [2.0])
         self.assertEqual(loss.item(), 0.25)
+
+    def test_compute_loss_records_rl_base_and_weighted_hint_ce_metrics(self):
+        module = _load_trainer_module()
+
+        trainer = object.__new__(module.FixedHintRuleOnlyGRPOTrainer)
+        trainer.model = types.SimpleNamespace(training=True)
+        trainer._metrics = {"train": defaultdict(list), "eval": defaultdict(list)}
+        trainer.hint_ce_loss_coef = 0.2
+        trainer._cached_prompt_shift_logits = None
+
+        original_super_compute_loss = module.GRPOTrainer._compute_loss
+        original_hint_ce = module.FixedHintRuleOnlyGRPOTrainer._compute_prompt_hint_ce_loss
+
+        class FakeLoss:
+            def __init__(self, value):
+                self.value = float(value)
+
+            def item(self):
+                return self.value
+
+            def __add__(self, other):
+                return FakeLoss(self.value + other.value)
+
+            def __mul__(self, other):
+                return FakeLoss(self.value * float(other))
+
+            __rmul__ = __mul__
+
+        def fake_super_compute_loss(self, model, inputs):
+            return FakeLoss(1.5)
+
+        def fake_hint_ce(self, model, inputs):
+            return FakeLoss(0.25)
+
+        module.GRPOTrainer._compute_loss = fake_super_compute_loss
+        module.FixedHintRuleOnlyGRPOTrainer._compute_prompt_hint_ce_loss = fake_hint_ce
+
+        try:
+            total_loss = trainer._compute_loss(model="model", inputs={})
+        finally:
+            module.GRPOTrainer._compute_loss = original_super_compute_loss
+            module.FixedHintRuleOnlyGRPOTrainer._compute_prompt_hint_ce_loss = original_hint_ce
+
+        self.assertEqual(total_loss.item(), 1.55)
+        self.assertEqual(trainer._metrics["train"]["loss/rl_base"], [1.5])
+        self.assertEqual(trainer._metrics["train"]["loss/hint_ce_weighted"], [0.05])
 
     def test_hint_ce_super_logps_call_filters_kwargs_unsupported_by_older_trl(self):
         module = _load_trainer_module()

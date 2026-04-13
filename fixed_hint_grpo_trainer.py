@@ -413,11 +413,15 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
     def _compute_loss(self, model, inputs):
         self._cached_prompt_shift_logits = None
         loss = super()._compute_loss(model, inputs)
+        mode = "train" if self.model.training else "eval"
+        self._metrics[mode]["loss/rl_base"].append(loss.item())
         if getattr(self, "hint_ce_loss_coef", 0.0) <= 0.0:
             return loss
         try:
             hint_ce_loss = self._compute_prompt_hint_ce_loss(model, inputs)
-            return loss + self.hint_ce_loss_coef * hint_ce_loss
+            weighted_hint_ce_loss = self.hint_ce_loss_coef * hint_ce_loss
+            self._metrics[mode]["loss/hint_ce_weighted"].append(weighted_hint_ce_loss.item())
+            return loss + weighted_hint_ce_loss
         finally:
             self._cached_prompt_shift_logits = None
 
