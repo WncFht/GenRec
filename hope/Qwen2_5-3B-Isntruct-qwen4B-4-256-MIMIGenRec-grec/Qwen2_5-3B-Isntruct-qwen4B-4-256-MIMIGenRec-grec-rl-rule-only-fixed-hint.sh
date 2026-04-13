@@ -30,6 +30,7 @@ Common overrides:
   --epochs <n>
   --lr <float>
   --eval-step <n>
+  --eval-on-start <true|false>
   --max-completion-length <n>
   --beta <float>
   --temperature <float>
@@ -41,6 +42,7 @@ Common overrides:
   --beam-size <n>         Default: 16
   --unsolved-depth <n>    Default: 3
   --cap <n>               Optional training-time cap over oracle depth
+  --hint-ce-loss-coef <float>
   --run-name <name>
   --python-bin <python>
   --conda-activate <path>
@@ -136,6 +138,7 @@ FIXED_HINT_MAP_PATH_EXPLICIT=0
 BEAM_SIZE="${BEAM_SIZE:-16}"
 UNSOLVED_DEPTH="${UNSOLVED_DEPTH:-3}"
 CAP_DEPTH="${CAP_DEPTH:-}"
+HINT_CE_LOSS_COEF="${HINT_CE_LOSS_COEF:-0.0}"
 LOG_DIR="${LOG_DIR:-${REPO_ROOT}/log}"
 
 export WANDB_PROJECT="${WANDB_PROJECT:-MIMIGenRec-GRPO}"
@@ -233,6 +236,10 @@ while [[ $# -gt 0 ]]; do
       EVAL_STEP="$2"
       shift 2
       ;;
+    --eval-on-start|--eval_on_start)
+      EVAL_ON_START="$2"
+      shift 2
+      ;;
     --max-completion-length)
       MAX_COMPLETION_LENGTH="$2"
       shift 2
@@ -276,6 +283,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --cap)
       CAP_DEPTH="$2"
+      shift 2
+      ;;
+    --hint-ce-loss-coef)
+      HINT_CE_LOSS_COEF="$2"
       shift 2
       ;;
     --run-name)
@@ -372,6 +383,7 @@ if [[ "$MODE" == "nohup" || "$MODE" == "detach" ]]; then
     --fixed-hint-map-path "$FIXED_HINT_MAP_PATH"
     --beam-size "$BEAM_SIZE"
     --unsolved-depth "$UNSOLVED_DEPTH"
+    --hint-ce-loss-coef "$HINT_CE_LOSS_COEF"
     --run-name "$RUN_NAME"
     --python-bin "$PYTHON_BIN"
     --conda-activate "$CONDA_ACTIVATE"
@@ -457,6 +469,7 @@ TRAIN_CMD=(
   --fixed_hint_depth_map_path "$FIXED_HINT_MAP_PATH"
   --fixed_hint_unsolved_depth "$UNSOLVED_DEPTH"
   --fixed_hint_apply_to_eval false
+  --hint_ce_loss_coef "$HINT_CE_LOSS_COEF"
 )
 
 if [[ -n "$CAP_DEPTH" ]]; then
@@ -506,6 +519,7 @@ echo "[INFO] FIXED_HINT_GENERATION_MODE=mixed_single_generate"
 echo "[INFO] BEAM_SIZE=$BEAM_SIZE"
 echo "[INFO] UNSOLVED_DEPTH=$UNSOLVED_DEPTH"
 echo "[INFO] CAP_DEPTH=${CAP_DEPTH:-<none>}"
+echo "[INFO] HINT_CE_LOSS_COEF=$HINT_CE_LOSS_COEF"
 echo "[INFO] LOG_FILE=$LOG_FILE"
 
 if [[ ! -f "$CONDA_ACTIVATE" ]]; then

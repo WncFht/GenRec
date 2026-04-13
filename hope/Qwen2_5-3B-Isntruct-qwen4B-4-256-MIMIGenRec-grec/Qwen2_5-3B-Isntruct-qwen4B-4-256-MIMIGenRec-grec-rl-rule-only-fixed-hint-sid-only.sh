@@ -123,10 +123,6 @@ EVAL_ON_START="${EVAL_ON_START:-true}"
 MAX_COMPLETION_LENGTH="${MAX_COMPLETION_LENGTH:-128}"
 BETA="${BETA:-1e-3}"
 TEMPERATURE="${TEMPERATURE:-1.0}"
-REWARD_MODE="${REWARD_MODE:-rule_only}"
-PREFIX_REWARD_NORMALIZE="${PREFIX_REWARD_NORMALIZE:-true}"
-PROBE_RULE_ZERO_WEIGHT="${PROBE_RULE_ZERO_WEIGHT:-false}"
-TOKEN_LEVEL_PREFIX_ADV="${TOKEN_LEVEL_PREFIX_ADV:-false}"
 REPORT_TO="${REPORT_TO:-wandb}"
 RESUME_FROM_CHECKPOINT="${RESUME_FROM_CHECKPOINT:-auto}"
 
@@ -472,10 +468,10 @@ TRAIN_CMD=(
   --max_completion_length "$MAX_COMPLETION_LENGTH"
   --beta "$BETA"
   --temperature "$TEMPERATURE"
-  --reward_mode "$REWARD_MODE"
-  --prefix_reward_normalize "$PREFIX_REWARD_NORMALIZE"
-  --probe_rule_with_zero_weight "$PROBE_RULE_ZERO_WEIGHT"
-  --token_level_prefix_advantage "$TOKEN_LEVEL_PREFIX_ADV"
+  --reward_mode rule_only
+  --prefix_reward_normalize true
+  --probe_rule_with_zero_weight false
+  --token_level_prefix_advantage false
   --save_total_limit 10
   --save_only_model true
   --report_to "$REPORT_TO"
@@ -529,10 +525,10 @@ echo "[INFO] EVAL_STEP=$EVAL_STEP"
 echo "[INFO] MAX_COMPLETION_LENGTH=$MAX_COMPLETION_LENGTH"
 echo "[INFO] BETA=$BETA"
 echo "[INFO] TEMPERATURE=$TEMPERATURE"
-echo "[INFO] REWARD_MODE=$REWARD_MODE"
-echo "[INFO] PREFIX_REWARD_NORMALIZE=$PREFIX_REWARD_NORMALIZE"
-echo "[INFO] PROBE_RULE_ZERO_WEIGHT=$PROBE_RULE_ZERO_WEIGHT"
-echo "[INFO] TOKEN_LEVEL_PREFIX_ADV=$TOKEN_LEVEL_PREFIX_ADV"
+echo "[INFO] REWARD_MODE=rule_only"
+echo "[INFO] PREFIX_REWARD_NORMALIZE=true"
+echo "[INFO] PROBE_RULE_ZERO_WEIGHT=false"
+echo "[INFO] TOKEN_LEVEL_PREFIX_ADV=false"
 echo "[INFO] REPORT_TO=$REPORT_TO"
 echo "[INFO] RESUME_FROM_CHECKPOINT=$RESUME_FROM_CHECKPOINT"
 echo "[INFO] ANALYSIS_RUN_NAME=$ANALYSIS_RUN_NAME"
