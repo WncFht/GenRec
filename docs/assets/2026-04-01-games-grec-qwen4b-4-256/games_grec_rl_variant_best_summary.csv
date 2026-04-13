@@ -1,0 +1,5 @@
+model_dir,checkpoint,step,max_step,epoch_progress,NDCG@10,HR@10,NDCG@50,HR@50,NDCG@5,HR@5,variant_key,variant_label,color
+Games-grec-sft-qwen4B-4-256-dsz0,checkpoint-768,768,1024,7.5,0.0433,0.0804,0.0691,0.1998,0.0336,0.0503,sft,SFT,#4d4d4d
+Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft896,checkpoint-8752,8752,8752,2.0,0.0467,0.0825,0.0683,0.1815,0.0377,0.0544,rule_only,RL rule_only,#2a9d8f
+Games-grec-grpo-rule-only-fixedhint-taskfix-b16-sft896,checkpoint-3504,3504,8752,0.8007312614259597,0.0478,0.0853,0.0733,0.2024,0.0385,0.0562,fixed_hint,RL fixed_hint,#f4a261
+Games-grec-grpo-rule-only-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft896,checkpoint-4380,4380,8752,1.0009140767824498,0.0464,0.0823,0.0716,0.198,0.0374,0.0543,dynamic_hint,RL dynamic-hint,#457b9d
