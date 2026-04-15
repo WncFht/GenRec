@@ -126,35 +126,56 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
 
         prompt_hint_ce_mask = prompt_hint_ce_mask.float()
         hint_token_count = prompt_hint_ce_mask.sum()
+        gathered_hint_token_count = self.accelerator.gather(hint_token_count.detach())
+        global_hint_token_count = gathered_hint_token_count.sum()
         mode = "train" if self.model.training else "eval"
-        if torch.isclose(hint_token_count, zero):
+        if torch.isclose(global_hint_token_count, zero):
             self._metrics[mode]["hint_ce/loss"].append(0.0)
             self._metrics[mode]["hint_ce/token_count"].append(0.0)
             return zero
 
-        prompt_shift_logits = inputs.get("prompt_shift_logits")
-        if prompt_shift_logits is None:
-            prompt_shift_logits = getattr(self, "_cached_prompt_shift_logits", None)
-        if prompt_shift_logits is None:
-            completion_ids, completion_mask = inputs["completion_ids"], inputs["completion_mask"]
-            input_ids = torch.cat([prompt_ids, completion_ids], dim=1)
-            attention_mask = torch.cat([inputs["prompt_mask"], completion_mask], dim=1)
-            logits = model(input_ids=input_ids, attention_mask=attention_mask, use_cache=False).logits
-            prompt_shift_logits = logits[:, : prompt_ids.size(1) - 1, :]
-        prompt_shift_labels = prompt_ids[:, 1:]
+        if torch.isclose(hint_token_count, zero):
+            local_hint_ce_sum = zero
+        else:
+            prompt_shift_logits = inputs.get("prompt_shift_logits")
+            if prompt_shift_logits is None:
+                prompt_shift_logits = getattr(self, "_cached_prompt_shift_logits", None)
+            if prompt_shift_logits is None:
+                raise RuntimeError(
+                    "Hint CE prompt logits cache is missing. This trainer expects prompt-side logits "
+                    "from the main RL forward and must not run a second gradient-bearing model forward."
+                )
+            prompt_shift_labels = prompt_ids[:, 1:]
 
-        prompt_token_losses = torch.nn.functional.cross_entropy(
-            prompt_shift_logits.reshape(-1, prompt_shift_logits.size(-1)),
-            prompt_shift_labels.reshape(-1),
-            reduction="none",
-        ).view_as(prompt_shift_labels)
-        hint_ce_loss = (prompt_token_losses * prompt_hint_ce_mask).sum() / hint_token_count.clamp(min=1.0)
+            prompt_token_losses = torch.nn.functional.cross_entropy(
+                prompt_shift_logits.reshape(-1, prompt_shift_logits.size(-1)),
+                prompt_shift_labels.reshape(-1),
+                reduction="none",
+            ).view_as(prompt_shift_labels)
+            local_hint_ce_sum = (prompt_token_losses * prompt_hint_ce_mask).sum()
 
-        gathered_hint_ce_loss = self.accelerator.gather(hint_ce_loss.detach())
-        self._metrics[mode]["hint_ce/loss"].append(gathered_hint_ce_loss.nanmean().item())
-        gathered_hint_token_count = self.accelerator.gather(hint_token_count.detach())
-        self._metrics[mode]["hint_ce/token_count"].append(gathered_hint_token_count.sum().item())
-        return hint_ce_loss / self.current_gradient_accumulation_steps
+        gathered_hint_ce_sum = self.accelerator.gather(local_hint_ce_sum.detach())
+        global_hint_ce_mean = gathered_hint_ce_sum.sum() / global_hint_token_count.clamp(min=1.0)
+        self._metrics[mode]["hint_ce/loss"].append(global_hint_ce_mean.item())
+        self._metrics[mode]["hint_ce/token_count"].append(global_hint_token_count.item())
+
+        if getattr(self, "loss_type", None) == "dapo":
+            prompt_hint_ce_num_items_in_batch = inputs.get("prompt_hint_ce_num_items_in_batch")
+            if prompt_hint_ce_num_items_in_batch is None:
+                raise RuntimeError(
+                    "Hint CE global token count is missing for DAPO normalization. This trainer expects "
+                    "the full accumulated-step hint token count to be precomputed before splitting batches."
+                )
+            # DAPO normalizes the main RL loss with the total number of active completion tokens in the full
+            # accumulated step. The auxiliary hint CE must share the same 'global token denominator' idea;
+            # otherwise local shards with fewer hint tokens would be overweighted just because they have a
+            # smaller local mean. We therefore keep the local numerator here but divide by the full-step
+            # global hint-token count (scaled to this rank), not by the local hint-token count.
+            normalizer = prompt_hint_ce_num_items_in_batch / self.accelerator.num_processes
+            return local_hint_ce_sum / normalizer.clamp(min=1.0)
+
+        local_hint_ce_mean = local_hint_ce_sum / hint_token_count.clamp(min=1.0)
+        return local_hint_ce_mean / self.current_gradient_accumulation_steps
 
     def _get_per_token_logps_and_entropies(
         self,
@@ -251,7 +272,8 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
             all_prompt_shift_logits.append(prompt_shift_logits)
             all_logps.append(_selective_log_softmax(completion_logits, completion_ids))
             if compute_entropy:
-                all_entropies.append(_entropy_from_logits(completion_logits))
+                with torch.no_grad():
+                    all_entropies.append(_entropy_from_logits(completion_logits))
 
         self._cached_prompt_shift_logits = torch.cat(all_prompt_shift_logits, dim=0)
         logps = torch.cat(all_logps, dim=0)
@@ -282,9 +304,12 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
             raise NotImplementedError("Fixed hint trainer does not support sampling log-prob correction yet.")
 
         prompt_hint_ce_mask = None
+        prompt_hint_ce_num_items_in_batch = None
         if getattr(self, "hint_ce_loss_coef", 0.0) > 0.0:
             hint_token_counts = self._get_hint_token_counts(inputs)
             prompt_hint_ce_mask = self._build_prompt_hint_ce_mask(prompt_ids_list, hint_token_counts, device=device)
+            if getattr(self, "loss_type", None) == "dapo":
+                prompt_hint_ce_num_items_in_batch = self.accelerator.gather(prompt_hint_ce_mask.sum()).sum()
 
         prompt_ids = [torch.tensor(ids, device=device) for ids in prompt_ids_list]
         prompt_mask = [torch.ones_like(ids, dtype=torch.long) for ids in prompt_ids]
@@ -408,6 +433,8 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
         }
         if prompt_hint_ce_mask is not None:
             output["prompt_hint_ce_mask"] = prompt_hint_ce_mask
+        if prompt_hint_ce_num_items_in_batch is not None:
+            output["prompt_hint_ce_num_items_in_batch"] = prompt_hint_ce_num_items_in_batch
         return output
 
     def _compute_loss(self, model, inputs):

@@ -382,3 +382,291 @@ dynamic 的 prompt distribution 会随着训练推进改变：
 如果只保留一句话，后面这段最值得一直提醒自己：
 
 > 现在最应该做的是：先把 hint 深度、completion length 和 transfer gap 之间的关系量化清楚；然后用 UFT-style curriculum 或 budgeted hint 去显式复现 old fixed 那种“更浅但更稳”的优势；最后再回头重做 dynamic gate，而不是继续盲目扩 reward shaping。
+
+## 9. 探索主线 E：KL spike 与训练稳定性
+
+最近在看 `fixed-hint CE` 这条线时，一个比 CE 系数本身更紧急的问题已经很明确：
+
+> 当前训练里出现的那些巨大 `loss` 异常值，主要不是 `hint_ce/loss` 造成的，而是 `KL` 项在少数 step 上出现了极端 spike。
+
+这件事不能只当作日志噪声，因为它会直接污染优化目标。
+
+### 9.1 当前这条线用的 KL 不是“全量 KL”，而是 Joschu 体系里的 low-variance estimator
+
+当前 `GenRec/trl` 的 per-token KL 写法是：
+
+```text
+per_token_kl = exp(ref_logp - cur_logp) - (ref_logp - cur_logp) - 1
+```
+
+见：
+
+- [GRPOTrainer `_compute_loss`](/Users/fanghaotian/Desktop/src/GenRec/.venv/lib/python3.12/site-packages/trl/trainer/grpo_trainer.py#L1681)
+
+这对应的是 Joschu《Approximating KL Divergence》一脉里常见的 `k3` / `low_var_kl` 估计器，也就是：
+
+```text
+k3(r) = r - 1 - log r
+```
+
+其中这里的 `r = exp(ref_logp - cur_logp)`。
+
+也就是说，当前 `beta` 控制的不是一个 exact full KL，而是一个 sample-wise low-variance KL surrogate。
+
+### 9.2 UFT 用的也是同一个 low_var_kl，但它额外做了 clamp
+
+`UFT` 里的 `low_var_kl` 也是：
+
+```text
+kld = exp(ref_logp - cur_logp) - (ref_logp - cur_logp) - 1
+```
+
+但它随后做了：
+
+```text
+torch.clamp(kld, min=-10, max=10)
+```
+
+见：
+
+- [`UFT` `kl_penalty(..., "low_var_kl")`](/Users/fanghaotian/Desktop/src/UFT/verl/trainer/ppo/core_algos.py#L264)
+
+所以从“用了哪一种 KL surrogate”这个角度看，`GenRec` 和 `UFT` 是一致的；真正的差别在于：
+
+1. `GenRec` 当前没有对这个 surrogate 做显式 clamp。
+2. `GenRec` 把它直接按 `beta` 加到 `trl` 的 per-token RL loss 里。
+
+### 9.3 为什么它会在我们的任务上爆
+
+当前最可疑的几个放大器是：
+
+1. 我们这里是 constrained beam search，不是自由采样。
+   - 这意味着某个 token 被 beam 选中，不代表当前 policy 真正给了它很高概率；
+   - 它可能只是“在 allowed set 里相对不那么差”。
+
+2. response 很短，通常只有 `2 ~ 5` token。
+   - 这样单个 token 上的极端 KL 不会被长序列平均掉。
+
+3. 当前默认没有显式 entropy bonus。
+   - `GenRec/trl` 这条线里，entropy 默认只是日志和高熵 mask，不是 `-λ_ent * H` 那种直接 regularizer；
+   - 也就是说，真正硬约束 policy 不要漂太远的主要就是 KL 本身。
+
+4. 当前 `low_var_kl` 里含有指数项 `exp(ref_logp - cur_logp)`。
+   - 一旦某个 token 上 `cur_logp` 比 `ref_logp` 小很多，这个值会非常快地爆炸。
+
+### 9.4 当前日志已经说明这不是一个“理论担忧”，而是现实污染
+
+在 `fixed-hint CE` 这条 `Instruments-grec` 训练日志里，已经能看到典型的 KL 主导 spike。
+
+例如：
+
+- 某一步 `loss ≈ 163`
+- 同一步 `kl ≈ 156345`
+- 而当前 `beta = 1e-3`
+
+这意味着：
+
+```text
+beta * kl ≈ 156
+```
+
+几乎已经单独解释了整步的总 loss。
+
+更极端的 step 上：
+
+- `loss ≈ 1.45e7`
+- `kl ≈ 1.48e10`
+
+同样有：
+
+```text
+beta * kl ≈ 1.48e7
+```
+
+而 `hint_ce/loss` 在这些 step 上仍然只在 `3 ~ 5` 左右，并没有跟着一起炸。
+
+所以当前更准确的判断是：
+
+> 这条线的主要数值稳定性问题不是 CE，而是 KL surrogate 在少数 token / 少数 batch 上出现了极端 spike，并直接接管了优化目标。
+
+### 9.5 这会不会污染训练
+
+会。
+
+这里的“污染”不是指日志不好看，而是：
+
+1. 某些 step 的总 loss 几乎完全由 `beta * kl` 决定；
+2. 这些 step 的 `grad_norm` 也会明显上升；
+3. optimizer state 会被这些 outlier batch 扰动；
+4. 最终我们很难再把训练轨迹解释成“policy gradient + 一个小的 hint CE regularizer”。
+
+也就是说，当前总 loss 的一部分 heavy-tail 现象已经不能被当成 harmless noise。
+
+### 9.6 这里有一个理论层面的额外提醒
+
+从 Joschu 原始博客的上下文看，`k3 / low_var_kl` 首先是一个低方差 KL 估计器。
+
+但在我们当前的实现里，它不是“只拿来做一个 detached 监控量”，而是直接作为可微正则项加进 loss。
+
+这在实践上常见，但并不等于“梯度层面一定最干净”。后续一些分析指出：
+
+1. `k3` 作为数值估计器是合理的；
+2. 但在 naive on-policy 的 direct-loss 写法里，它的梯度方向并不总是最贴近大家直觉上的 reverse-KL regularization。
+
+因此，当前这条线的问题有两层：
+
+1. 数值上会爆；
+2. 即使不爆，它也未必是我们最想要的那个 regularization 形态。
+
+### 9.7 当前最保守、最务实的解决顺序
+
+如果后面要动这部分，我建议优先级如下：
+
+1. 最低风险：
+   - 保留当前 `low_var_kl / k3`
+   - 但像 `UFT` 一样对 per-token KL 做 clamp
+   - 同时把 `beta` 降一档
+
+2. 第二步：
+   - 给训练日志增加更细的 KL 诊断
+   - 例如记录 `ref_logp - cur_logp` 的 max / p95，以及 per-token KL max
+   - 先确认 spike 到底是“少数 token outlier”还是“整批都在整体漂移”
+
+3. 如果上面两步仍然不够稳：
+   - 再评估是否把当前 `k3` surrogate 改成更温和的替代项
+   - 例如不带指数尾巴的平方型近似
+
+### 9.8 当前不建议怎么理解这件事
+
+现阶段不建议把当前训练里的异常 loss 直接归因到：
+
+1. `hint_ce_loss_coef` 设大了；
+2. beam search 把 CE 隐式乘了 `num_beams`；
+3. fixed-hint CE 本身天然不稳定。
+
+更合理的解释是：
+
+1. prompt-side hint CE 目前量级相对稳定；
+2. 真正把 loss 拉飞的是 KL surrogate；
+3. 因此后续稳态优化应优先从 KL 手里找，而不是先把 CE 当主因。
+
+## 10. 探索主线 F：为什么训练过程中 entropy 会上升
+
+除了 KL spike 之外，另一个值得单独记录的现象是：
+
+> 当前一些 run 里，train-time `entropy` 会在训练过程中明显上升，而不是像“模型越来越确定”那样自然下降。
+
+这件事现在还没有被解释清楚，值得当成一个单独问题来跟。
+
+### 10.1 当前需要先避免的误读
+
+先不要直接把 entropy 上升理解成：
+
+1. 模型一定学坏了；
+2. policy 一定在整体退化；
+3. CE / hint 直接把模型推得更随机。
+
+因为在当前这条 `trl` 路线里，entropy 默认并不是直接进 loss 的 entropy bonus，而主要是：
+
+1. 一个日志指标；
+2. 如果开启 `top_entropy_quantile < 1.0`，它还会参与高熵 token mask。
+
+所以单看 entropy 曲线本身，还不能直接推出优化方向。
+
+### 10.2 当前最值得怀疑的几个机制
+
+#### 机制 1：constrained decoding 改变了“高 entropy”的含义
+
+我们这里不是自由生成，而是受 trie / allowed-token set 约束的 beam search。
+
+在这种设置下，一个 token 位点的 entropy 变高，不一定意味着：
+
+- 模型对整个 vocab 更不确定
+
+也可能意味着：
+
+- 在当前 allowed set 内，多个候选 token 之间的相对分布变平了。
+
+也就是说，当前记录到的 entropy 可能已经部分混入了“约束解码下的候选集结构”因素，而不只是普通语言模型意义上的不确定性。
+
+#### 机制 2：短序列任务里，少数难 token 对平均 entropy 的影响会更大
+
+当前 completion 通常只有 `2 ~ 5` token。
+
+这意味着：
+
+1. 某个关键位置如果突然变得更不确定；
+2. 它在 step-level `mean entropy` 里所占的权重会明显更大；
+3. 因而很容易把整条曲线往上抬。
+
+这和长文本任务不同；长序列里单个困难 token 往往会被平均掉。
+
+#### 机制 3：KL surrogate 在强约束场景下可能反而把 policy 推向“更平”
+
+如果当前 policy 在某些 allowed token 上过度偏离 ref model，KL 正则会把它往 ref 拉回去。
+
+在 constrained beam + short sequence 的场景下，这种“往回拉”有可能表现成：
+
+- top-1 不再极端独占；
+- allowed set 内分布更平；
+- 于是 entropy 指标上升。
+
+也就是说，entropy 上升不一定和 KL 爆炸矛盾；它们可能分别发生在不同局部阶段：
+
+1. 一部分 step 上，KL spike 说明极端错配；
+2. 另一部分阶段里，KL regularization 又可能把局部分布拉平。
+
+#### 机制 4：hint depth / scaffold 改变了模型真正需要决策的位置
+
+当 hint 更深时，模型要补的 suffix 更短，且往往只剩下更靠后的、更细粒度的 token 决策。
+
+这种情况下，即使整体任务更容易，剩余需要预测的 token 也可能更难、更细分，从而让：
+
+- completion 变短；
+- 但每个剩余 token 的 entropy 反而更高。
+
+这也是为什么 entropy 曲线需要和：
+
+- `completion_length`
+- `oracle_hint_depth_mean`
+- `selected_hint_depth_mean`
+
+一起看，而不能单独解读。
+
+### 10.3 这条线后面最值得加的观测量
+
+为了判断 entropy 上升到底是“训练变坏”还是“条件分布变化”，建议优先补下面几项：
+
+1. 按 token 位置拆的 entropy
+   - 例如第 1、2、3、4 个 completion token 的 entropy 分开记
+   - 看看到底是哪个位置在抬升
+
+2. entropy 与 hint depth 的联合统计
+   - fixed 记录 `oracle_hint_depth_mean`
+   - dynamic 对齐 `selected_hint_depth_mean`
+   - 观察 entropy 上升是否主要发生在更深 / 更浅 hint 区间
+
+3. entropy 与 `completion_length` 的联动图
+   - 判断是否是“suffix 更短但剩余 token 更难”
+
+4. allowed-set 尺寸或候选分支数的 proxy
+   - 如果能拿到某步某位置的 allowed token 数，就能直接区分：
+     - 是 policy 自身变平；
+     - 还是约束集合本来就在变宽 / 变窄。
+
+5. 与 KL 的联合分布
+   - 不只看 step mean
+   - 最好看高 KL step 上的 entropy 是否同步异常
+
+### 10.4 当前这条探索线的价值
+
+把 entropy 上升解释清楚有两个直接收益：
+
+1. 能避免我们把某些“其实是 scaffold / constrained decoding 的副作用”误判成训练退化；
+2. 能帮助判断后面如果要改 KL surrogate、beta 或 hint curriculum，真正应该盯住的是：
+   - entropy 本身；
+   - 还是“entropy 与 reward / KL / completion_length 的关系”。
+
+因此，这条线现在最合适的定位不是“马上改算法”，而是：
+
+> 先把 entropy 上升到底来自哪里讲清楚，再决定它是不是一个需要被压制的问题。

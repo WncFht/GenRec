@@ -324,6 +324,44 @@ class EvaluateAllCheckpointWatcherTests(unittest.TestCase):
                 ],
             )
 
+    def test_watcher_instruments_grec_legacy_name_prefers_fixed_cb256_variant(self):
+        sidecar = load_sidecar_module()
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            now_epoch = 1_800_000_000
+            old_epoch = now_epoch - 600
+            newer_epoch = now_epoch - 400
+            config = self.make_config(sidecar, temp_root_path)
+            state = sidecar.normalize_watch_state({})
+
+            model_root = config.rl_root / "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495"
+            checkpoint_dir = model_root / "checkpoint-999"
+            self.write_file(checkpoint_dir / "config.json", "{}", old_epoch)
+            self.write_file(checkpoint_dir / "model.safetensors", "weights", old_epoch)
+
+            cb256_variant_dir = (
+                config.data_root
+                / "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47"
+            )
+            cb128_variant_dir = (
+                config.data_root
+                / "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb128-128-128-128_dsInstruments_ridFeb-10-2026-05-23-35"
+            )
+            self.write_file(cb256_variant_dir / "sft" / "test.json", "[]", old_epoch)
+            self.write_file(cb256_variant_dir / "id2sid.json", "{}", old_epoch)
+            self.write_file(cb128_variant_dir / "sft" / "test.json", "[]", newer_epoch)
+            self.write_file(cb128_variant_dir / "id2sid.json", "{}", newer_epoch)
+
+            state, tasks = sidecar.scan_pending_tasks(config, state, now_epoch=now_epoch)
+            self.assertEqual(tasks, [])
+
+            state, tasks = sidecar.scan_pending_tasks(config, state, now_epoch=now_epoch)
+            self.assertEqual(len(tasks), 1)
+            self.assertEqual(tasks[0].model_name, model_root.name)
+            self.assertEqual(tasks[0].data_profile, "fallback:fixed_grec_cb256")
+            self.assertEqual(tasks[0].test_data_path, cb256_variant_dir / "sft" / "test.json")
+            self.assertEqual(tasks[0].index_path, cb256_variant_dir / "id2sid.json")
+
     def test_failed_task_is_sticky_and_skipped(self):
         sidecar = load_sidecar_module()
         with tempfile.TemporaryDirectory() as temp_root:

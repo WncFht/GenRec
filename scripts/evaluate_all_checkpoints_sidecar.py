@@ -254,6 +254,17 @@ def resolve_eval_profile(config: WatcherConfig, model_name: str) -> dict[str, Pa
                         f"auto:variant_dir={variant_dir}",
                     )
 
+        # Legacy Instruments-grec experiment names do not encode cb width.
+        # Keep their historical fixed-cb256 fallback before scanning newer
+        # variant dirs so watcher behavior matches the one-shot evaluator.
+        if base_category == "Instruments" and cb_width == "n/a":
+            return make_result(
+                category,
+                instruments_grec_test,
+                instruments_grec_index,
+                "fallback:fixed_grec_cb256",
+            )
+
         latest_variant_dir = pick_latest_variant_dir_by_prefix(data_root, category)
         if latest_variant_dir is not None:
             candidate_test = latest_variant_dir / "sft" / "test.json"

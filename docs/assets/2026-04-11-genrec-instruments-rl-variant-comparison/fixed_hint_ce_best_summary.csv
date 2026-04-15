@@ -1,0 +1,3 @@
+variant_key,variant_label,model_dir,family,checkpoint,step,max_step,epoch_progress,color,NDCG@10,HR@10,NDCG@50,HR@50,NDCG@5,HR@5,peak_hr50_checkpoint,peak_hr50_epoch,peak_hr50,peak_hr50_ndcg10
+fixed_taskfix,RL fixed taskfix,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,fixed,checkpoint-2997,2997,3326,1.8021647624774504,#f4a261,0.0931,0.1189,0.1094,0.1941,0.0875,0.1014,checkpoint-666,0.4004810583283223,0.1962,0.0901
+fixed_taskfix_hintce,RL fixed taskfix + CE,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495,fixed_ce,checkpoint-2664,2664,2664,2.0,#d62828,0.0915,0.118,0.1081,0.1944,0.0854,0.0989,checkpoint-2331,1.75,0.1945,0.0904
