@@ -25,7 +25,7 @@ class GenerateInstrumentsRlVariantAssetsTests(unittest.TestCase):
         self.assertLess(module.TIGHT_LAYOUT_TOP, module.SUPTITLE_Y)
         self.assertLess(module.TIGHT_LAYOUT_TOP, 0.9)
 
-    def test_epoch_alignment_uses_each_variant_max_step(self):
+    def test_epoch_alignment_uses_reference_max_step_for_incomplete_variant(self):
         module = _load_module()
 
         with tempfile.TemporaryDirectory() as temp_root:
@@ -67,6 +67,16 @@ class GenerateInstrumentsRlVariantAssetsTests(unittest.TestCase):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(json.dumps({"NDCG@10": 0.091, "HR@10": 0.118, "NDCG@50": 0.108, "HR@50": 0.194}))
 
+            for step in (333, 1332):
+                path = (
+                    results_root
+                    / "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-2-sft495"
+                    / f"checkpoint-{step}"
+                    / "metrics.json"
+                )
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(json.dumps({"NDCG@10": 0.090, "HR@10": 0.115, "NDCG@50": 0.106, "HR@50": 0.189}))
+
             for variant_key, model_dir in [
                 ("dynamic_sid_only", "Instruments-grec-grpo-rule-only-dynamic-hint-sid-only-qwen2.5-3b-qwen4B-4-256-from-sft495"),
                 ("dynamic_gather_fix", "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495"),
@@ -96,6 +106,10 @@ class GenerateInstrumentsRlVariantAssetsTests(unittest.TestCase):
             ce_last = df[(df["variant_key"] == "fixed_taskfix_hintce") & (df["step"] == 2664)].iloc[0]
             self.assertEqual(ce_last["max_step"], 2664)
             self.assertAlmostEqual(ce_last["epoch_progress"], 2.0, places=6)
+
+            hintce2_last = df[(df["variant_key"] == "fixed_taskfix_hintce2") & (df["step"] == 1332)].iloc[0]
+            self.assertEqual(hintce2_last["max_step"], 3326)
+            self.assertAlmostEqual(hintce2_last["epoch_progress"], 1332 / 3326 * 2.0, places=6)
 
 
 if __name__ == "__main__":

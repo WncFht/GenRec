@@ -81,6 +81,15 @@ VARIANTS = [
         "color": "#d62828",
         "include_in_main": False,
     },
+    {
+        "key": "fixed_taskfix_hintce2",
+        "label": "RL fixed taskfix + CE (hintce-2)",
+        "model_dir": "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-2-sft495",
+        "family": "fixed_ce",
+        "color": "#9c6644",
+        "include_in_main": False,
+        "epoch_max_step": 3326,
+    },
 ]
 
 METRIC_COLUMNS = ["NDCG@10", "HR@10", "NDCG@50", "HR@50"]
@@ -113,7 +122,8 @@ def load_variant_rows(variant: dict[str, object]) -> list[dict[str, object]]:
 
     rows: list[dict[str, object]] = []
     steps = sorted(int(path.parent.name.split("-")[-1]) for path in metrics_files)
-    max_step = max(steps)
+    observed_max_step = max(steps)
+    max_step = int(variant.get("epoch_max_step", observed_max_step))
     for step in steps:
         path = root / f"checkpoint-{step}" / "metrics.json"
         metrics = json.loads(path.read_text())
@@ -125,6 +135,7 @@ def load_variant_rows(variant: dict[str, object]) -> list[dict[str, object]]:
             "checkpoint": f"checkpoint-{step}",
             "step": step,
             "max_step": max_step,
+            "observed_max_step": observed_max_step,
             "epoch_progress": step / max_step * 2.0 if max_step else 0.0,
             "color": str(variant["color"]),
         }
@@ -254,11 +265,11 @@ def main() -> None:
     save_csv(ASSET_DIR / "sft495_reference_metrics.csv", pd.DataFrame([sft_reference]))
     save_csv(
         ASSET_DIR / "fixed_hint_ce_checkpoint_metrics.csv",
-        ce_df[ce_df["variant_key"].isin(["fixed_taskfix", "fixed_taskfix_hintce"])],
+        ce_df[ce_df["variant_key"].isin(["fixed_taskfix", "fixed_taskfix_hintce", "fixed_taskfix_hintce2"])],
     )
     save_csv(
         ASSET_DIR / "fixed_hint_ce_best_summary.csv",
-        ce_best_df[ce_best_df["variant_key"].isin(["fixed_taskfix", "fixed_taskfix_hintce"])],
+        ce_best_df[ce_best_df["variant_key"].isin(["fixed_taskfix", "fixed_taskfix_hintce", "fixed_taskfix_hintce2"])],
     )
 
     plot_metric_panels(
@@ -306,15 +317,15 @@ def main() -> None:
     )
     plot_metric_panels(
         ce_df,
-        ["fixed_taskfix", "fixed_taskfix_hintce"],
-        "Instruments-grec Fixed-hint CE vs Non-CE",
+        ["fixed_taskfix", "fixed_taskfix_hintce", "fixed_taskfix_hintce2"],
+        "Instruments-grec Fixed-hint CE Variants vs Non-CE",
         ASSET_DIR / "rl-fixed-taskfix-ce-vs-nonce-curves.png",
         sft_reference,
     )
     plot_best_scatter(
         ce_best_df,
-        ["fixed_taskfix", "fixed_taskfix_hintce"],
-        "Instruments-grec Fixed-hint CE vs Non-CE",
+        ["fixed_taskfix", "fixed_taskfix_hintce", "fixed_taskfix_hintce2"],
+        "Instruments-grec Fixed-hint CE Variants vs Non-CE",
         ASSET_DIR / "rl-fixed-taskfix-ce-vs-nonce-scatter.png",
     )
 

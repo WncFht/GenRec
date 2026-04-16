@@ -1,19 +1,25 @@
-variant_key,variant_label,model_dir,family,checkpoint,step,max_step,epoch_progress,color,NDCG@10,HR@10,NDCG@50,HR@50,NDCG@5,HR@5
-fixed_taskfix,RL fixed taskfix,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,fixed,checkpoint-333,333,3326,0.20024052916416116,#f4a261,0.0856,0.111,0.1018,0.1855,0.0797,0.0926
-fixed_taskfix,RL fixed taskfix,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,fixed,checkpoint-666,666,3326,0.4004810583283223,#f4a261,0.0901,0.113,0.1078,0.1962,0.0848,0.0965
-fixed_taskfix,RL fixed taskfix,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,fixed,checkpoint-999,999,3326,0.6007215874924835,#f4a261,0.0881,0.1137,0.1055,0.1946,0.0823,0.0955
-fixed_taskfix,RL fixed taskfix,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,fixed,checkpoint-1332,1332,3326,0.8009621166566446,#f4a261,0.0906,0.1157,0.1068,0.191,0.0845,0.0967
-fixed_taskfix,RL fixed taskfix,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,fixed,checkpoint-1665,1665,3326,1.0012026458208059,#f4a261,0.0916,0.1166,0.1085,0.1944,0.086,0.0991
-fixed_taskfix,RL fixed taskfix,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,fixed,checkpoint-1998,1998,3326,1.201443174984967,#f4a261,0.0913,0.1169,0.1073,0.1909,0.0858,0.0996
-fixed_taskfix,RL fixed taskfix,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,fixed,checkpoint-2331,2331,3326,1.4016837041491281,#f4a261,0.093,0.1182,0.1093,0.1935,0.0875,0.1011
-fixed_taskfix,RL fixed taskfix,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,fixed,checkpoint-2664,2664,3326,1.6019242333132893,#f4a261,0.093,0.118,0.1096,0.1947,0.0876,0.1014
-fixed_taskfix,RL fixed taskfix,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,fixed,checkpoint-2997,2997,3326,1.8021647624774504,#f4a261,0.0931,0.1189,0.1094,0.1941,0.0875,0.1014
-fixed_taskfix,RL fixed taskfix,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,fixed,checkpoint-3326,3326,3326,2.0,#f4a261,0.0929,0.1186,0.1092,0.1938,0.0872,0.1009
-fixed_taskfix_hintce,RL fixed taskfix + CE,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495,fixed_ce,checkpoint-333,333,2664,0.25,#d62828,0.0835,0.1097,0.0991,0.1813,0.0779,0.0923
-fixed_taskfix_hintce,RL fixed taskfix + CE,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495,fixed_ce,checkpoint-666,666,2664,0.5,#d62828,0.0874,0.1096,0.1043,0.1888,0.0822,0.0936
-fixed_taskfix_hintce,RL fixed taskfix + CE,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495,fixed_ce,checkpoint-999,999,2664,0.75,#d62828,0.0893,0.1163,0.1058,0.1927,0.0832,0.0972
-fixed_taskfix_hintce,RL fixed taskfix + CE,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495,fixed_ce,checkpoint-1332,1332,2664,1.0,#d62828,0.089,0.1149,0.1054,0.1909,0.083,0.0964
-fixed_taskfix_hintce,RL fixed taskfix + CE,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495,fixed_ce,checkpoint-1665,1665,2664,1.25,#d62828,0.0895,0.1143,0.1061,0.1907,0.084,0.097
-fixed_taskfix_hintce,RL fixed taskfix + CE,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495,fixed_ce,checkpoint-1998,1998,2664,1.5,#d62828,0.091,0.1162,0.1073,0.1913,0.0851,0.0979
-fixed_taskfix_hintce,RL fixed taskfix + CE,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495,fixed_ce,checkpoint-2331,2331,2664,1.75,#d62828,0.0904,0.1178,0.1071,0.1945,0.0843,0.0986
-fixed_taskfix_hintce,RL fixed taskfix + CE,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495,fixed_ce,checkpoint-2664,2664,2664,2.0,#d62828,0.0915,0.118,0.1081,0.1944,0.0854,0.0989
+variant_key,variant_label,model_dir,family,checkpoint,step,max_step,observed_max_step,epoch_progress,color,NDCG@10,HR@10,NDCG@50,HR@50,NDCG@5,HR@5
+fixed_taskfix,RL fixed taskfix,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,fixed,checkpoint-333,333,3326,3326,0.20024052916416116,#f4a261,0.0856,0.111,0.1018,0.1855,0.0797,0.0926
+fixed_taskfix,RL fixed taskfix,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,fixed,checkpoint-666,666,3326,3326,0.4004810583283223,#f4a261,0.0901,0.113,0.1078,0.1962,0.0848,0.0965
+fixed_taskfix,RL fixed taskfix,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,fixed,checkpoint-999,999,3326,3326,0.6007215874924835,#f4a261,0.0881,0.1137,0.1055,0.1946,0.0823,0.0955
+fixed_taskfix,RL fixed taskfix,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,fixed,checkpoint-1332,1332,3326,3326,0.8009621166566446,#f4a261,0.0906,0.1157,0.1068,0.191,0.0845,0.0967
+fixed_taskfix,RL fixed taskfix,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,fixed,checkpoint-1665,1665,3326,3326,1.0012026458208059,#f4a261,0.0916,0.1166,0.1085,0.1944,0.086,0.0991
+fixed_taskfix,RL fixed taskfix,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,fixed,checkpoint-1998,1998,3326,3326,1.201443174984967,#f4a261,0.0913,0.1169,0.1073,0.1909,0.0858,0.0996
+fixed_taskfix,RL fixed taskfix,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,fixed,checkpoint-2331,2331,3326,3326,1.4016837041491281,#f4a261,0.093,0.1182,0.1093,0.1935,0.0875,0.1011
+fixed_taskfix,RL fixed taskfix,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,fixed,checkpoint-2664,2664,3326,3326,1.6019242333132893,#f4a261,0.093,0.118,0.1096,0.1947,0.0876,0.1014
+fixed_taskfix,RL fixed taskfix,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,fixed,checkpoint-2997,2997,3326,3326,1.8021647624774504,#f4a261,0.0931,0.1189,0.1094,0.1941,0.0875,0.1014
+fixed_taskfix,RL fixed taskfix,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495,fixed,checkpoint-3326,3326,3326,3326,2.0,#f4a261,0.0929,0.1186,0.1092,0.1938,0.0872,0.1009
+fixed_taskfix_hintce,RL fixed taskfix + CE,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495,fixed_ce,checkpoint-333,333,3326,3326,0.20024052916416116,#d62828,0.0835,0.1097,0.0991,0.1813,0.0779,0.0923
+fixed_taskfix_hintce,RL fixed taskfix + CE,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495,fixed_ce,checkpoint-666,666,3326,3326,0.4004810583283223,#d62828,0.0874,0.1096,0.1043,0.1888,0.0822,0.0936
+fixed_taskfix_hintce,RL fixed taskfix + CE,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495,fixed_ce,checkpoint-999,999,3326,3326,0.6007215874924835,#d62828,0.0893,0.1163,0.1058,0.1927,0.0832,0.0972
+fixed_taskfix_hintce,RL fixed taskfix + CE,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495,fixed_ce,checkpoint-1332,1332,3326,3326,0.8009621166566446,#d62828,0.089,0.1149,0.1054,0.1909,0.083,0.0964
+fixed_taskfix_hintce,RL fixed taskfix + CE,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495,fixed_ce,checkpoint-1665,1665,3326,3326,1.0012026458208059,#d62828,0.0895,0.1143,0.1061,0.1907,0.084,0.097
+fixed_taskfix_hintce,RL fixed taskfix + CE,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495,fixed_ce,checkpoint-1998,1998,3326,3326,1.201443174984967,#d62828,0.091,0.1162,0.1073,0.1913,0.0851,0.0979
+fixed_taskfix_hintce,RL fixed taskfix + CE,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495,fixed_ce,checkpoint-2331,2331,3326,3326,1.4016837041491281,#d62828,0.0904,0.1178,0.1071,0.1945,0.0843,0.0986
+fixed_taskfix_hintce,RL fixed taskfix + CE,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495,fixed_ce,checkpoint-2664,2664,3326,3326,1.6019242333132893,#d62828,0.0915,0.118,0.1081,0.1944,0.0854,0.0989
+fixed_taskfix_hintce,RL fixed taskfix + CE,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495,fixed_ce,checkpoint-2997,2997,3326,3326,1.8021647624774504,#d62828,0.0914,0.1173,0.1081,0.1942,0.0854,0.0985
+fixed_taskfix_hintce,RL fixed taskfix + CE,Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495,fixed_ce,checkpoint-3326,3326,3326,3326,2.0,#d62828,0.0914,0.118,0.108,0.1947,0.085,0.0982
+fixed_taskfix_hintce2,RL fixed taskfix + CE (hintce-2),Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-2-sft495,fixed_ce,checkpoint-333,333,3326,1332,0.20024052916416116,#9c6644,0.0868,0.1109,0.1031,0.1862,0.081,0.0928
+fixed_taskfix_hintce2,RL fixed taskfix + CE (hintce-2),Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-2-sft495,fixed_ce,checkpoint-666,666,3326,1332,0.4004810583283223,#9c6644,0.0901,0.114,0.1069,0.1917,0.0845,0.0964
+fixed_taskfix_hintce2,RL fixed taskfix + CE (hintce-2),Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-2-sft495,fixed_ce,checkpoint-999,999,3326,1332,0.6007215874924835,#9c6644,0.0892,0.1134,0.1058,0.1902,0.0836,0.0958
+fixed_taskfix_hintce2,RL fixed taskfix + CE (hintce-2),Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-2-sft495,fixed_ce,checkpoint-1332,1332,3326,1332,0.8009621166566446,#9c6644,0.0904,0.1148,0.1064,0.1893,0.0848,0.0974
