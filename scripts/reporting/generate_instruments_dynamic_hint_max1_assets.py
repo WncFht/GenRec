@@ -154,7 +154,7 @@ def save_csv(path: Path, df: pd.DataFrame) -> None:
     df.to_csv(path, index=False)
 
 
-def plot_step_curves(df: pd.DataFrame, sft_reference: dict[str, float | str], out_path: Path) -> Path:
+def plot_epoch_curves(df: pd.DataFrame, sft_reference: dict[str, float | str], out_path: Path) -> Path:
     fig, axes = plt.subplots(2, 2, figsize=(11, 8), sharex=True)
     metrics = [
         ("NDCG@10", "NDCG@10"),
@@ -168,7 +168,7 @@ def plot_step_curves(df: pd.DataFrame, sft_reference: dict[str, float | str], ou
                 continue
             variant_df = df[df["variant_key"] == variant["key"]]
             ax.plot(
-                variant_df["step"],
+                variant_df["epoch_progress"],
                 variant_df[metric],
                 marker="o",
                 linewidth=2,
@@ -178,7 +178,7 @@ def plot_step_curves(df: pd.DataFrame, sft_reference: dict[str, float | str], ou
             )
         ax.axhline(float(sft_reference[metric]), linestyle="--", linewidth=1.5, color="#666666", label="SFT495")
         ax.set_title(metric_title)
-        ax.set_xlabel("Checkpoint step")
+        ax.set_xlabel("Epoch")
         ax.set_ylabel(metric)
         ax.grid(alpha=0.25)
 
@@ -200,7 +200,7 @@ def plot_step_curves(df: pd.DataFrame, sft_reference: dict[str, float | str], ou
     return out_path
 
 
-def plot_focus_step_curves(df: pd.DataFrame, sft_reference: dict[str, float | str], out_path: Path) -> Path:
+def plot_focus_epoch_curves(df: pd.DataFrame, sft_reference: dict[str, float | str], out_path: Path) -> Path:
     fig, axes = plt.subplots(2, 2, figsize=(11, 8), sharex=True)
     metrics = [
         ("NDCG@10", "NDCG@10"),
@@ -215,7 +215,7 @@ def plot_focus_step_curves(df: pd.DataFrame, sft_reference: dict[str, float | st
             variant = variant_map[variant_key]
             variant_df = df[df["variant_key"] == variant_key]
             ax.plot(
-                variant_df["step"],
+                variant_df["epoch_progress"],
                 variant_df[metric],
                 marker="o",
                 linewidth=2,
@@ -225,7 +225,7 @@ def plot_focus_step_curves(df: pd.DataFrame, sft_reference: dict[str, float | st
             )
         ax.axhline(float(sft_reference[metric]), linestyle="--", linewidth=1.5, color="#666666", label="SFT495")
         ax.set_title(metric_title)
-        ax.set_xlabel("Checkpoint step")
+        ax.set_xlabel("Epoch")
         ax.set_ylabel(metric)
         ax.grid(alpha=0.25)
 
@@ -257,13 +257,13 @@ def main() -> None:
     save_csv(ASSET_DIR / "max1_ablation_checkpoint_metrics.csv", df)
     save_csv(ASSET_DIR / "max1_ablation_best_summary.csv", best_df)
     save_csv(ASSET_DIR / "sft495_reference_metrics.csv", pd.DataFrame([sft_reference]))
-    plot_step_curves(df, sft_reference, ASSET_DIR / "max1-ablation-step-curves.png")
-    plot_focus_step_curves(df, sft_reference, ASSET_DIR / "max1-vs-fixed-step-curves.png")
+    plot_epoch_curves(df, sft_reference, ASSET_DIR / "max1-ablation-epoch-curves.png")
+    plot_focus_epoch_curves(df, sft_reference, ASSET_DIR / "max1-vs-fixed-epoch-curves.png")
 
     print(f"checkpoint_metrics_csv={ASSET_DIR / 'max1_ablation_checkpoint_metrics.csv'}")
     print(f"best_summary_csv={ASSET_DIR / 'max1_ablation_best_summary.csv'}")
-    print(f"step_curve_png={ASSET_DIR / 'max1-ablation-step-curves.png'}")
-    print(f"focus_curve_png={ASSET_DIR / 'max1-vs-fixed-step-curves.png'}")
+    print(f"epoch_curve_png={ASSET_DIR / 'max1-ablation-epoch-curves.png'}")
+    print(f"focus_curve_png={ASSET_DIR / 'max1-vs-fixed-epoch-curves.png'}")
 
 
 if __name__ == "__main__":

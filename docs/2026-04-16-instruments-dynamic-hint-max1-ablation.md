@@ -49,10 +49,13 @@
 
 - [`max1_ablation_checkpoint_metrics.csv`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-16-instruments-dynamic-hint-max1-ablation/max1_ablation_checkpoint_metrics.csv)
 - [`max1_ablation_best_summary.csv`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-16-instruments-dynamic-hint-max1-ablation/max1_ablation_best_summary.csv)
-- [`max1-ablation-step-curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-16-instruments-dynamic-hint-max1-ablation/max1-ablation-step-curves.png)
-- [`max1-vs-fixed-step-curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-16-instruments-dynamic-hint-max1-ablation/max1-vs-fixed-step-curves.png)
+- [`max1-ablation-epoch-curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-16-instruments-dynamic-hint-max1-ablation/max1-ablation-epoch-curves.png)
+- [`max1-vs-fixed-epoch-curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-16-instruments-dynamic-hint-max1-ablation/max1-vs-fixed-epoch-curves.png)
 
-这里刻意把图的横轴画成了 `checkpoint step`，而不是每条 run 内部归一化后的 epoch。原因很简单：`max1` 当前只同步到 `checkpoint-1665`，如果继续用“每条 run 自己归一化到 2.0”的轴，会把这个短 trace 伪装成和 `3326` 步 run 一样长。
+图里的横轴现在恢复成 `epoch`。但 epoch 不是所有 run 共用同一个总 step：
+
+- `max1`、`dynamic gather-fix`、`rule_only rerun`、corrected `fixed taskfix`、old `fixed` 都按 `3326 step = 2 epoch`
+- `dynamic sid-only` 和 corrected `fixed taskfix sid-only` 按各自完整训练长度 `2652 step = 2 epoch`
 
 这篇 note 里的 epoch 口径分两类：
 
@@ -94,7 +97,7 @@
 
 如果只看 coverage 峰值，`max1` 还没有超过 `dynamic gather-fix`，差 `0.0024` `HR@50`。但它比 `dynamic sid-only` 高 `0.0039`，比 `rule_only rerun` 高 `0.0139`，因此至少可以确认它不是“hint budget 收紧后 coverage 直接塌掉”的失败 run。更重要的是，这个 peak 发生在 `epoch≈0.601`，也就是它离完整 2 epoch 还早。
 
-### 3.3 共享 checkpoint 的 step-matched readout
+### 3.3 共享 checkpoint 的 readout
 
 最值得看的其实不是只有各自的 best 点，而是 `max1` 和两条主要 baseline 在共享 checkpoint 上的实际交换关系：
 
@@ -114,9 +117,9 @@
 
 ## 4. Figure
 
-- [`max1-ablation-step-curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-16-instruments-dynamic-hint-max1-ablation/max1-ablation-step-curves.png)
+- [`max1-ablation-epoch-curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-16-instruments-dynamic-hint-max1-ablation/max1-ablation-epoch-curves.png)
 
-![Dynamic-hint max1 step curves](assets/2026-04-16-instruments-dynamic-hint-max1-ablation/max1-ablation-step-curves.png)
+![Dynamic-hint max1 epoch curves](assets/2026-04-16-instruments-dynamic-hint-max1-ablation/max1-ablation-epoch-curves.png)
 
 这张图最重要的读法是：
 
@@ -127,9 +130,9 @@
 
 ### 4.2 Focused Four-way Comparison
 
-- [`max1-vs-fixed-step-curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-16-instruments-dynamic-hint-max1-ablation/max1-vs-fixed-step-curves.png)
+- [`max1-vs-fixed-epoch-curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-16-instruments-dynamic-hint-max1-ablation/max1-vs-fixed-epoch-curves.png)
 
-![Max1 vs fixed step curves](assets/2026-04-16-instruments-dynamic-hint-max1-ablation/max1-vs-fixed-step-curves.png)
+![Max1 vs fixed epoch curves](assets/2026-04-16-instruments-dynamic-hint-max1-ablation/max1-vs-fixed-epoch-curves.png)
 
 这张四线图只保留 `fixed taskfix`、old `fixed`、`dynamic gather-fix` 和 `max1`，更适合回答“`max1` 到底是在追哪一类行为”：
 
