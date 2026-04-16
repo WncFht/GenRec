@@ -32,6 +32,7 @@ VARIANTS = [
         "family": "dynamic",
         "color": "#4c78a8",
         "include_in_main": True,
+        "epoch_max_step": 2652,
     },
     {
         "key": "dynamic_gather_fix",
@@ -72,6 +73,7 @@ VARIANTS = [
         "family": "fixed",
         "color": "#e76f51",
         "include_in_main": True,
+        "epoch_max_step": 2652,
     },
     {
         "key": "fixed_taskfix_hintce",

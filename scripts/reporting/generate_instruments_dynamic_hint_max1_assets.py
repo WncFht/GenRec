@@ -24,6 +24,7 @@ VARIANTS = [
         "color": "#457b9d",
         "max_step": 3326,
         "num_train_epochs": 2.0,
+        "include_in_main": True,
     },
     {
         "key": "dynamic_gather_fix",
@@ -32,6 +33,7 @@ VARIANTS = [
         "color": "#1d3557",
         "max_step": 3326,
         "num_train_epochs": 2.0,
+        "include_in_main": True,
     },
     {
         "key": "dynamic_sid_only",
@@ -40,6 +42,7 @@ VARIANTS = [
         "color": "#4c78a8",
         "max_step": 2652,
         "num_train_epochs": 2.0,
+        "include_in_main": True,
     },
     {
         "key": "rule_only",
@@ -48,6 +51,7 @@ VARIANTS = [
         "color": "#2a9d8f",
         "max_step": 3326,
         "num_train_epochs": 2.0,
+        "include_in_main": True,
     },
     {
         "key": "fixed_taskfix_sid_only",
@@ -56,10 +60,31 @@ VARIANTS = [
         "color": "#e76f51",
         "max_step": 2652,
         "num_train_epochs": 2.0,
+        "include_in_main": True,
+    },
+    {
+        "key": "fixed_taskfix",
+        "label": "RL fixed taskfix",
+        "model_dir": "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
+        "color": "#f4a261",
+        "max_step": 3326,
+        "num_train_epochs": 2.0,
+        "include_in_main": False,
+    },
+    {
+        "key": "fixed_old",
+        "label": "RL fixed old",
+        "model_dir": "Instruments-grec-grpo-rule-only-fixed-hint-mixed-single-generate-qwen2.5-3b-qwen4B-4-256-from-sft495",
+        "color": "#6d597a",
+        "max_step": 3326,
+        "num_train_epochs": 2.0,
+        "include_in_main": False,
     },
 ]
 
 METRIC_COLUMNS = ["NDCG@10", "HR@10", "NDCG@50", "HR@50"]
+MAIN_VARIANT_KEYS = ["max1", "dynamic_gather_fix", "dynamic_sid_only", "rule_only", "fixed_taskfix_sid_only"]
+FOCUS_VARIANT_KEYS = ["fixed_taskfix", "dynamic_gather_fix", "max1", "fixed_old"]
 
 
 def load_sft_reference() -> dict[str, float | str]:
@@ -139,6 +164,8 @@ def plot_step_curves(df: pd.DataFrame, sft_reference: dict[str, float | str], ou
     ]
     for ax, (metric, metric_title) in zip(axes.flat, metrics, strict=True):
         for variant in VARIANTS:
+            if not variant["include_in_main"]:
+                continue
             variant_df = df[df["variant_key"] == variant["key"]]
             ax.plot(
                 variant_df["step"],
@@ -173,6 +200,53 @@ def plot_step_curves(df: pd.DataFrame, sft_reference: dict[str, float | str], ou
     return out_path
 
 
+def plot_focus_step_curves(df: pd.DataFrame, sft_reference: dict[str, float | str], out_path: Path) -> Path:
+    fig, axes = plt.subplots(2, 2, figsize=(11, 8), sharex=True)
+    metrics = [
+        ("NDCG@10", "NDCG@10"),
+        ("HR@10", "HR@10"),
+        ("NDCG@50", "NDCG@50"),
+        ("HR@50", "HR@50"),
+    ]
+    variant_map = {variant["key"]: variant for variant in VARIANTS}
+
+    for ax, (metric, metric_title) in zip(axes.flat, metrics, strict=True):
+        for variant_key in FOCUS_VARIANT_KEYS:
+            variant = variant_map[variant_key]
+            variant_df = df[df["variant_key"] == variant_key]
+            ax.plot(
+                variant_df["step"],
+                variant_df[metric],
+                marker="o",
+                linewidth=2,
+                markersize=4,
+                color=variant["color"],
+                label=variant["label"],
+            )
+        ax.axhline(float(sft_reference[metric]), linestyle="--", linewidth=1.5, color="#666666", label="SFT495")
+        ax.set_title(metric_title)
+        ax.set_xlabel("Checkpoint step")
+        ax.set_ylabel(metric)
+        ax.grid(alpha=0.25)
+
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    uniq = dict(zip(labels, handles, strict=False))
+    fig.legend(
+        uniq.values(),
+        uniq.keys(),
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.995),
+        ncol=3,
+        frameon=False,
+    )
+    fig.suptitle("Instruments-grec Focused Comparison: Fixed vs Dynamic Max1", y=0.94)
+    fig.tight_layout(rect=(0, 0, 1, 0.88))
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=180)
+    plt.close(fig)
+    return out_path
+
+
 def main() -> None:
     ASSET_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -184,10 +258,12 @@ def main() -> None:
     save_csv(ASSET_DIR / "max1_ablation_best_summary.csv", best_df)
     save_csv(ASSET_DIR / "sft495_reference_metrics.csv", pd.DataFrame([sft_reference]))
     plot_step_curves(df, sft_reference, ASSET_DIR / "max1-ablation-step-curves.png")
+    plot_focus_step_curves(df, sft_reference, ASSET_DIR / "max1-vs-fixed-step-curves.png")
 
     print(f"checkpoint_metrics_csv={ASSET_DIR / 'max1_ablation_checkpoint_metrics.csv'}")
     print(f"best_summary_csv={ASSET_DIR / 'max1_ablation_best_summary.csv'}")
     print(f"step_curve_png={ASSET_DIR / 'max1-ablation-step-curves.png'}")
+    print(f"focus_curve_png={ASSET_DIR / 'max1-vs-fixed-step-curves.png'}")
 
 
 if __name__ == "__main__":

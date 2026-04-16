@@ -50,8 +50,16 @@
 - [`max1_ablation_checkpoint_metrics.csv`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-16-instruments-dynamic-hint-max1-ablation/max1_ablation_checkpoint_metrics.csv)
 - [`max1_ablation_best_summary.csv`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-16-instruments-dynamic-hint-max1-ablation/max1_ablation_best_summary.csv)
 - [`max1-ablation-step-curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-16-instruments-dynamic-hint-max1-ablation/max1-ablation-step-curves.png)
+- [`max1-vs-fixed-step-curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-16-instruments-dynamic-hint-max1-ablation/max1-vs-fixed-step-curves.png)
 
-这里刻意把图的横轴画成了 `checkpoint step`，而不是每条 run 内部归一化后的 epoch。原因很简单：`max1` 当前只同步到 `checkpoint-1665`，如果继续用“每条 run 自己归一化到 2.0”的轴，会把这个短 trace 伪装成和 `3326` 步 run 一样长。现在文中如果提到 epoch，统一都按 `3326 step = 2 epoch` 的 reference horizon 来换算。
+这里刻意把图的横轴画成了 `checkpoint step`，而不是每条 run 内部归一化后的 epoch。原因很简单：`max1` 当前只同步到 `checkpoint-1665`，如果继续用“每条 run 自己归一化到 2.0”的轴，会把这个短 trace 伪装成和 `3326` 步 run 一样长。
+
+这篇 note 里的 epoch 口径分两类：
+
+- `max1`、`dynamic gather-fix`、`rule_only rerun`、corrected `fixed taskfix`、old `fixed` 都按 `3326 step = 2 epoch`
+- `dynamic sid-only` 和 corrected `fixed taskfix sid-only` 按它们自己的完整训练长度 `2652 step = 2 epoch`
+
+也就是说，`sid-only` checkpoint 更少是因为它的 step horizon 本来就更短，不是因为它只跑到一半。
 
 ## 3. Key Metrics
 
@@ -116,6 +124,19 @@
 - `max1` 也不是单纯被现有 dynamic baseline 支配。它在 `333/999/1332` 这几个关键点上都能给出比 `gather-fix` 更高的 `NDCG@10`，而 coverage 只在 `666/1332/1665` 这些点略输。
 - 但 `max1` 目前还没有把 fixed-hint upper bound 打穿。corrected `fixed taskfix sid-only` 仍然在四个面板里整体压在更右上侧，说明 “把 dynamic budget 收浅” 和 “直接给更稳定的 fixed hint scaffold” 还是两件事。
 - 由于 `max1` 只同步到 `1665`（约 `epoch≈1.001`），图上真正该读的是“它到中段为止的曲线形状”。如果后面继续跑到 `1998/2331/2664/2997/3326`，它是会像 `gather-fix` 一样继续稳住，还是会像某些 early-strong run 一样回落，现在还不能仅凭这张图决定。
+
+### 4.2 Focused Four-way Comparison
+
+- [`max1-vs-fixed-step-curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-16-instruments-dynamic-hint-max1-ablation/max1-vs-fixed-step-curves.png)
+
+![Max1 vs fixed step curves](assets/2026-04-16-instruments-dynamic-hint-max1-ablation/max1-vs-fixed-step-curves.png)
+
+这张四线图只保留 `fixed taskfix`、old `fixed`、`dynamic gather-fix` 和 `max1`，更适合回答“`max1` 到底是在追哪一类行为”：
+
+- `max1` 和 `dynamic gather-fix` 仍然是最接近的一对。两条 dynamic 线在 `333~1665` 的大部分区间都缠得很紧，说明 `max1` 不是跳到了完全不同的方法族。
+- 但 `max1` 在 `NDCG@50 / HR@50` 上明显更往 fixed family 靠。尤其在 `999/1332` 这两个点，它已经把 coverage 拉到接近 corrected `fixed taskfix` 的区间，而 `dynamic gather-fix` 还要再低一些。
+- corrected `fixed taskfix` 依旧保留了最强的 coverage spike，old `fixed` 则给出更平的历史高位平台。把这两条线放进来之后，可以更清楚地看到：`max1` 目前更像是在 dynamic family 内部向 fixed trade-off 靠拢，而不是已经真正进入 fixed family 的 top-right 区域。
+- 这也是为什么我现在更愿意把 `max1` 叫作“最有希望的 shallow-budget dynamic”，而不是直接叫它新的 fixed 替代品。
 
 ## 5. Conclusions
 

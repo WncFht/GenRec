@@ -33,6 +33,7 @@
     - 本文把 old `mixed-single` 只当作历史结果参考线，不把它当作当前方法定义。
 - Important overrides:
   - 统一进度轴：`epoch_progress = checkpoint_step / max_checkpoint_step * 2.0`
+  - `sid-only` 是特例：`dynamic sid-only` 和 corrected `fixed taskfix sid-only` 的完整 2-epoch horizon 都是 `2652` step，不是 `3326`；checkpoint 更少不代表它们没跑满。
   - 主表默认按 `best NDCG@10 checkpoint` 选点；同时单独记录每条线的 `best HR@50 checkpoint`，用来识别 early coverage spike。
   - 七线主比较仍然只保留最常用的 7 条主线；CE 变体单独放在 CE 小节。
 

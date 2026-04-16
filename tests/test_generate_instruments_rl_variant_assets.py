@@ -77,14 +77,14 @@ class GenerateInstrumentsRlVariantAssetsTests(unittest.TestCase):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(json.dumps({"NDCG@10": 0.090, "HR@10": 0.115, "NDCG@50": 0.106, "HR@50": 0.189}))
 
-            for variant_key, model_dir in [
-                ("dynamic_sid_only", "Instruments-grec-grpo-rule-only-dynamic-hint-sid-only-qwen2.5-3b-qwen4B-4-256-from-sft495"),
-                ("dynamic_gather_fix", "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495"),
-                ("ranking_dynamic", "Instruments-grec-grpo-ranking-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft495"),
-                ("fixed_old", "Instruments-grec-grpo-rule-only-fixed-hint-mixed-single-generate-qwen2.5-3b-qwen4B-4-256-from-sft495"),
-                ("fixed_taskfix", "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495"),
+            for model_dir, steps in [
+                ("Instruments-grec-grpo-rule-only-dynamic-hint-sid-only-qwen2.5-3b-qwen4B-4-256-from-sft495", (266, 2652)),
+                ("Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495", (333, 3326)),
+                ("Instruments-grec-grpo-ranking-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft495", (333, 3326)),
+                ("Instruments-grec-grpo-rule-only-fixed-hint-mixed-single-generate-qwen2.5-3b-qwen4B-4-256-from-sft495", (333, 3326)),
+                ("Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495", (333, 3326)),
             ]:
-                for step in (333, 3326):
+                for step in steps:
                     path = results_root / model_dir / f"checkpoint-{step}" / "metrics.json"
                     path.parent.mkdir(parents=True, exist_ok=True)
                     path.write_text(json.dumps({"NDCG@10": 0.09, "HR@10": 0.11, "NDCG@50": 0.106, "HR@50": 0.19}))
@@ -102,6 +102,10 @@ class GenerateInstrumentsRlVariantAssetsTests(unittest.TestCase):
             sid_last = df[(df["variant_key"] == "fixed_taskfix_sid_only") & (df["step"] == 2652)].iloc[0]
             self.assertEqual(sid_last["max_step"], 2652)
             self.assertAlmostEqual(sid_last["epoch_progress"], 2.0, places=6)
+
+            dynamic_sid_last = df[(df["variant_key"] == "dynamic_sid_only") & (df["step"] == 2652)].iloc[0]
+            self.assertEqual(dynamic_sid_last["max_step"], 2652)
+            self.assertAlmostEqual(dynamic_sid_last["epoch_progress"], 2.0, places=6)
 
             ce_last = df[(df["variant_key"] == "fixed_taskfix_hintce") & (df["step"] == 2664)].iloc[0]
             self.assertEqual(ce_last["max_step"], 2664)
