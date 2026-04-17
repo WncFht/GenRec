@@ -11,6 +11,10 @@
 - 尽量把分析产物集中在尽可能少的文件里，方便同步。
 - 对 notebook 和分析脚本里的图表，标题、坐标轴标签和图例文本请保持英文，以避免 CJK 字体渲染告警；需要中文说明时用 markdown。
 
+## 任务启动
+- 开始任何新任务前，先阅读 `docs/background.md` 和 `docs/progress.md`，获取项目背景、当前主线和各数据集进度。
+- 如果任务明显只涉及某条实验线或某个结果目录，再按需补读对应的 dated note、`docs/assets/` 导出表或相关脚本，不要跳过前面的两份常驻文档。
+
 ## 实验文档
 - 将 `docs/` 视为可读性实验追踪和项目笔记的主目录。
 - `docs/` 下顶层带日期的笔记必须使用 `YYYY-MM-DD-<slug>.md` 格式；不要使用 `article.md`、`周报.md` 或 `*.zh.md` 这类别名。
@@ -26,12 +30,16 @@
 - 不要假设远端文件已经镜像到本地；在配置单元里把远端位置写清楚。
 - 对仓库里的 shell 脚本，尤其是会在远端训练机上运行或同步过去的脚本，避免使用 `set -u` / `set -euo pipefail`；那个环境里未完全填充的环境变量很容易触发 nounset。优先使用 `set -eo pipefail`，并给显式默认值。
 
+## 任务收尾
+- 完成一个任务后，明确告诉用户这次需要同步哪些文件或目录。
+- 如果本次没有额外需要同步的文件，也要明确写出“本次无需额外同步文件”，不要省略这一句。
+
 ## 版本控制
-- 这个仓库是 `jj-first`。日常的状态、历史、diff、commit 描述和 push 工作流都使用 `jj`。
-- 相比对应的 Git 命令，优先使用 `jj st`、`jj log`、`jj diff`、`jj new` 和 `jj desc -m "..."`。
-- 将 Git 视为共置仓库 plumbing 或用户显式要求时的兼容层，而不是日常主工作流。
-- 要记住：共置的 `jj` 仓库从 Git 视角看可能像 detached HEAD；本地状态应以 `jj st` 和 `jj log` 为准。
-- 推送前，先显式移动或创建合适的 bookmark，然后再使用 `jj git push -b <bookmark>`。
+- 这个仓库默认使用 `git`，不要把 `jj` 当作日常主工作流。
+- 日常的状态、历史、diff、commit 和 push 都优先使用非交互式 `git` 命令。
+- 即使仓库里存在 `.jj/` 或共置元数据，也以 `git status`、`git log`、`git diff` 和 `git branch` 作为当前任务里的权威状态来源。
+- 只有当用户在当前任务里明确要求使用 `jj`，或者某个操作确实依赖 `jj` 特性时，才切换到 `jj`。
+- 如果当前处于 detached HEAD，先用 `git switch -c <branch>` 或切回已有分支，再继续 commit / push，不要默认走 `jj` bookmark 工作流。
 
 ## 训练上下文
 - RL 训练数据混合了多个任务。当 `task1_sid_sft`、`task4_hisTitle2sid` 和 `task5_title_desc2sid` 之间的结论可能不一致时，应分任务分析。
