@@ -21,6 +21,22 @@ def _load_module():
 
 
 class GenerateInstrumentsDynamicHintMax1AssetsTests(unittest.TestCase):
+    def test_focus_palette_uses_high_contrast_colors(self):
+        module = _load_module()
+
+        expected = {
+            "max1": "#009E73",
+            "dynamic_gather_fix": "#0072B2",
+            "fixed_taskfix": "#E69F00",
+            "fixed_old": "#7F3C8D",
+        }
+
+        variant_map = {variant["key"]: variant for variant in module.VARIANTS}
+        actual = {key: variant_map[key]["color"] for key in expected}
+
+        self.assertEqual(actual, expected)
+        self.assertEqual(len(set(actual.values())), len(actual))
+
     def test_epoch_alignment_keeps_partial_max1_run_below_two_epochs(self):
         module = _load_module()
 
