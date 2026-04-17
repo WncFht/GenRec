@@ -90,8 +90,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--bundle-root",
         default=(
-            "/Users/fanghaotian/Desktop/src/GenRec/output/local-research-bundles/"
-            "instruments_grec_hint_research_bundle"
+            "/Users/fanghaotian/Desktop/src/GenRec/output/local-research-bundles/instruments_grec_hint_research_bundle"
         ),
     )
     parser.add_argument("--output-dir")
@@ -362,7 +361,9 @@ def build_task_gap_rows(frame: pd.DataFrame) -> list[dict[str, Any]]:
         pivot_count = grouped.pivot_table(
             index=["share_bin", "subtree_bin"], columns="task_label", values="sample_count", fill_value=0
         )
-        pivot_rate = grouped.pivot_table(index=["share_bin", "subtree_bin"], columns="task_label", values="positive_rate")
+        pivot_rate = grouped.pivot_table(
+            index=["share_bin", "subtree_bin"], columns="task_label", values="positive_rate"
+        )
         common_bins = pivot_count[(pivot_count["sid"] > 0) & (pivot_count["hisTitle2sid"] > 0)].index
         weights = pivot_count.loc[common_bins, "sid"] + pivot_count.loc[common_bins, "hisTitle2sid"]
         weights = weights / weights.sum()
@@ -475,7 +476,11 @@ def build_shared_hotspot_rows(frame: pd.DataFrame) -> list[dict[str, Any]]:
         )
         baseline_rates = transition_frame.groupby("task_label")["label"].mean().to_dict()
         grouped["lift"] = grouped.apply(
-            lambda row: row["positive_rate"] / baseline_rates[row["task_label"]] if baseline_rates[row["task_label"]] > 0 else np.nan,
+            lambda row: (
+                row["positive_rate"] / baseline_rates[row["task_label"]]
+                if baseline_rates[row["task_label"]] > 0
+                else np.nan
+            ),
             axis=1,
         )
 
@@ -500,7 +505,9 @@ def build_shared_hotspot_rows(frame: pd.DataFrame) -> list[dict[str, Any]]:
         pivot["transition"] = transition["name"]
 
         min_count = 100 if transition["name"] == "base_to_need_hint" else 20
-        pivot = pivot[(pivot["sample_count_sid"] >= min_count) & (pivot["sample_count_hisTitle2sid"] >= min_count)].copy()
+        pivot = pivot[
+            (pivot["sample_count_sid"] >= min_count) & (pivot["sample_count_hisTitle2sid"] >= min_count)
+        ].copy()
         pivot = pivot.sort_values(
             ["shared_lift_min", "shared_lift_geo", "total_sample_count"],
             ascending=[False, False, False],
@@ -528,7 +535,9 @@ def build_transition_task_gap_group_rows(frame: pd.DataFrame) -> list[dict[str, 
             .agg(sample_count=("sample_id", "size"), positive_rate=("label", "mean"))
             .reset_index()
         )
-        pivot = grouped.pivot_table(index=group_columns, columns="task_label", values=["sample_count", "positive_rate"])
+        pivot = grouped.pivot_table(
+            index=group_columns, columns="task_label", values=["sample_count", "positive_rate"]
+        )
         pivot.columns = [f"{metric}_{task}" for metric, task in pivot.columns]
         pivot = pivot.reset_index()
 
@@ -542,7 +551,9 @@ def build_transition_task_gap_group_rows(frame: pd.DataFrame) -> list[dict[str, 
         pivot["rate_gap_his_minus_sid"] = pivot["positive_rate_hisTitle2sid"] - pivot["positive_rate_sid"]
         pivot["abs_rate_gap"] = pivot["rate_gap_his_minus_sid"].abs()
         pivot["transition"] = transition["name"]
-        pivot = pivot.sort_values(["abs_rate_gap", "sample_count_sid", "sample_count_hisTitle2sid"], ascending=[False, False, False])
+        pivot = pivot.sort_values(
+            ["abs_rate_gap", "sample_count_sid", "sample_count_hisTitle2sid"], ascending=[False, False, False]
+        )
         rows.extend(pivot.head(100).to_dict("records"))
     return rows
 
@@ -617,7 +628,9 @@ def build_dominant_residual_parent_leaf_stats(
     )
     leaf_stats["unsolved_case_count"] = leaf_stats["unsolved_case_count"].astype(int)
     leaf_stats["total_case_count"] = leaf_stats["total_case_count"].astype(int)
-    leaf_stats["unsolved_rate_within_leaf"] = leaf_stats["unsolved_case_count"] / leaf_stats["total_case_count"].replace(0, np.nan)
+    leaf_stats["unsolved_rate_within_leaf"] = leaf_stats["unsolved_case_count"] / leaf_stats[
+        "total_case_count"
+    ].replace(0, np.nan)
     leaf_stats = leaf_stats.sort_values(
         ["unsolved_case_count", "total_case_count", "global_count_d4"],
         ascending=[False, False, False],
@@ -650,10 +663,14 @@ def build_dominant_residual_parent_leaf_stats(
             }
         )
 
-    term_df = pd.DataFrame(term_rows).sort_values(
-        ["share_gap", "residual_leaf_count", "solved_leaf_count"],
-        ascending=[False, False, True],
-    ).reset_index(drop=True)
+    term_df = (
+        pd.DataFrame(term_rows)
+        .sort_values(
+            ["share_gap", "residual_leaf_count", "solved_leaf_count"],
+            ascending=[False, False, True],
+        )
+        .reset_index(drop=True)
+    )
     return leaf_stats, term_df, dominant_parent
 
 
@@ -683,10 +700,16 @@ def build_parent_pathology_rows(frame: pd.DataFrame) -> list[dict[str, Any]]:
                 "dominant_unsolved_leaf": dominant_leaf,
                 "dominant_unsolved_leaf_count": dominant_unsolved_count,
                 "dominant_unsolved_leaf_share": dominant_unsolved_count / max(unsolved_total, 1),
-                "dominant_hint3_plus_leaf": hint3_plus_leaf_counts.index[0] if not hint3_plus_leaf_counts.empty else None,
-                "dominant_hint3_plus_leaf_count": int(hint3_plus_leaf_counts.iloc[0]) if not hint3_plus_leaf_counts.empty else 0,
+                "dominant_hint3_plus_leaf": hint3_plus_leaf_counts.index[0]
+                if not hint3_plus_leaf_counts.empty
+                else None,
+                "dominant_hint3_plus_leaf_count": int(hint3_plus_leaf_counts.iloc[0])
+                if not hint3_plus_leaf_counts.empty
+                else 0,
                 "dominant_hint3_plus_leaf_share": (
-                    int(hint3_plus_leaf_counts.iloc[0]) / max(len(hint3_plus_cases), 1) if not hint3_plus_leaf_counts.empty else 0.0
+                    int(hint3_plus_leaf_counts.iloc[0]) / max(len(hint3_plus_cases), 1)
+                    if not hint3_plus_leaf_counts.empty
+                    else 0.0
                 ),
                 "mean_effective_hint_depth": float(parent_cases["effective_hint_depth"].mean()),
                 "sid_case_count": int((parent_cases["task_label"] == "sid").sum()),
@@ -723,14 +746,18 @@ def build_leaf_distinctiveness_frame(branch_item_df: pd.DataFrame, leaf_stats: p
     total_leaf_count = len(item_frame)
     for index, record in item_frame.iterrows():
         terms = record["title_terms"]
-        other_term_sets = [other_terms for row_idx, other_terms in enumerate(item_frame["title_terms"]) if row_idx != index]
+        other_term_sets = [
+            other_terms for row_idx, other_terms in enumerate(item_frame["title_terms"]) if row_idx != index
+        ]
         jaccards = []
         for other_terms in other_term_sets:
             union = terms | other_terms
             jaccards.append((len(terms & other_terms) / len(union)) if union else 0.0)
 
         unique_terms = [term for term in terms if sibling_doc_freq[term] == 1]
-        distinctiveness = sum(math.log((1 + total_leaf_count) / (1 + sibling_doc_freq[term])) for term in terms) / max(len(terms), 1)
+        distinctiveness = sum(math.log((1 + total_leaf_count) / (1 + sibling_doc_freq[term])) for term in terms) / max(
+            len(terms), 1
+        )
 
         rows.append(
             {
@@ -914,7 +941,9 @@ def main() -> None:
     if not dominant_leaf_stats.empty:
         dominant_leaf_stats_path = output_dir / "dominant_residual_parent_leaf_stats.csv"
         dominant_leaf_stats.to_csv(dominant_leaf_stats_path, index=False)
-        dominant_branch_items = pd.read_csv(dominant_branch_items_path) if dominant_branch_items_path else pd.DataFrame()
+        dominant_branch_items = (
+            pd.read_csv(dominant_branch_items_path) if dominant_branch_items_path else pd.DataFrame()
+        )
         dominant_leaf_distinctiveness = build_leaf_distinctiveness_frame(dominant_branch_items, dominant_leaf_stats)
         dominant_leaf_distinctiveness_path = output_dir / "dominant_residual_parent_leaf_distinctiveness.csv"
         dominant_leaf_distinctiveness.to_csv(dominant_leaf_distinctiveness_path, index=False)
@@ -949,11 +978,15 @@ def main() -> None:
         "repeated_pathology_candidates_path": str(repeated_pathology_candidates_path),
         "dominant_residual_parent_items_path": dominant_branch_items_path,
         "dominant_residual_parent": dominant_parent,
-        "dominant_residual_parent_leaf_stats_path": str(dominant_leaf_stats_path) if dominant_leaf_stats_path else None,
+        "dominant_residual_parent_leaf_stats_path": str(dominant_leaf_stats_path)
+        if dominant_leaf_stats_path
+        else None,
         "dominant_residual_parent_leaf_distinctiveness_path": (
             str(dominant_leaf_distinctiveness_path) if dominant_leaf_distinctiveness_path else None
         ),
-        "dominant_residual_parent_title_terms_path": str(dominant_title_terms_path) if dominant_title_terms_path else None,
+        "dominant_residual_parent_title_terms_path": str(dominant_title_terms_path)
+        if dominant_title_terms_path
+        else None,
     }
     (output_dir / "hint_transition_summary.json").write_text(
         json.dumps(summary, indent=2, ensure_ascii=False),

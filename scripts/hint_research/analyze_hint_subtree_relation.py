@@ -65,8 +65,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--bundle-root",
         default=(
-            "/Users/fanghaotian/Desktop/src/GenRec/output/local-research-bundles/"
-            "instruments_grec_hint_research_bundle"
+            "/Users/fanghaotian/Desktop/src/GenRec/output/local-research-bundles/instruments_grec_hint_research_bundle"
         ),
     )
     parser.add_argument("--output-dir")
@@ -135,11 +134,7 @@ def stage_local_columns(frame: pd.DataFrame, depth: int) -> tuple[str, pd.Series
 
 
 def max_depth(frame: pd.DataFrame) -> int:
-    token_depths = [
-        int(column.split("_d", 1)[1])
-        for column in frame.columns
-        if column.startswith("token_d")
-    ]
+    token_depths = [int(column.split("_d", 1)[1]) for column in frame.columns if column.startswith("token_d")]
     if not token_depths:
         raise ValueError("No token depth columns found.")
     return max(token_depths)
@@ -176,20 +171,17 @@ def build_node_stats(frame: pd.DataFrame) -> pd.DataFrame:
             else:
                 grouped = task_frame.groupby([parent_col, token_col], dropna=False)
 
-            aggregated = (
-                grouped.agg(
-                    sample_count=("sample_id", "size"),
-                    subtree_size=(subtree_col, "mean"),
-                    mean_effective_hint_depth=("effective_hint_depth", "mean"),
-                    need_hint_rate=("effective_hint_depth", lambda series: float((series >= 1).mean())),
-                    hint2_plus_rate=("effective_hint_depth", lambda series: float((series >= 2).mean())),
-                    hint3_plus_rate=("effective_hint_depth", lambda series: float((series >= 3).mean())),
-                    unsolved_rate=("final_unsolved", lambda series: float(pd.Series(series).astype(bool).mean())),
-                    stage_local_eligible_count=("_stage_local_eligible", "sum"),
-                    stage_local_positive_count=("_stage_local_positive", "sum"),
-                )
-                .reset_index()
-            )
+            aggregated = grouped.agg(
+                sample_count=("sample_id", "size"),
+                subtree_size=(subtree_col, "mean"),
+                mean_effective_hint_depth=("effective_hint_depth", "mean"),
+                need_hint_rate=("effective_hint_depth", lambda series: float((series >= 1).mean())),
+                hint2_plus_rate=("effective_hint_depth", lambda series: float((series >= 2).mean())),
+                hint3_plus_rate=("effective_hint_depth", lambda series: float((series >= 3).mean())),
+                unsolved_rate=("final_unsolved", lambda series: float(pd.Series(series).astype(bool).mean())),
+                stage_local_eligible_count=("_stage_local_eligible", "sum"),
+                stage_local_positive_count=("_stage_local_positive", "sum"),
+            ).reset_index()
 
             if depth == 1:
                 aggregated["parent_key"] = "ROOT"
@@ -244,7 +236,9 @@ def build_node_stats(frame: pd.DataFrame) -> pd.DataFrame:
     ]
     for column in numeric_columns:
         node_stats[column] = pd.to_numeric(node_stats[column], errors="coerce")
-    return node_stats.sort_values(["task_label", "depth", "sample_count", "node_key"], ascending=[True, True, False, True]).reset_index(drop=True)
+    return node_stats.sort_values(
+        ["task_label", "depth", "sample_count", "node_key"], ascending=[True, True, False, True]
+    ).reset_index(drop=True)
 
 
 def weighted_mean(values: pd.Series, weights: pd.Series) -> float:
@@ -535,7 +529,9 @@ def plot_scatter_panels(node_stats: pd.DataFrame, plot_dir: Path) -> list[Path]:
             colorbar = fig.colorbar(scatter, ax=ax)
             colorbar.set_label("本层继续坍塌比例")
 
-            highlight = subset.sort_values(["sample_count", "mean_effective_hint_depth"], ascending=[False, False]).head(5)
+            highlight = subset.sort_values(
+                ["sample_count", "mean_effective_hint_depth"], ascending=[False, False]
+            ).head(5)
             for _, row in highlight.iterrows():
                 ax.annotate(
                     row["token_key"],
@@ -560,9 +556,7 @@ def plot_bin_lines(bin_summary: pd.DataFrame, plot_dir: Path) -> list[Path]:
         return paths
     for task_label in TASK_ORDER:
         for depth in sorted(bin_summary["depth"].dropna().unique()):
-            subset = bin_summary[
-                (bin_summary["task_label"] == task_label) & (bin_summary["depth"] == depth)
-            ].copy()
+            subset = bin_summary[(bin_summary["task_label"] == task_label) & (bin_summary["depth"] == depth)].copy()
             if subset.empty:
                 continue
             subset = subset.sort_values("bin_index")
@@ -651,9 +645,7 @@ def plot_correlation_heatmaps(correlations: pd.DataFrame, plot_dir: Path) -> lis
     working = correlations.copy()
     working["row_label"] = working["task_label"] + " d" + working["depth"].astype(str)
 
-    pearson_matrix = working.pivot(index="row_label", columns="metric", values="pearson").reindex(
-        columns=HINT_METRICS
-    )
+    pearson_matrix = working.pivot(index="row_label", columns="metric", values="pearson").reindex(columns=HINT_METRICS)
     pearson_path = plot_dir / "correlation_heatmap_pearson.png"
     draw_heatmap(
         pearson_matrix,
@@ -681,9 +673,7 @@ def plot_outliers(outliers: pd.DataFrame, plot_dir: Path) -> list[Path]:
         return paths
     for task_label in TASK_ORDER:
         for depth in sorted(outliers["depth"].dropna().unique()):
-            subset = outliers[
-                (outliers["task_label"] == task_label) & (outliers["depth"] == depth)
-            ].copy()
+            subset = outliers[(outliers["task_label"] == task_label) & (outliers["depth"] == depth)].copy()
             if subset.empty:
                 continue
             subset = subset.sort_values("residual_hint_depth", ascending=False)
@@ -818,8 +808,7 @@ def build_summary(
             else []
         ),
         "plot_paths": {
-            key: [str(path.relative_to(output_dir)) for path in paths]
-            for key, paths in plot_paths.items()
+            key: [str(path.relative_to(output_dir)) for path in paths] for key, paths in plot_paths.items()
         },
         "correlations": correlations.to_dict("records"),
         "bin_summary_rows": len(bin_summary),
@@ -984,11 +973,11 @@ def build_report_html(summary: dict[str, Any], plot_paths: dict[str, list[Path]]
         <div class="chart-guide">
           <div>
             <h3>这类图在回答什么</h3>
-            <p>{html.escape(section_questions.get(kind, '这类图用于展示当前分组下的总体关系。'))}</p>
+            <p>{html.escape(section_questions.get(kind, "这类图用于展示当前分组下的总体关系。"))}</p>
           </div>
           <div>
             <h3>怎么看这些图</h3>
-            <p>{html.escape(section_how.get(kind, '先看总体趋势，再看标注节点。'))}</p>
+            <p>{html.escape(section_how.get(kind, "先看总体趋势，再看标注节点。"))}</p>
           </div>
         </div>
         """
@@ -1041,7 +1030,10 @@ def build_report_html(summary: dict[str, Any], plot_paths: dict[str, list[Path]]
     def glossary_cards() -> str:
         entries = [
             ("subtree_size", "这个 prefix 下面挂着多少个完整 SID leaf。数值越大，说明这个节点下面的候选空间越宽。"),
-            ("mean_effective_hint_depth", "平均需要多少层 hint 才能把这个节点相关的样本带到正确路径上。数值越大，整体越难。"),
+            (
+                "mean_effective_hint_depth",
+                "平均需要多少层 hint 才能把这个节点相关的样本带到正确路径上。数值越大，整体越难。",
+            ),
             ("need_hint_rate", "从 base 直接没猜中的比例，也可以理解成至少需要 1 层 hint 的比例。"),
             ("hint2_plus_rate", "至少需要 2 层 hint 的比例。它往往更能反映“第一跳没中后，后面会不会继续崩”。"),
             ("hint3_plus_rate", "至少需要 3 层 hint 的比例，已经是比较深的持续坍塌信号。"),
@@ -1070,23 +1062,23 @@ def build_report_html(summary: dict[str, Any], plot_paths: dict[str, list[Path]]
                 f"""
                 <figure
                   class="plot-card"
-                  data-task="{html.escape(meta['task'])}"
-                  data-depth="{html.escape(meta['depth'])}"
-                  data-kind="{html.escape(meta['kind'])}"
+                  data-task="{html.escape(meta["task"])}"
+                  data-depth="{html.escape(meta["depth"])}"
+                  data-kind="{html.escape(meta["kind"])}"
                 >
                   <div class="plot-meta">
-                    <span class="plot-chip">{html.escape(meta['kind_display'])}</span>
-                    <span class="plot-chip plot-chip-soft">{html.escape(meta['task_display'])}</span>
-                    <span class="plot-chip plot-chip-soft">{html.escape(meta['depth_display'])}</span>
+                    <span class="plot-chip">{html.escape(meta["kind_display"])}</span>
+                    <span class="plot-chip plot-chip-soft">{html.escape(meta["task_display"])}</span>
+                    <span class="plot-chip plot-chip-soft">{html.escape(meta["depth_display"])}</span>
                   </div>
-                  <a class="plot-link" href="{html.escape(meta['rel'])}" target="_blank" rel="noreferrer">
-                    <img src="{html.escape(meta['rel'])}" alt="{html.escape(meta['name'])}" loading="lazy">
+                  <a class="plot-link" href="{html.escape(meta["rel"])}" target="_blank" rel="noreferrer">
+                    <img src="{html.escape(meta["rel"])}" alt="{html.escape(meta["name"])}" loading="lazy">
                   </a>
                   <figcaption>
-                    <strong>{html.escape(meta['subtitle'])}</strong>
+                    <strong>{html.escape(meta["subtitle"])}</strong>
                     <span>{html.escape(plot_question(meta))}</span>
                     <span>{html.escape(plot_how_to_read(meta))}</span>
-                    <span class="plot-file">{html.escape(meta['name'])}</span>
+                    <span class="plot-file">{html.escape(meta["name"])}</span>
                   </figcaption>
                 </figure>
                 """
@@ -1094,13 +1086,13 @@ def build_report_html(summary: dict[str, Any], plot_paths: dict[str, list[Path]]
         return f"""
         <section class="section-block gallery-section" data-gallery-kind="{html.escape(kind)}">
           <div class="section-head">
-            <span class="eyebrow">{html.escape(kind_kicker_map.get(kind, '图册'))}</span>
+            <span class="eyebrow">{html.escape(kind_kicker_map.get(kind, "图册"))}</span>
             <h2>{html.escape(kind_label_map.get(kind, kind))}</h2>
             <p>点击图片可以直接打开原图；上方筛选条会在整页范围内同步过滤这些图卡。</p>
           </div>
           {section_guide(kind)}
           <div class="plot-grid">
-            {''.join(cards)}
+            {"".join(cards)}
           </div>
         </section>
         """

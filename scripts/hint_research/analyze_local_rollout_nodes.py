@@ -64,8 +64,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--bundle-root",
         default=(
-            "/Users/fanghaotian/Desktop/src/GenRec/output/local-research-bundles/"
-            "instruments_grec_hint_research_bundle"
+            "/Users/fanghaotian/Desktop/src/GenRec/output/local-research-bundles/instruments_grec_hint_research_bundle"
         ),
     )
     parser.add_argument("--output-dir")
@@ -122,10 +121,7 @@ def build_node_stats_rows(frame: pd.DataFrame) -> list[dict[str, Any]]:
                     sample_count=("sample_id", "size"),
                     fail_count=("label", "sum"),
                     fail_rate=("label", "mean"),
-                    **{
-                        feature: (feature, "mean")
-                        for feature in feature_columns(depth)
-                    },
+                    **{feature: (feature, "mean") for feature in feature_columns(depth)},
                 )
                 .reset_index()
             )
@@ -138,11 +134,23 @@ def build_node_stats_rows(frame: pd.DataFrame) -> list[dict[str, Any]]:
             else:
                 aggregated["parent_key"] = aggregated[parent_col]
             aggregated["token_key"] = aggregated[token_col]
-            aggregated = aggregated.sort_values(["fail_rate", "sample_count"], ascending=[False, False]).reset_index(drop=True)
+            aggregated = aggregated.sort_values(["fail_rate", "sample_count"], ascending=[False, False]).reset_index(
+                drop=True
+            )
             aggregated["fail_rate_rank"] = aggregated["fail_rate"].rank(method="dense", ascending=False).astype(int)
             rows.extend(
                 aggregated[
-                    ["transition", "task_label", "depth", "parent_key", "token_key", "sample_count", "fail_count", "fail_rate", "fail_rate_rank"]
+                    [
+                        "transition",
+                        "task_label",
+                        "depth",
+                        "parent_key",
+                        "token_key",
+                        "sample_count",
+                        "fail_count",
+                        "fail_rate",
+                        "fail_rate_rank",
+                    ]
                     + FEATURE_BASES
                 ].to_dict("records")
             )
@@ -180,7 +188,9 @@ def build_parent_stats_rows(frame: pd.DataFrame) -> list[dict[str, Any]]:
             aggregated["task_label"] = task_label
             aggregated["transition"] = transition["name"]
             aggregated["depth"] = depth
-            aggregated = aggregated.sort_values(["fail_count", "fail_rate", "sample_count"], ascending=[False, False, False]).reset_index(drop=True)
+            aggregated = aggregated.sort_values(
+                ["fail_count", "fail_rate", "sample_count"], ascending=[False, False, False]
+            ).reset_index(drop=True)
             aggregated["fail_count_rank"] = aggregated["fail_count"].rank(method="dense", ascending=False).astype(int)
             rows.extend(aggregated.to_dict("records"))
     return rows
@@ -277,12 +287,16 @@ def build_summary(
             }
         )
 
-    root_stats = node_stats[(node_stats["transition"] == "base_to_need_hint") & (node_stats["task_label"] == "all")].copy()
+    root_stats = node_stats[
+        (node_stats["transition"] == "base_to_need_hint") & (node_stats["task_label"] == "all")
+    ].copy()
     root_stats = root_stats[root_stats["sample_count"] >= 200].copy()
     summary["top_risky_roots"] = top_rows(root_stats, ["fail_rate", "sample_count"], [False, False], 15)
     summary["safest_roots"] = top_rows(root_stats, ["fail_rate", "sample_count"], [True, False], 15)
 
-    depth2_parent_stats = parent_stats[(parent_stats["transition"] == "hint1_to_need_hint2_plus") & (parent_stats["task_label"] == "all")].copy()
+    depth2_parent_stats = parent_stats[
+        (parent_stats["transition"] == "hint1_to_need_hint2_plus") & (parent_stats["task_label"] == "all")
+    ].copy()
     summary["worst_depth2_parents"] = top_rows(
         depth2_parent_stats[depth2_parent_stats["sample_count"] >= 500],
         ["fail_rate", "sample_count"],
@@ -290,12 +304,18 @@ def build_summary(
         15,
     )
 
-    depth3_parent_stats = parent_stats[(parent_stats["transition"] == "hint2_to_need_hint3_plus") & (parent_stats["task_label"] == "all")].copy()
-    summary["worst_depth3_parents_by_fail_count"] = top_rows(depth3_parent_stats, ["fail_count", "fail_rate"], [False, False], 15)
+    depth3_parent_stats = parent_stats[
+        (parent_stats["transition"] == "hint2_to_need_hint3_plus") & (parent_stats["task_label"] == "all")
+    ].copy()
+    summary["worst_depth3_parents_by_fail_count"] = top_rows(
+        depth3_parent_stats, ["fail_count", "fail_rate"], [False, False], 15
+    )
 
     concentration = []
     base_all = transition_frames["base_to_need_hint"]
-    root_ranked = root_stats.sort_values(["fail_rate", "sample_count"], ascending=[False, False]).reset_index(drop=True)
+    root_ranked = root_stats.sort_values(["fail_rate", "sample_count"], ascending=[False, False]).reset_index(
+        drop=True
+    )
     for top_k in [5, 10, 20]:
         top = root_ranked.head(top_k)
         concentration.append(
@@ -309,7 +329,9 @@ def build_summary(
         )
 
     hint1_all = transition_frames["hint1_to_need_hint2_plus"]
-    depth2_parent_ranked = depth2_parent_stats.sort_values(["fail_count", "fail_rate"], ascending=[False, False]).reset_index(drop=True)
+    depth2_parent_ranked = depth2_parent_stats.sort_values(
+        ["fail_count", "fail_rate"], ascending=[False, False]
+    ).reset_index(drop=True)
     for top_k in [5, 10, 20]:
         top = depth2_parent_ranked.head(top_k)
         concentration.append(
@@ -323,7 +345,9 @@ def build_summary(
         )
 
     hint2_all = transition_frames["hint2_to_need_hint3_plus"]
-    depth3_parent_ranked = depth3_parent_stats.sort_values(["fail_count", "fail_rate"], ascending=[False, False]).reset_index(drop=True)
+    depth3_parent_ranked = depth3_parent_stats.sort_values(
+        ["fail_count", "fail_rate"], ascending=[False, False]
+    ).reset_index(drop=True)
     for top_k in [5, 10, 20]:
         top = depth3_parent_ranked.head(top_k)
         concentration.append(
@@ -424,7 +448,10 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     explore = load_explore_module(repo_root)
-    difficulty_csv = bundle_root / "GenRec/output/jupyter-notebook/genrec-hint-cascade-artifacts/instruments_grec_beam16_hint_difficulty_table.csv"
+    difficulty_csv = (
+        bundle_root
+        / "GenRec/output/jupyter-notebook/genrec-hint-cascade-artifacts/instruments_grec_beam16_hint_difficulty_table.csv"
+    )
     id2sid_path = (
         bundle_root
         / "GenRec/data/Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47/id2sid.json"

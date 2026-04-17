@@ -20,7 +20,9 @@ class SyncRepoBundleTests(unittest.TestCase):
             archive_path = temp_root_path / "jj_bundle.tar.gz"
 
             source_root.mkdir(parents=True)
-            subprocess.run(["jj", "git", "init", "--colocate"], cwd=source_root, check=True, capture_output=True, text=True)
+            subprocess.run(
+                ["jj", "git", "init", "--colocate"], cwd=source_root, check=True, capture_output=True, text=True
+            )
             (source_root / "keep.txt").write_text("keep\n", encoding="utf-8")
             (source_root / "change.txt").write_text("base\n", encoding="utf-8")
             subprocess.run(["jj", "desc", "-m", "base"], cwd=source_root, check=True, capture_output=True, text=True)

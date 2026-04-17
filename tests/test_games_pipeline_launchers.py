@@ -8,11 +8,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 GAMES_INDEX_TRAIN_SCRIPT = (
-    REPO_ROOT
-    / "scripts"
-    / "index"
-    / "Games-qwen3-embedding-4B-rq4_cb256-256-256-256_sk0.0-0.0-0.0-0.003"
-    / "train.sh"
+    REPO_ROOT / "scripts" / "index" / "Games-qwen3-embedding-4B-rq4_cb256-256-256-256_sk0.0-0.0-0.0-0.003" / "train.sh"
 )
 GAMES_INDEX_GENERATE_SCRIPT = (
     REPO_ROOT
@@ -22,9 +18,7 @@ GAMES_INDEX_GENERATE_SCRIPT = (
     / "generate.sh"
 )
 
-GAMES_SFT_YAML = (
-    REPO_ROOT / "examples" / "train_full" / "Games" / "games_rec_full_sft_3b_dsz0_qwen4b_4_256.yaml"
-)
+GAMES_SFT_YAML = REPO_ROOT / "examples" / "train_full" / "Games" / "games_rec_full_sft_3b_dsz0_qwen4b_4_256.yaml"
 GAMES_GREC_SFT_YAML = (
     REPO_ROOT / "examples" / "train_full" / "Games" / "games_rec_full_sft_3b_dsz0_qwen4b_4_256_grec.yaml"
 )
@@ -167,7 +161,7 @@ class GamesPipelineLauncherTests(unittest.TestCase):
     def test_games_index_generate_script_publishes_stable_games_alias(self):
         script_text = GAMES_INDEX_GENERATE_SCRIPT.read_text(encoding="utf-8")
 
-        self.assertIn('Games.index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsGames.json', script_text)
+        self.assertIn("Games.index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsGames.json", script_text)
         self.assertIn("best_collision_model.pth", script_text)
         self.assertTrue("cp " in script_text or "ln -s" in script_text or "ln -sf" in script_text)
 
@@ -176,7 +170,9 @@ class GamesPipelineLauncherTests(unittest.TestCase):
         grec_launcher_text = GAMES_GREC_SFT_LAUNCHER.read_text(encoding="utf-8")
 
         self.assertIn("examples/train_full/Games/games_rec_full_sft_3b_dsz0_qwen4b_4_256.yaml", launcher_text)
-        self.assertIn("examples/train_full/Games/games_rec_full_sft_3b_dsz0_qwen4b_4_256_grec.yaml", grec_launcher_text)
+        self.assertIn(
+            "examples/train_full/Games/games_rec_full_sft_3b_dsz0_qwen4b_4_256_grec.yaml", grec_launcher_text
+        )
 
     def test_games_grec_yaml_uses_stable_games_grec_dataset_prefix(self):
         yaml_text = GAMES_GREC_SFT_YAML.read_text(encoding="utf-8")
@@ -204,7 +200,10 @@ class GamesPipelineLauncherTests(unittest.TestCase):
             script_text,
         )
         self.assertIn("Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft896", result.stdout)
-        self.assertIn("--output_dir /Users/fanghaotian/Desktop/src/GenRec/rl_outputs/Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft896", result.stdout)
+        self.assertIn(
+            "--output_dir /Users/fanghaotian/Desktop/src/GenRec/rl_outputs/Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft896",
+            result.stdout,
+        )
         self.assertIn("games_grec_rl_rule_only_rerun_quietlog_qwen2_5_3b_qwen4b_4_256_from_ckpt896", script_text)
         self.assertIn("--eval_on_start true", result.stdout)
 
@@ -236,7 +235,9 @@ class GamesPipelineLauncherTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("Games_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsGames", result.stdout)
-        self.assertIn("Games-grec-grpo-rule-only-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft896", result.stdout)
+        self.assertIn(
+            "Games-grec-grpo-rule-only-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft896", result.stdout
+        )
         self.assertIn("--reward_mode rule_only", result.stdout)
         self.assertIn("--dynamic_hint_max_depth 3", result.stdout)
         self.assertIn("--num_beams 16", result.stdout)

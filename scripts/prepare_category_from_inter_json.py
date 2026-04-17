@@ -262,9 +262,15 @@ def main() -> None:
     parser.add_argument(
         "--prepare-only", action="store_true", help="Only prepare staging files, skip preprocess_data_sft_rl.py"
     )
-    parser.add_argument("--rl-only-task1", action="store_true", help="Forward --rl_only_task1 to preprocess_data_sft_rl.py.")
-    parser.add_argument("--rl-only-task4", action="store_true", help="Forward --rl_only_task4 to preprocess_data_sft_rl.py.")
-    parser.add_argument("--rl-only-task5", action="store_true", help="Forward --rl_only_task5 to preprocess_data_sft_rl.py.")
+    parser.add_argument(
+        "--rl-only-task1", action="store_true", help="Forward --rl_only_task1 to preprocess_data_sft_rl.py."
+    )
+    parser.add_argument(
+        "--rl-only-task4", action="store_true", help="Forward --rl_only_task4 to preprocess_data_sft_rl.py."
+    )
+    parser.add_argument(
+        "--rl-only-task5", action="store_true", help="Forward --rl_only_task5 to preprocess_data_sft_rl.py."
+    )
     parser.add_argument(
         "--skip-dataset-info-update",
         action="store_true",

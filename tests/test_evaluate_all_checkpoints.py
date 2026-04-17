@@ -10,9 +10,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 EVALUATE_ALL_CHECKPOINTS_SCRIPT = REPO_ROOT / "scripts" / "evaluate_all_checkpoints.sh"
-EVALUATE_ALL_CHECKPOINTS_SIDECAR_SCRIPT = (
-    REPO_ROOT / "scripts" / "evaluate_all_checkpoints_sidecar.py"
-)
+EVALUATE_ALL_CHECKPOINTS_SIDECAR_SCRIPT = REPO_ROOT / "scripts" / "evaluate_all_checkpoints_sidecar.py"
 
 
 def load_sidecar_module():
@@ -161,14 +159,8 @@ class EvaluateAllCheckpointsTests(unittest.TestCase):
             arts_base_test.write_text("[]", encoding="utf-8")
             arts_base_index.write_text("{}", encoding="utf-8")
 
-            cb128_variant_dir = (
-                data_root
-                / "Arts_grec_index_emb-qwen3-embedding-4B_rq4_cb128-128-128-128_dsArts"
-            )
-            cb256_variant_dir = (
-                data_root
-                / "Arts_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsArts"
-            )
+            cb128_variant_dir = data_root / "Arts_grec_index_emb-qwen3-embedding-4B_rq4_cb128-128-128-128_dsArts"
+            cb256_variant_dir = data_root / "Arts_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsArts"
             for variant_dir in (cb128_variant_dir, cb256_variant_dir):
                 (variant_dir / "sft").mkdir(parents=True)
                 (variant_dir / "sft" / "test.json").write_text("[]", encoding="utf-8")

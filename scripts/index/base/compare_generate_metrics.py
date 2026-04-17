@@ -3,15 +3,11 @@ import argparse
 import json
 from pathlib import Path
 
-DEFAULT_GREC_ROOT = Path(
-    "/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec"
-)
+DEFAULT_GREC_ROOT = Path("/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Compare generate_metrics json files under index_train_runs"
-    )
+    parser = argparse.ArgumentParser(description="Compare generate_metrics json files under index_train_runs")
     parser.add_argument(
         "--grec-root",
         type=Path,

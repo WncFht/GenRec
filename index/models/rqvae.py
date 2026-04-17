@@ -44,9 +44,7 @@ class RQVAE(nn.Module):
         self.sk_iters = sk_iters
 
         self.encode_layer_dims = [self.in_dim] + self.layers + [self.e_dim]
-        self.encoder = MLPLayers(
-            layers=self.encode_layer_dims, dropout=self.dropout_prob, bn=self.bn
-        )
+        self.encoder = MLPLayers(layers=self.encode_layer_dims, dropout=self.dropout_prob, bn=self.bn)
 
         self.rq = ResidualVectorQuantizer(
             num_emb_list,
@@ -59,13 +57,9 @@ class RQVAE(nn.Module):
         )
 
         self.decode_layer_dims = self.encode_layer_dims[::-1]
-        self.decoder = MLPLayers(
-            layers=self.decode_layer_dims, dropout=self.dropout_prob, bn=self.bn
-        )
+        self.decoder = MLPLayers(layers=self.decode_layer_dims, dropout=self.dropout_prob, bn=self.bn)
 
-    def forward(
-        self, x: torch.Tensor, use_sk: bool = True
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(self, x: torch.Tensor, use_sk: bool = True) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         x = self.encoder(x)
         x_q, rq_loss, indices = self.rq(x, use_sk=use_sk)
         out = self.decoder(x_q)

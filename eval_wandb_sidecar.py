@@ -325,9 +325,7 @@ def parse_upload_variants(raw: str) -> tuple[str, ...]:
     return tuple(parsed)
 
 
-def apply_manifest_overrides(
-    manifest: dict[str, Any], overrides: dict[str, dict[str, Any]]
-) -> dict[str, Any]:
+def apply_manifest_overrides(manifest: dict[str, Any], overrides: dict[str, dict[str, Any]]) -> dict[str, Any]:
     if not overrides:
         return manifest
 
@@ -1060,9 +1058,7 @@ def main() -> int:
         args.results_root = resolve_path(args.results_root, cwd)
         args.manifest_path = resolve_path(args.manifest_path, cwd)
         args.state_dir = resolve_path(args.state_dir, cwd)
-        args.manifest_overrides = (
-            resolve_path(args.manifest_overrides, cwd) if args.manifest_overrides else None
-        )
+        args.manifest_overrides = resolve_path(args.manifest_overrides, cwd) if args.manifest_overrides else None
 
         if not args.results_root.is_dir():
             raise FileNotFoundError(f"results root not found: {args.results_root}")

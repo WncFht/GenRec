@@ -60,9 +60,7 @@ def preprocess_text(args):
     return item_text_list
 
 
-def generate_item_embedding(
-    args, item_text_list, tokenizer, model, accelerator, word_drop_ratio=-1
-):
+def generate_item_embedding(args, item_text_list, tokenizer, model, accelerator, word_drop_ratio=-1):
     """
     Multi-process embedding extraction without NCCL collectives.
 
@@ -103,9 +101,7 @@ def generate_item_embedding(
 
     def _mean_pool_last_hidden(last_hidden: torch.Tensor, attention_mask: torch.Tensor):
         mask = attention_mask.unsqueeze(-1).to(dtype=last_hidden.dtype)  # [B, S, 1]
-        sum_embeddings = torch.sum(
-            last_hidden * mask, dim=1, dtype=torch.float32
-        )  # [B, D]
+        sum_embeddings = torch.sum(last_hidden * mask, dim=1, dtype=torch.float32)  # [B, D]
         sum_mask = torch.clamp(mask.sum(dim=1, dtype=torch.float32), min=1e-9)  # [B, 1]
         return sum_embeddings / sum_mask
 
@@ -230,8 +226,7 @@ def generate_item_embedding(
     os.replace(part_ids_tmp, part_ids_path)
 
     print(
-        f"[rank{process_index}] Saved part files: {part_emb_path} and {part_ids_path} "
-        f"(n={len(local_texts)})",
+        f"[rank{process_index}] Saved part files: {part_emb_path} and {part_ids_path} (n={len(local_texts)})",
         flush=True,
     )
 
@@ -251,9 +246,7 @@ def generate_item_embedding(
 
     expected_counts = [_expected_count(r) for r in range(num_processes)]
     if sum(expected_counts) != total_items:
-        raise RuntimeError(
-            "Unexpected chunk sizing; please check process partition logic."
-        )
+        raise RuntimeError("Unexpected chunk sizing; please check process partition logic.")
 
     print("Rank0 waiting for all part files...", flush=True)
     missing = set(range(num_processes))
@@ -275,16 +268,13 @@ def generate_item_embedding(
             if last_missing != missing or now - last_report > 60:
                 waited = int(now - start_wait)
                 print(
-                    f"Waiting for part files from ranks: {sorted(missing)} "
-                    f"(waited {waited}s)",
+                    f"Waiting for part files from ranks: {sorted(missing)} (waited {waited}s)",
                     flush=True,
                 )
                 last_report = now
                 last_missing = set(missing)
             if time.time() - start_wait > 6 * 3600:
-                raise TimeoutError(
-                    f"Timed out waiting for part files from ranks: {sorted(missing)}"
-                )
+                raise TimeoutError(f"Timed out waiting for part files from ranks: {sorted(missing)}")
             time.sleep(2)
 
     part0 = np.load(f"{out_prefix}.{run_id}.part0.npy")
@@ -306,9 +296,7 @@ def generate_item_embedding(
         p_emb = np.load(f"{out_prefix}.{run_id}.part{r}.npy")
         p_emb = np.squeeze(p_emb)
         if p_emb.ndim != 2 or int(p_emb.shape[0]) != n_r or int(p_emb.shape[1]) != dim:
-            raise ValueError(
-                f"Part {r} shape mismatch: got {p_emb.shape}, expected ({n_r}, {dim})"
-            )
+            raise ValueError(f"Part {r} shape mismatch: got {p_emb.shape}, expected ({n_r}, {dim})")
         if p_emb.dtype != np.float32:
             p_emb = p_emb.astype(np.float32, copy=False)
         if not p_emb.flags["C_CONTIGUOUS"]:
@@ -320,9 +308,7 @@ def generate_item_embedding(
 
             ids_r = json.load(f)
         if len(ids_r) != n_r:
-            raise ValueError(
-                f"Part {r} ids length mismatch: len={len(ids_r)} expected={n_r}"
-            )
+            raise ValueError(f"Part {r} ids length mismatch: len={len(ids_r)} expected={n_r}")
         all_item_ids.extend(ids_r)
         offset += n_r
 
@@ -373,15 +359,11 @@ def load_qwen_model(model_path):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--dataset", type=str, default="Beauty", help="Beauty / Sports / Toys"
-    )
+    parser.add_argument("--dataset", type=str, default="Beauty", help="Beauty / Sports / Toys")
     parser.add_argument("--root", type=str, default="")
     # parser.add_argument('--gpu_id', type=int, default=0)
     parser.add_argument("--plm_name", type=str, default="qwen")
-    parser.add_argument(
-        "--plm_checkpoint", type=str, default="xxx", help="Qwen model path"
-    )
+    parser.add_argument("--plm_checkpoint", type=str, default="xxx", help="Qwen model path")
     parser.add_argument("--max_sent_len", type=int, default=2048)
     parser.add_argument(
         "--batch_size",
@@ -394,8 +376,7 @@ def parse_args():
         type=str,
         default=None,
         help=(
-            "Optional directory for temporary part files (recommended on network FS, "
-            "e.g. /tmp). Defaults to --root."
+            "Optional directory for temporary part files (recommended on network FS, e.g. /tmp). Defaults to --root."
         ),
     )
     parser.add_argument(
@@ -404,9 +385,7 @@ def parse_args():
         default=None,
         help="Unique run id for temp part files (recommended when num_processes>1).",
     )
-    parser.add_argument(
-        "--word_drop_ratio", type=float, default=-1, help="word drop ratio"
-    )
+    parser.add_argument("--word_drop_ratio", type=float, default=-1, help="word drop ratio")
     return parser.parse_args()
 
 

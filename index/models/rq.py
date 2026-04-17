@@ -54,9 +54,7 @@ class ResidualVectorQuantizer(nn.Module):
             all_codebook.append(codebook)
         return torch.stack(all_codebook)
 
-    def forward(
-        self, x: torch.Tensor, use_sk: bool = True
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(self, x: torch.Tensor, use_sk: bool = True) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         all_losses = []
         all_indices = []
 

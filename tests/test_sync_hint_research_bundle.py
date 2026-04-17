@@ -23,7 +23,8 @@ def _build_fake_remote_layout(tmp_path: Path) -> dict[str, Path | str]:
     data_variant = "Instruments_grec_fake_variant"
 
     _write_file(
-        repo_root / "output/jupyter-notebook/genrec-hint-cascade-artifacts/instruments_grec_beam16_hint_difficulty_table.csv",
+        repo_root
+        / "output/jupyter-notebook/genrec-hint-cascade-artifacts/instruments_grec_beam16_hint_difficulty_table.csv",
         "sample_id,task_label\n0,sid\n",
     )
     _write_file(

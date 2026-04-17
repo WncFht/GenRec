@@ -7,16 +7,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 INDEX_ROOT = REPO_ROOT / "index"
 INDEX_BASE_SCRIPTS_ROOT = REPO_ROOT / "scripts" / "index" / "base"
 GAMES_INDEX_SCRIPT_DIR = (
-    REPO_ROOT
-    / "scripts"
-    / "index"
-    / "Games-qwen3-embedding-4B-rq4_cb256-256-256-256_sk0.0-0.0-0.0-0.003"
+    REPO_ROOT / "scripts" / "index" / "Games-qwen3-embedding-4B-rq4_cb256-256-256-256_sk0.0-0.0-0.0-0.003"
 )
 INSTRUMENTS_INDEX_SCRIPT_DIR = (
-    REPO_ROOT
-    / "scripts"
-    / "index"
-    / "Instruments-qwen3-embedding-4B-rq4_cb256-256-256-256_sk0.0-0.0-0.0-0.003"
+    REPO_ROOT / "scripts" / "index" / "Instruments-qwen3-embedding-4B-rq4_cb256-256-256-256_sk0.0-0.0-0.0-0.003"
 )
 
 
@@ -64,12 +58,12 @@ class LocalIndexPipelineTests(unittest.TestCase):
 
         games_train_text = games_train.read_text(encoding="utf-8")
         self.assertIn(': "${DATASET:=Games}"', games_train_text)
-        self.assertIn('scripts/index/base/train.sh', games_train_text)
+        self.assertIn("scripts/index/base/train.sh", games_train_text)
         self.assertNotIn("GRec_public", games_train_text)
 
         games_generate_text = games_generate.read_text(encoding="utf-8")
-        self.assertIn('Games.index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsGames.json', games_generate_text)
-        self.assertIn('scripts/index/base/generate.sh', games_generate_text)
+        self.assertIn("Games.index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsGames.json", games_generate_text)
+        self.assertIn("scripts/index/base/generate.sh", games_generate_text)
         self.assertNotIn("GRec_public", games_generate_text)
 
     def test_text_embedding_entrypoint_uses_local_index_module(self):

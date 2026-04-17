@@ -7,14 +7,10 @@ from index.utils import load_json
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Generate *.emb-*-td.ids.json for an existing embedding file."
-    )
+    parser = argparse.ArgumentParser(description="Generate *.emb-*-td.ids.json for an existing embedding file.")
     parser.add_argument("--dataset", type=str, required=True, help="Dataset name")
     parser.add_argument("--root", type=str, required=True, help="Dataset directory")
-    parser.add_argument(
-        "--plm_name", type=str, required=True, help="Embedding model name"
-    )
+    parser.add_argument("--plm_name", type=str, required=True, help="Embedding model name")
     parser.add_argument(
         "--emb_path",
         type=str,
@@ -71,9 +67,7 @@ def main():
                 "please re-run build_embeddings.py to regenerate both .npy and .ids.json."
             )
 
-    ids_path = os.path.join(
-        args.root, f"{args.dataset}.emb-{args.plm_name}-td.ids.json"
-    )
+    ids_path = os.path.join(args.root, f"{args.dataset}.emb-{args.plm_name}-td.ids.json")
     os.makedirs(args.root, exist_ok=True)
     import json
 

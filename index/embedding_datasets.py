@@ -45,16 +45,12 @@ class MultiEmbDataset(data.Dataset):
             if emb.ndim == 1:
                 emb = emb.reshape(1, -1)
             if emb.ndim != 2:
-                raise ValueError(
-                    f"Expected a 2D array after squeeze, got shape={emb.shape} from {p}"
-                )
+                raise ValueError(f"Expected a 2D array after squeeze, got shape={emb.shape} from {p}")
 
             if self.dim is None:
                 self.dim = emb.shape[-1]
             elif emb.shape[-1] != self.dim:
-                raise ValueError(
-                    f"Embedding dim mismatch: expected dim={self.dim}, got dim={emb.shape[-1]} from {p}"
-                )
+                raise ValueError(f"Embedding dim mismatch: expected dim={self.dim}, got dim={emb.shape[-1]} from {p}")
 
             self.embeddings_list.append(emb)
             total += len(emb)

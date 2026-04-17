@@ -150,7 +150,9 @@ def summarize_index(index_path: str, preview: int) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Inspect input data for preprocess_data_sft_rl.py.")
-    parser.add_argument("--category-dir", required=True, help="Path to raw category directory, e.g. /path/to/data/Instruments")
+    parser.add_argument(
+        "--category-dir", required=True, help="Path to raw category directory, e.g. /path/to/data/Instruments"
+    )
     parser.add_argument("--category", default=None, help="Category name. Defaults to basename of category-dir.")
     parser.add_argument("--index-path", default=None, help="Specific index json to inspect.")
     parser.add_argument("--preview", type=int, default=3, help="How many sample entries to print for each file.")

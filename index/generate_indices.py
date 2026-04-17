@@ -62,9 +62,7 @@ def get_collision_item(all_keys):
         index2id[key].append(i)  # 将项目ID添加到对应索引的列表中
 
     # 只保留有冲突的item（即出现次数大于1的索引）
-    collision_item_groups = [
-        index2id[index] for index in index2id if len(index2id[index]) > 1
-    ]
+    collision_item_groups = [index2id[index] for index in index2id if len(index2id[index]) > 1]
     return collision_item_groups
 
 
@@ -94,9 +92,7 @@ def _key_to_tokens(key: tuple[int, ...], prefix: list[str]) -> list[str]:
     return [prefix[i].format(int(ind)) for i, ind in enumerate(key)]
 
 
-def _dataset_spans(
-    datasets: list[str], data: MultiEmbDataset
-) -> list[tuple[str, int, int]]:
+def _dataset_spans(datasets: list[str], data: MultiEmbDataset) -> list[tuple[str, int, int]]:
     if len(datasets) != len(data.embeddings_list):
         raise ValueError(
             f"--datasets length ({len(datasets)}) must match data_paths length ({len(data.embeddings_list)})."
@@ -110,9 +106,7 @@ def _dataset_spans(
     return spans
 
 
-def _dataset_ids_for_global_indices(
-    spans: list[tuple[str, int, int]], n: int
-) -> list[int]:
+def _dataset_ids_for_global_indices(spans: list[tuple[str, int, int]], n: int) -> list[int]:
     dataset_ids = [-1] * n
     for ds_id, (_ds, start, end) in enumerate(spans):
         for i in range(start, end):
@@ -189,54 +183,30 @@ def _extract_train_data_paths(model_args) -> list[str]:
     return _as_str_list(_get_attr(model_args, "data_path", None))
 
 
-def _build_auto_output_suffix(
-    ckpt_path: str, model_args, fallback_data_paths: list[str]
-) -> str:
+def _build_auto_output_suffix(ckpt_path: str, model_args, fallback_data_paths: list[str]) -> str:
     train_data_paths = _extract_train_data_paths(model_args)
     if not train_data_paths:
         train_data_paths = list(fallback_data_paths)
 
     train_datasets = _unique_keep_order(
-        [
-            ds
-            for ds in (_infer_dataset_name_from_path(path) for path in train_data_paths)
-            if ds
-        ]
+        [ds for ds in (_infer_dataset_name_from_path(path) for path in train_data_paths) if ds]
     )
     train_embeddings = _unique_keep_order(
-        [
-            emb
-            for emb in (
-                _infer_embedding_model_from_path(path) for path in train_data_paths
-            )
-            if emb
-        ]
+        [emb for emb in (_infer_embedding_model_from_path(path) for path in train_data_paths) if emb]
     )
 
     num_emb_list = _as_int_list(_get_attr(model_args, "num_emb_list", None))
     rq_layers = len(num_emb_list)
     cb_tag = "-".join(str(x) for x in num_emb_list) if num_emb_list else "na"
 
-    embedding_tag = (
-        "-".join(_slug(x) for x in train_embeddings)
-        if train_embeddings
-        else "unknown-emb"
-    )
-    dataset_tag = (
-        "-".join(_slug(x) for x in train_datasets) if train_datasets else "unknown-ds"
-    )
+    embedding_tag = "-".join(_slug(x) for x in train_embeddings) if train_embeddings else "unknown-emb"
+    dataset_tag = "-".join(_slug(x) for x in train_datasets) if train_datasets else "unknown-ds"
 
     run_id = _slug(os.path.basename(os.path.dirname(os.path.abspath(ckpt_path))))
     if run_id == "na":
         run_id = _slug(os.path.splitext(os.path.basename(ckpt_path))[0])
 
-    suffix = (
-        f".index_emb-{embedding_tag}"
-        f"_rq{rq_layers}"
-        f"_cb{_slug(cb_tag)}"
-        f"_ds{dataset_tag}"
-        f"_rid{run_id}.json"
-    )
+    suffix = f".index_emb-{embedding_tag}_rq{rq_layers}_cb{_slug(cb_tag)}_ds{dataset_tag}_rid{run_id}.json"
     return suffix
 
 
@@ -245,10 +215,7 @@ def _infer_datasets_from_data_paths(data_paths: list[str]) -> list[str]:
     for path in data_paths:
         ds = _infer_dataset_name_from_path(path)
         if not ds:
-            raise ValueError(
-                "Cannot infer dataset name from data_path. "
-                "Please pass --dataset/--datasets explicitly."
-            )
+            raise ValueError("Cannot infer dataset name from data_path. Please pass --dataset/--datasets explicitly.")
         datasets.append(ds)
     return datasets
 
@@ -280,9 +247,7 @@ def _write_generate_metrics(
         "collision_rate": float(collision_rate),
         "max_conflicts": int(max_conflicts),
         "cross_dataset_collision_groups_round0": (
-            int(cross_dataset_collision_groups_round0)
-            if cross_dataset_collision_groups_round0 is not None
-            else None
+            int(cross_dataset_collision_groups_round0) if cross_dataset_collision_groups_round0 is not None else None
         ),
     }
 
@@ -302,17 +267,12 @@ def main(args):
     device = torch.device(args.device)
 
     # 加载模型检查点
-    ckpt = torch.load(
-        args.ckpt_path, map_location=torch.device("cpu"), weights_only=False
-    )  # 加载检查点到 CPU
+    ckpt = torch.load(args.ckpt_path, map_location=torch.device("cpu"), weights_only=False)  # 加载检查点到 CPU
     model_args = ckpt["args"]  # 从检查点中获取训练参数
     state_dict = ckpt["state_dict"]  # 从检查点中获取模型状态字典
 
     # 加载嵌入数据集：优先使用命令行传入的 data_path(s)，否则使用 checkpoint 中保存的 data_path(s)
-    if (
-        getattr(args, "data_paths", None) is not None
-        and getattr(args, "data_path", None) is not None
-    ):
+    if getattr(args, "data_paths", None) is not None and getattr(args, "data_path", None) is not None:
         raise ValueError("Please use either --data_path or --data_paths, not both.")
 
     if getattr(args, "data_paths", None) is not None:
@@ -328,17 +288,13 @@ def main(args):
             "or use a checkpoint with saved training data path(s)."
         )
 
-    datasets = _parse_datasets_arg(
-        getattr(args, "dataset", None), getattr(args, "datasets", None)
-    )
+    datasets = _parse_datasets_arg(getattr(args, "dataset", None), getattr(args, "datasets", None))
     if not datasets:
         datasets = _infer_datasets_from_data_paths(data_paths)
 
     multi_output = len(datasets) > 1
     if multi_output and getattr(args, "output_file", None) is not None:
-        raise ValueError(
-            "In multi-output mode, please use --output_suffix, not --output_file."
-        )
+        raise ValueError("In multi-output mode, please use --output_suffix, not --output_file.")
 
     if multi_output and len(data_paths) != len(datasets):
         raise ValueError(
@@ -348,16 +304,10 @@ def main(args):
 
     output_suffix = args.output_suffix
     if not output_suffix:
-        output_suffix = _build_auto_output_suffix(
-            args.ckpt_path, model_args, data_paths
-        )
+        output_suffix = _build_auto_output_suffix(args.ckpt_path, model_args, data_paths)
         print(f"[auto_name] output_suffix={output_suffix}")
 
-    data = (
-        MultiEmbDataset(data_paths)
-        if len(data_paths) > 1
-        else EmbDataset(data_paths[0])
-    )  # 加载嵌入数据集
+    data = MultiEmbDataset(data_paths) if len(data_paths) > 1 else EmbDataset(data_paths[0])  # 加载嵌入数据集
 
     # 初始化 RQVAE 模型
     model = RQVAE(
@@ -397,9 +347,7 @@ def main(args):
     # 遍历数据加载器，生成初始索引
     for d in tqdm(data_loader):
         d = d.to(device)
-        indices = model.get_indices(
-            d, use_sk=False
-        )  # 获取模型索引，不使用 Sinkhorn-Knopp
+        indices = model.get_indices(d, use_sk=False)  # 获取模型索引，不使用 Sinkhorn-Knopp
         # 将索引展平并转换为 numpy 数组
         indices = indices.view(-1, indices.shape[-1]).cpu().numpy()
         for index in indices:
@@ -443,13 +391,9 @@ def main(args):
         for collision_items in collision_item_groups:
             d = data[collision_items].to(device)  # 获取发生碰撞的数据
 
-            indices = model.get_indices(
-                d, use_sk=True
-            )  # 使用 Sinkhorn-Knopp 算法重新获取索引
+            indices = model.get_indices(d, use_sk=True)  # 使用 Sinkhorn-Knopp 算法重新获取索引
             indices = indices.view(-1, indices.shape[-1]).cpu().numpy()
-            for item, index in zip(
-                collision_items, indices, strict=False
-            ):  # 遍历碰撞项目和新的索引
+            for item, index in zip(collision_items, indices, strict=False):  # 遍历碰撞项目和新的索引
                 all_indices[item] = index
                 all_keys[item] = _build_key(index)
         tt += 1
@@ -510,9 +454,7 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Generate indices for Multimodal Recommendation Model"
-    )
+    parser = argparse.ArgumentParser(description="Generate indices for Multimodal Recommendation Model")
     parser.add_argument(
         "--dataset",
         type=str,
@@ -526,9 +468,7 @@ if __name__ == "__main__":
         default=None,
         help="Multiple dataset names (space separated).",
     )
-    parser.add_argument(
-        "--ckpt_path", type=str, required=True, help="Path to model checkpoint"
-    )
+    parser.add_argument("--ckpt_path", type=str, required=True, help="Path to model checkpoint")
     parser.add_argument(
         "--data_path",
         type=str,
@@ -542,26 +482,18 @@ if __name__ == "__main__":
         default=None,
         help="Optional override for embedding .npy paths (multiple datasets).",
     )
-    parser.add_argument(
-        "--output_dir", type=str, default="./data", help="Output directory"
-    )
+    parser.add_argument("--output_dir", type=str, default="./data", help="Output directory")
     parser.add_argument(
         "--output_file",
         type=str,
         default=None,
-        help=(
-            "Output JSON file name (single-output mode). "
-            "If omitted, auto-naming is used."
-        ),
+        help=("Output JSON file name (single-output mode). If omitted, auto-naming is used."),
     )
     parser.add_argument(
         "--output_suffix",
         type=str,
         default=None,
-        help=(
-            "Output suffix for auto output naming. "
-            "Default: auto-generated rich suffix with emb/rq/cb/ds/rid."
-        ),
+        help=("Output suffix for auto output naming. Default: auto-generated rich suffix with emb/rq/cb/ds/rid."),
     )
     parser.add_argument(
         "--device",
@@ -569,9 +501,7 @@ if __name__ == "__main__":
         default="cuda:0",
         help="Device to use (e.g., cuda:0 or cpu)",
     )
-    parser.add_argument(
-        "--batch_size", type=int, default=64, help="Batch size for data loading"
-    )
+    parser.add_argument("--batch_size", type=int, default=64, help="Batch size for data loading")
     parser.add_argument(
         "--max_reencode_rounds",
         type=int,

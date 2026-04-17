@@ -82,9 +82,7 @@ class TrainLoopEngine:
                 finite_mask = flat_finite.all(dim=1)
                 num_bad = int((~finite_mask).sum().item())
                 if num_bad > 0 and self.is_main_process:
-                    self.logger.warning(
-                        f"Train epoch {epoch_idx}: dropping {num_bad} samples with NaN/Inf."
-                    )
+                    self.logger.warning(f"Train epoch {epoch_idx}: dropping {num_bad} samples with NaN/Inf.")
                 data = data[finite_mask]
                 if data.size(0) == 0:
                     continue
@@ -124,9 +122,7 @@ class TrainLoopEngine:
             return
 
         if self.distributed and not self.is_main_process:
-            self.logger.info(
-                "Waiting for LARGE SCALE K-Means initialization on rank 0..."
-            )
+            self.logger.info("Waiting for LARGE SCALE K-Means initialization on rank 0...")
         self.logger.info("Performing LARGE SCALE K-Means initialization...")
 
         did_init = False
@@ -134,9 +130,7 @@ class TrainLoopEngine:
             dataset = getattr(train_data, "dataset", train_data)
             init_size = min(50000, len(dataset))
             if init_size <= 0:
-                self.logger.warning(
-                    "Skip LARGE SCALE K-Means initialization: empty dataset."
-                )
+                self.logger.warning("Skip LARGE SCALE K-Means initialization: empty dataset.")
                 init_size = 0
 
             init_data = None
@@ -168,18 +162,14 @@ class TrainLoopEngine:
                     collected_num = 0
                     for batch in train_data:
                         batch_tensor = (
-                            batch
-                            if isinstance(batch, torch.Tensor)
-                            else torch.as_tensor(batch, dtype=torch.float32)
+                            batch if isinstance(batch, torch.Tensor) else torch.as_tensor(batch, dtype=torch.float32)
                         )
                         collected.append(batch_tensor)
                         collected_num += batch_tensor.shape[0]
                         if collected_num >= init_size:
                             break
                     if not collected:
-                        raise ValueError(
-                            "Failed to collect init data for K-Means initialization."
-                        ) from err
+                        raise ValueError("Failed to collect init data for K-Means initialization.") from err
                     init_data = torch.cat(collected, dim=0)[:init_size].to(self.device)
 
             if init_data is not None and init_data.numel() > 0:
@@ -187,15 +177,11 @@ class TrainLoopEngine:
                 finite_mask = flat_finite.all(dim=1)
                 num_bad = int((~finite_mask).sum().item())
                 if num_bad > 0:
-                    self.logger.warning(
-                        f"LARGE SCALE K-Means init: dropping {num_bad} samples with NaN/Inf."
-                    )
+                    self.logger.warning(f"LARGE SCALE K-Means init: dropping {num_bad} samples with NaN/Inf.")
                     init_data = init_data[finite_mask]
 
             if init_data is None or init_data.numel() == 0:
-                self.logger.warning(
-                    "Skip LARGE SCALE K-Means initialization: empty init_data."
-                )
+                self.logger.warning("Skip LARGE SCALE K-Means initialization: empty init_data.")
             else:
                 with torch.no_grad():
                     self.model(init_data)
@@ -221,9 +207,7 @@ class TrainLoopEngine:
         eval_loader = None
 
         for epoch_idx in range(self.epochs):
-            if self.distributed and hasattr(
-                getattr(train_loader, "sampler", None), "set_epoch"
-            ):
+            if self.distributed and hasattr(getattr(train_loader, "sampler", None), "set_epoch"):
                 train_loader.sampler.set_epoch(epoch_idx)
 
             training_start_time = time()
@@ -266,9 +250,7 @@ class TrainLoopEngine:
                         shuffle=False,
                         pin_memory=True,
                     )
-                collision_rate, avg_utilization = self.trainer.eval_engine.valid_epoch(
-                    eval_loader
-                )
+                collision_rate, avg_utilization = self.trainer.eval_engine.valid_epoch(eval_loader)
 
                 if train_loss < self.trainer.best_loss:
                     self.trainer.best_loss = train_loss

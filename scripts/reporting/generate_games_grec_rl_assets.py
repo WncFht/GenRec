@@ -58,7 +58,9 @@ def _discover_variant_steps(model_dir: str) -> list[int]:
     return [int(path.parent.name.split("-")[-1]) for path in metrics_files]
 
 
-def load_variant_rows(model_dir: str, num_train_epochs: float, max_step_override: int | None = None) -> list[dict[str, object]]:
+def load_variant_rows(
+    model_dir: str, num_train_epochs: float, max_step_override: int | None = None
+) -> list[dict[str, object]]:
     root = RESULTS_ROOT / model_dir
     metrics_files = sorted(root.glob("checkpoint-*/metrics.json"))
     rows: list[dict[str, object]] = []

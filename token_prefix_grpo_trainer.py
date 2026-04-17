@@ -188,7 +188,9 @@ class TokenPrefixGRPOTrainer(GRPOTrainer):
         device = self.accelerator.device
         prompts = [x["prompt"] for x in inputs]
         completions_text = self.processing_class.batch_decode(outputs["completion_ids"], skip_special_tokens=True)
-        reward_kwargs = {key: [example[key] for example in inputs] for key in inputs[0] if key not in ["prompt", "completion"]}
+        reward_kwargs = {
+            key: [example[key] for example in inputs] for key in inputs[0] if key not in ["prompt", "completion"]
+        }
         reward_models = reward_kwargs.get("reward_model", [])
 
         # 1) Prefix token rewards (local), local prefix sequence rewards, and token error mask.
@@ -212,7 +214,9 @@ class TokenPrefixGRPOTrainer(GRPOTrainer):
                 prefix_positive_local = (prefix_seq_local > 0).float()
                 prefix_positive_global = gather(prefix_positive_local)
                 group_has_prefix_global = (
-                    prefix_positive_global.view(-1, self.num_generations).max(dim=1).values.repeat_interleave(self.num_generations)
+                    prefix_positive_global.view(-1, self.num_generations)
+                    .max(dim=1)
+                    .values.repeat_interleave(self.num_generations)
                 )
                 group_has_prefix_local = group_has_prefix_global[process_slice].unsqueeze(1)
                 ndcg_rank_local = self._build_ndcg_rank_penalties(len(prompts), device=device)
@@ -274,7 +278,9 @@ class TokenPrefixGRPOTrainer(GRPOTrainer):
         outputs["advantages"] = token_advantages
 
         mode = "eval" if self.control.should_evaluate else "train"
-        nonzero_ratio = ((token_advantages.abs() > 0).float() * completion_mask).sum() / completion_mask.sum().clamp_min(1.0)
+        nonzero_ratio = (
+            (token_advantages.abs() > 0).float() * completion_mask
+        ).sum() / completion_mask.sum().clamp_min(1.0)
         self._metrics[mode]["token_adv_nonzero_ratio"].append(
             self.accelerator.gather_for_metrics(nonzero_ratio).mean().item()
         )

@@ -75,7 +75,9 @@ def _to_float(value, default: float = 0.0) -> float:
         return default
 
 
-def build_dataframes(info: dict[str, str], train_rows: list[dict], eval_rows: list[dict]) -> tuple[pd.DataFrame, pd.DataFrame]:
+def build_dataframes(
+    info: dict[str, str], train_rows: list[dict], eval_rows: list[dict]
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     hint_ce_loss_coef = _to_float(info.get("HINT_CE_LOSS_COEF"), 0.0)
     grad_acc = max(int(float(info.get("GRAD_ACC", "1"))), 1)
 
@@ -214,7 +216,9 @@ def plot_entropy(train_df: pd.DataFrame, eval_df: pd.DataFrame, out_path: Path) 
     ax.plot(train_df["epoch"], train_df["entropy"], color="#4c78a8", alpha=0.20, linewidth=1)
     ax.plot(train_df["epoch"], _rolling(train_df["entropy"]), color="#4c78a8", linewidth=2, label="Train entropy")
     if not eval_df.empty:
-        ax.plot(eval_df["epoch"], eval_df["eval_entropy"], color="#e76f51", linewidth=1.5, marker="o", label="Eval entropy")
+        ax.plot(
+            eval_df["epoch"], eval_df["eval_entropy"], color="#e76f51", linewidth=1.5, marker="o", label="Eval entropy"
+        )
     ax.set_title("Entropy vs Epoch")
     ax.set_xlabel("Epoch")
     ax.set_ylabel("Entropy")

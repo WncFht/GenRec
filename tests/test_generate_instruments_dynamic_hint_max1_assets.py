@@ -13,7 +13,9 @@ SCRIPT_PATH = REPO_ROOT / "scripts" / "reporting" / "generate_instruments_dynami
 
 
 def _load_module():
-    spec = importlib.util.spec_from_file_location("generate_instruments_dynamic_hint_max1_assets_under_test", SCRIPT_PATH)
+    spec = importlib.util.spec_from_file_location(
+        "generate_instruments_dynamic_hint_max1_assets_under_test", SCRIPT_PATH
+    )
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)
@@ -51,8 +53,14 @@ class GenerateInstrumentsDynamicHintMax1AssetsTests(unittest.TestCase):
 
             fixtures = {
                 "Instruments-grec-grpo-rule-only-dynamic-hint-max1-qwen2.5-3b-qwen4B-4-256-from-sft495": (333, 1665),
-                "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495": (333, 3326),
-                "Instruments-grec-grpo-rule-only-dynamic-hint-sid-only-qwen2.5-3b-qwen4B-4-256-from-sft495": (266, 2652),
+                "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495": (
+                    333,
+                    3326,
+                ),
+                "Instruments-grec-grpo-rule-only-dynamic-hint-sid-only-qwen2.5-3b-qwen4B-4-256-from-sft495": (
+                    266,
+                    2652,
+                ),
                 "Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495": (333, 3326),
                 "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495": (266, 2652),
             }
@@ -90,13 +98,29 @@ class GenerateInstrumentsDynamicHintMax1AssetsTests(unittest.TestCase):
             sft_path.write_text(json.dumps({"NDCG@10": 0.0823, "HR@10": 0.1094, "NDCG@50": 0.0985, "HR@50": 0.1844}))
 
             fixtures = {
-                "Instruments-grec-grpo-rule-only-dynamic-hint-max1-qwen2.5-3b-qwen4B-4-256-from-sft495": (333, 999, 1665),
-                "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495": (333, 1332, 3326),
-                "Instruments-grec-grpo-rule-only-dynamic-hint-sid-only-qwen2.5-3b-qwen4B-4-256-from-sft495": (266, 2394, 2652),
+                "Instruments-grec-grpo-rule-only-dynamic-hint-max1-qwen2.5-3b-qwen4B-4-256-from-sft495": (
+                    333,
+                    999,
+                    1665,
+                ),
+                "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495": (
+                    333,
+                    1332,
+                    3326,
+                ),
+                "Instruments-grec-grpo-rule-only-dynamic-hint-sid-only-qwen2.5-3b-qwen4B-4-256-from-sft495": (
+                    266,
+                    2394,
+                    2652,
+                ),
                 "Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495": (333, 999, 3326),
                 "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495": (266, 2394, 2652),
                 "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495": (333, 1665, 3326),
-                "Instruments-grec-grpo-rule-only-fixed-hint-mixed-single-generate-qwen2.5-3b-qwen4B-4-256-from-sft495": (333, 2331, 3326),
+                "Instruments-grec-grpo-rule-only-fixed-hint-mixed-single-generate-qwen2.5-3b-qwen4B-4-256-from-sft495": (
+                    333,
+                    2331,
+                    3326,
+                ),
             }
 
             for model_dir, steps in fixtures.items():
@@ -130,8 +154,14 @@ class GenerateInstrumentsDynamicHintMax1AssetsTests(unittest.TestCase):
 
             fixtures = {
                 "Instruments-grec-grpo-rule-only-dynamic-hint-max1-qwen2.5-3b-qwen4B-4-256-from-sft495": (333, 1665),
-                "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495": (333, 3326),
-                "Instruments-grec-grpo-rule-only-dynamic-hint-sid-only-qwen2.5-3b-qwen4B-4-256-from-sft495": (266, 2652),
+                "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495": (
+                    333,
+                    3326,
+                ),
+                "Instruments-grec-grpo-rule-only-dynamic-hint-sid-only-qwen2.5-3b-qwen4B-4-256-from-sft495": (
+                    266,
+                    2652,
+                ),
                 "Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495": (333, 3326),
                 "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495": (266, 2652),
             }

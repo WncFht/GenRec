@@ -33,12 +33,16 @@ def _parse_task_names(raw_task_names: Optional[str]) -> Optional[list[str]]:
 def _filter_dataset_by_task_names(dataset, split_name: str, raw_task_names: Optional[str]):
     requested_task_names = _parse_task_names(raw_task_names)
     if not requested_task_names:
-        return dataset, None, sorted(
-            {
-                str(example.get("extra_info", {}).get("task", "")).strip()
-                for example in dataset
-                if str(example.get("extra_info", {}).get("task", "")).strip()
-            }
+        return (
+            dataset,
+            None,
+            sorted(
+                {
+                    str(example.get("extra_info", {}).get("task", "")).strip()
+                    for example in dataset
+                    if str(example.get("extra_info", {}).get("task", "")).strip()
+                }
+            ),
         )
 
     requested_task_name_set = set(requested_task_names)
@@ -57,7 +61,9 @@ def _filter_dataset_by_task_names(dataset, split_name: str, raw_task_names: Opti
             selected_indices.append(index)
 
     if not available_task_names:
-        raise ValueError(f"empty filtered {split_name} split after applying tasks {requested_task_names}; available tasks: []")
+        raise ValueError(
+            f"empty filtered {split_name} split after applying tasks {requested_task_names}; available tasks: []"
+        )
 
     unknown_task_names = sorted(requested_task_name_set - available_task_names)
     if unknown_task_names:
@@ -335,8 +341,7 @@ def main(
         + ", ".join(f"{name}={format_typed_value(value)}" for name, value in raw_bool_args.items())
     )
     print_main_process(
-        "[INFO] parsed_bool_args="
-        + ", ".join(f"{name}={value!r}" for name, value in parsed_bool_args.items())
+        "[INFO] parsed_bool_args=" + ", ".join(f"{name}={value!r}" for name, value in parsed_bool_args.items())
     )
     print_main_process(
         f"[INFO] reward_mode={reward_mode}, "

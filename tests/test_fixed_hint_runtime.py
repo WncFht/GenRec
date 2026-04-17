@@ -47,7 +47,7 @@ def _install_dependency_stubs():
     if "evaluate" not in sys.modules:
         evaluate_mod = types.ModuleType("evaluate")
         evaluate_mod.build_trie_from_index = lambda *args, **kwargs: ([], [], 3)
-        evaluate_mod.create_prefix_allowed_tokens_fn = lambda *args, **kwargs: (lambda prefix_ids: [0])
+        evaluate_mod.create_prefix_allowed_tokens_fn = lambda *args, **kwargs: lambda prefix_ids: [0]
         sys.modules["evaluate"] = evaluate_mod
 
 

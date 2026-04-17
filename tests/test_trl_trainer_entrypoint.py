@@ -81,11 +81,7 @@ FIXED_HINT_PREFIX_SEQ_SID_ONLY_SCRIPT = (
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix-seq-only-fixed-hint-sid-only.sh"
 )
-GREC_RL_SCRIPT_DIR = (
-    REPO_ROOT
-    / "hope"
-    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
-)
+GREC_RL_SCRIPT_DIR = REPO_ROOT / "hope" / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
 
 
 class StopAfterTrainerInit(RuntimeError):
@@ -153,7 +149,9 @@ def _load_trl_trainer_module(
     sys.modules["trl"] = trl_mod
 
     cli_utils_mod = types.ModuleType("cli_utils")
-    cli_utils_mod.coerce_bool_arg = lambda value, arg_name: value if isinstance(value, bool) else str(value).lower() == "true"
+    cli_utils_mod.coerce_bool_arg = lambda value, arg_name: (
+        value if isinstance(value, bool) else str(value).lower() == "true"
+    )
     cli_utils_mod.format_typed_value = lambda value: repr(value)
     sys.modules["cli_utils"] = cli_utils_mod
 
@@ -207,7 +205,9 @@ def _load_trl_trainer_module(
     util_mod = types.ModuleType("util")
     util_mod.build_constrained_logits_processor = lambda *args, **kwargs: None
     util_mod.build_fixed_hint_constrained_logits_processor = lambda *args, **kwargs: None
-    util_mod.print_main_process = lambda *args, **kwargs: print(*args, **kwargs) if os.environ.get("RANK", "0") == "0" else None
+    util_mod.print_main_process = lambda *args, **kwargs: (
+        print(*args, **kwargs) if os.environ.get("RANK", "0") == "0" else None
+    )
     util_mod.quiet_non_main_process_logging = lambda: None
     sys.modules["util"] = util_mod
 
@@ -913,7 +913,9 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         result = self._run_fixed_hint_sid_only_dry_run()
 
         self.assertEqual(result.returncode, 0, msg=result.stderr)
-        self.assertIn('DATA_VARIANT_DEFAULT="${DATA_VARIANT_DEFAULT:-Instruments_grec_rlsidonly_index_emb', script_text)
+        self.assertIn(
+            'DATA_VARIANT_DEFAULT="${DATA_VARIANT_DEFAULT:-Instruments_grec_rlsidonly_index_emb', script_text
+        )
         self.assertIn(
             "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495",
             result.stdout,
@@ -969,7 +971,7 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         self.assertIn("--prefix_reward_normalize true", script_text)
         self.assertIn("--probe_rule_with_zero_weight false", script_text)
         self.assertIn("--token_level_prefix_advantage false", script_text)
-        self.assertNotIn("--reward_mode \"$REWARD_MODE\"", script_text)
+        self.assertNotIn('--reward_mode "$REWARD_MODE"', script_text)
 
     def test_fixed_hint_sid_title_desc_shell_dry_run_forwards_dual_task_filters(self):
         result = self._run_fixed_hint_sid_title_desc_dry_run()

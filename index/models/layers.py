@@ -13,9 +13,7 @@ class MLPLayers(nn.Module):
         self.use_bn = bn
 
         mlp_modules = []
-        for idx, (input_size, output_size) in enumerate(
-            zip(self.layers[:-1], self.layers[1:], strict=False)
-        ):
+        for idx, (input_size, output_size) in enumerate(zip(self.layers[:-1], self.layers[1:], strict=False)):
             mlp_modules.append(nn.Dropout(p=self.dropout))
             mlp_modules.append(nn.Linear(input_size, output_size))
 
@@ -57,9 +55,7 @@ def activation_layer(activation_name="relu", emb_dim=None):
     elif issubclass(activation_name, nn.Module):
         activation = activation_name()
     else:
-        raise NotImplementedError(
-            f"activation function {activation_name} is not implemented"
-        )
+        raise NotImplementedError(f"activation function {activation_name} is not implemented")
 
     return activation
 

@@ -237,7 +237,9 @@ def plot_best_scatter(best_df: pd.DataFrame, variant_keys: list[str], title: str
     for variant_key in variant_keys:
         row = best_df[best_df["variant_key"] == variant_key].iloc[0]
         variant = variants[variant_key]
-        ax.scatter(float(row["NDCG@10"]), float(row["HR@50"]), s=120, color=str(variant["color"]), label=str(variant["label"]))
+        ax.scatter(
+            float(row["NDCG@10"]), float(row["HR@50"]), s=120, color=str(variant["color"]), label=str(variant["label"])
+        )
         ax.text(float(row["NDCG@10"]) + 0.00015, float(row["HR@50"]) + 0.0005, str(row["checkpoint"]), fontsize=9)
 
     ax.set_xlabel("Best NDCG@10")

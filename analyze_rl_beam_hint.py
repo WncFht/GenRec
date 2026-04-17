@@ -205,9 +205,7 @@ def _fixed_hint_sample_key_sort_key(sample_key: str) -> tuple[str, int | str]:
     return (task_name, normalized_index)
 
 
-def _resolve_fixed_hint_task(
-    row: dict[str, Any], samples: list[dict[str, Any]] | None = None
-) -> str:
+def _resolve_fixed_hint_task(row: dict[str, Any], samples: list[dict[str, Any]] | None = None) -> str:
     if row.get("task") is not None:
         task_name = str(row["task"]).strip()
         if task_name:

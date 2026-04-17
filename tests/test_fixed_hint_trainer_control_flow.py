@@ -104,11 +104,11 @@ def _install_trainer_stubs():
     sys.modules["trl.trainer.utils"] = trl_utils_mod
 
     fixed_hint_utils_mod = types.ModuleType("fixed_hint_utils")
-    fixed_hint_utils_mod.build_hint_text = (
-        lambda ground_truth, hint_depth: "".join(re.findall(r"<[^>]+>", ground_truth)[: max(hint_depth, 0)])
+    fixed_hint_utils_mod.build_hint_text = lambda ground_truth, hint_depth: "".join(
+        re.findall(r"<[^>]+>", ground_truth)[: max(hint_depth, 0)]
     )
-    fixed_hint_utils_mod.build_prompt_with_hint = (
-        lambda example, formatter: f"{formatter(example['prompt'])}{example.get('oracle_hint_text', '')}"
+    fixed_hint_utils_mod.build_prompt_with_hint = lambda example, formatter: (
+        f"{formatter(example['prompt'])}{example.get('oracle_hint_text', '')}"
     )
     sys.modules["fixed_hint_utils"] = fixed_hint_utils_mod
 

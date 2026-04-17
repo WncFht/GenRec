@@ -33,46 +33,46 @@ def check_path_exists(path: str, kind: str) -> tuple[bool, str]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description='Preflight checks for GenRec RL jobs')
-    parser.add_argument('--output-dir', required=True)
-    parser.add_argument('--wandb-dir', default=os.environ.get('WANDB_DIR', str(Path.cwd() / 'wandb')))
-    parser.add_argument('--model-path')
-    parser.add_argument('--data-dir')
-    parser.add_argument('--index-path')
-    parser.add_argument('--report-to', default='wandb')
-    parser.add_argument('--strict', action='store_true')
+    parser = argparse.ArgumentParser(description="Preflight checks for GenRec RL jobs")
+    parser.add_argument("--output-dir", required=True)
+    parser.add_argument("--wandb-dir", default=os.environ.get("WANDB_DIR", str(Path.cwd() / "wandb")))
+    parser.add_argument("--model-path")
+    parser.add_argument("--data-dir")
+    parser.add_argument("--index-path")
+    parser.add_argument("--report-to", default="wandb")
+    parser.add_argument("--strict", action="store_true")
     args = parser.parse_args()
 
     checks: list[tuple[str, bool, str]] = []
-    checks.append(('trl_metadata', *check_trl_metadata()))
-    checks.append(('output_dir', *probe_writable_path(args.output_dir)))
+    checks.append(("trl_metadata", *check_trl_metadata()))
+    checks.append(("output_dir", *probe_writable_path(args.output_dir)))
 
-    if args.report_to != 'none' and 'wandb' in args.report_to:
-        checks.append(('wandb_dir', *probe_writable_path(args.wandb_dir)))
+    if args.report_to != "none" and "wandb" in args.report_to:
+        checks.append(("wandb_dir", *probe_writable_path(args.wandb_dir)))
 
     if args.model_path:
-        checks.append(('model_path', *check_path_exists(args.model_path, 'model path')))
+        checks.append(("model_path", *check_path_exists(args.model_path, "model path")))
     if args.data_dir:
-        checks.append(('data_dir', *check_path_exists(args.data_dir, 'data dir')))
-        for split in ['train.json', 'valid.json', 'test.json']:
+        checks.append(("data_dir", *check_path_exists(args.data_dir, "data dir")))
+        for split in ["train.json", "valid.json", "test.json"]:
             ok, msg = check_path_exists(str(Path(args.data_dir) / split), split)
-            checks.append((split.replace('.', '_'), ok, msg))
+            checks.append((split.replace(".", "_"), ok, msg))
     if args.index_path:
-        checks.append(('index_path', *check_path_exists(args.index_path, 'index path')))
+        checks.append(("index_path", *check_path_exists(args.index_path, "index path")))
 
     has_error = False
     for name, ok, msg in checks:
-        level = 'CHECK' if ok else 'WARN'
-        print(f'[{level}] {name}: {msg}')
+        level = "CHECK" if ok else "WARN"
+        print(f"[{level}] {name}: {msg}")
         has_error = has_error or not ok
 
     if has_error:
-        print('[SUMMARY] preflight finished with warnings')
+        print("[SUMMARY] preflight finished with warnings")
         return 1 if args.strict else 0
 
-    print('[SUMMARY] preflight passed')
+    print("[SUMMARY] preflight passed")
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     raise SystemExit(main())

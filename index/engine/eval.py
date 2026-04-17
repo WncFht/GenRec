@@ -56,9 +56,7 @@ class EvalEngine:
                 finite_mask = flat_finite.all(dim=1)
                 num_bad = int((~finite_mask).sum().item())
                 if num_bad > 0 and self.is_main_process:
-                    self.logger.warning(
-                        f"Eval: dropping {num_bad} samples with NaN/Inf."
-                    )
+                    self.logger.warning(f"Eval: dropping {num_bad} samples with NaN/Inf.")
                 data = data[finite_mask]
                 if data.size(0) == 0:
                     continue
@@ -70,8 +68,7 @@ class EvalEngine:
 
         if not all_indices or num_sample == 0:
             self.logger.warning(
-                "Validation got no valid samples (all NaN/Inf?). "
-                "Return collision_rate=1.0, avg_utilization=0.0."
+                "Validation got no valid samples (all NaN/Inf?). Return collision_rate=1.0, avg_utilization=0.0."
             )
             return 1.0, 0.0
 
@@ -91,9 +88,7 @@ class EvalEngine:
             unique_codes = np.unique(all_indices[:, i])
             utilization = len(unique_codes) / num_emb_list[i]
             utilizations.append(utilization)
-            self.logger.info(
-                f"  Layer {i}: {utilization:.4f} ({len(unique_codes)}/{num_emb_list[i]})"
-            )
+            self.logger.info(f"  Layer {i}: {utilization:.4f} ({len(unique_codes)}/{num_emb_list[i]})")
             if self.use_wandb:
                 self.wandb.log({f"eval/codebook_utilization_layer_{i}": utilization})
 

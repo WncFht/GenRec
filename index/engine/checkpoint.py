@@ -74,9 +74,7 @@ class CheckpointManager:
             "platform": platform.platform(),
             "python": platform.python_version(),
             "git_commit": self.safe_git_output(["git", "rev-parse", "HEAD"]),
-            "git_branch": self.safe_git_output(
-                ["git", "rev-parse", "--abbrev-ref", "HEAD"]
-            ),
+            "git_branch": self.safe_git_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]),
             "train_data_paths": train_data_paths,
             "args": args_dict,
         }
@@ -87,9 +85,7 @@ class CheckpointManager:
 
         self.logger.info(f"Saved run metadata: {run_meta_path}")
 
-    def save_checkpoint(
-        self, epoch, collision_rate=1, avg_utilization=0, ckpt_file=None
-    ):
+    def save_checkpoint(self, epoch, collision_rate=1, avg_utilization=0, ckpt_file=None):
         ckpt_path = (
             os.path.join(self.trainer.ckpt_dir, ckpt_file)
             if ckpt_file

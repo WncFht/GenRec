@@ -259,26 +259,16 @@ def test_parse_models_from_manifest_expands_ckpt_step_and_epoch_variants() -> No
     assert specs[1].wandb_run_name == "instruments-prefix-eval-epoch"
 
 
-def test_init_wandb_run_surfaces_deleted_run_id_guidance(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_init_wandb_run_surfaces_deleted_run_id_guidance(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     fake_wandb = types.SimpleNamespace()
 
     def fake_init(**kwargs):
-        raise RuntimeError(
-            "Run initialization has timed out after 90.0 sec. Please try increasing the timeout."
-        )
+        raise RuntimeError("Run initialization has timed out after 90.0 sec. Please try increasing the timeout.")
 
     fake_wandb.init = fake_init
     fake_wandb.define_metric = lambda *args, **kwargs: None
 
-    log_path = (
-        tmp_path
-        / "wandb"
-        / "run-20260411_130940-eval-7496742c37888e35b425"
-        / "logs"
-        / "debug-internal.log"
-    )
+    log_path = tmp_path / "wandb" / "run-20260411_130940-eval-7496742c37888e35b425" / "logs" / "debug-internal.log"
     log_path.parent.mkdir(parents=True, exist_ok=True)
     log_path.write_text(
         "\n".join(
@@ -325,9 +315,7 @@ def test_init_wandb_run_surfaces_deleted_run_id_guidance(
     assert "variants.ckpt_step.wandb_run_id" in str(exc_info.value)
 
 
-def test_upload_defaults_to_dual_variants_with_legacy_epoch_override(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_upload_defaults_to_dual_variants_with_legacy_epoch_override(tmp_path: Path, monkeypatch) -> None:
     model_dir = "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495"
     ckpt_run_id = "eval-7496742c37888e35b425"
     epoch_run_id = f"{ckpt_run_id}-epoch-20260402"

@@ -93,9 +93,7 @@ def test_build_node_stats_aggregates_hint_strength_and_stage_local_rates() -> No
     node_stats = build_node_stats(make_enriched_frame())
 
     depth1_all = node_stats[
-        (node_stats["task_label"] == "all")
-        & (node_stats["depth"] == 1)
-        & (node_stats["node_key"] == "<a_1>")
+        (node_stats["task_label"] == "all") & (node_stats["depth"] == 1) & (node_stats["node_key"] == "<a_1>")
     ].iloc[0]
     assert depth1_all["sample_count"] == 4
     assert depth1_all["subtree_size"] == 10.0
@@ -108,9 +106,7 @@ def test_build_node_stats_aggregates_hint_strength_and_stage_local_rates() -> No
     assert depth1_all["stage_local_name"] == "base_to_need_hint"
 
     depth2_sid = node_stats[
-        (node_stats["task_label"] == "sid")
-        & (node_stats["depth"] == 2)
-        & (node_stats["node_key"] == "<a_1><b_1>")
+        (node_stats["task_label"] == "sid") & (node_stats["depth"] == 2) & (node_stats["node_key"] == "<a_1><b_1>")
     ].iloc[0]
     assert depth2_sid["sample_count"] == 3
     assert depth2_sid["subtree_size"] == 3.0

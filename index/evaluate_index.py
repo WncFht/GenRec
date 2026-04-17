@@ -71,9 +71,7 @@ def main(args):
 
     # 加载模型检查点
     print(f"Loading checkpoint from: {args.ckpt_path}")
-    ckpt = torch.load(
-        args.ckpt_path, map_location=torch.device("cpu"), weights_only=False
-    )
+    ckpt = torch.load(args.ckpt_path, map_location=torch.device("cpu"), weights_only=False)
     model_args = ckpt["args"]
     state_dict = ckpt["state_dict"]
 
@@ -83,17 +81,14 @@ def main(args):
         missing = [p for p in data_paths if not os.path.exists(p)]
         if missing:
             raise ValueError(
-                "The model checkpoint contains 'data_paths' but some paths are missing: "
-                + ", ".join(missing)
+                "The model checkpoint contains 'data_paths' but some paths are missing: " + ", ".join(missing)
             )
         print("Loading dataset from (multi):")
         for p in data_paths:
             print(f"  - {p}")
         data = MultiEmbDataset(data_paths)
     else:
-        if not hasattr(model_args, "data_path") or not os.path.exists(
-            model_args.data_path
-        ):
+        if not hasattr(model_args, "data_path") or not os.path.exists(model_args.data_path):
             raise ValueError(
                 "The model checkpoint does not contain a valid 'data_path'. "
                 "Cannot run evaluation without the original dataset."
@@ -130,9 +125,7 @@ def main(args):
     )
 
     # 执行评测
-    collision_rate, avg_utilization, detailed_utilization = evaluate_metrics(
-        model, data_loader, device
-    )
+    collision_rate, avg_utilization, detailed_utilization = evaluate_metrics(model, data_loader, device)
 
     # 打印结果
     print("\n" + "=" * 60)
@@ -146,9 +139,7 @@ def main(args):
     print("-" * 60)
     print("Detailed Codebook Utilization per Layer:")
     for layer, stats in detailed_utilization.items():
-        print(
-            f"  - {layer}: {stats['utilization']:.4f} ({stats['used_codes']} / {stats['total_codes']} codes used)"
-        )
+        print(f"  - {layer}: {stats['utilization']:.4f} ({stats['used_codes']} / {stats['total_codes']} codes used)")
     print("=" * 60)
 
 

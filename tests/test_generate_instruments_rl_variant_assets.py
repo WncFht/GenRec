@@ -78,10 +78,22 @@ class GenerateInstrumentsRlVariantAssetsTests(unittest.TestCase):
                 path.write_text(json.dumps({"NDCG@10": 0.090, "HR@10": 0.115, "NDCG@50": 0.106, "HR@50": 0.189}))
 
             for model_dir, steps in [
-                ("Instruments-grec-grpo-rule-only-dynamic-hint-sid-only-qwen2.5-3b-qwen4B-4-256-from-sft495", (266, 2652)),
-                ("Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495", (333, 3326)),
-                ("Instruments-grec-grpo-ranking-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft495", (333, 3326)),
-                ("Instruments-grec-grpo-rule-only-fixed-hint-mixed-single-generate-qwen2.5-3b-qwen4B-4-256-from-sft495", (333, 3326)),
+                (
+                    "Instruments-grec-grpo-rule-only-dynamic-hint-sid-only-qwen2.5-3b-qwen4B-4-256-from-sft495",
+                    (266, 2652),
+                ),
+                (
+                    "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495",
+                    (333, 3326),
+                ),
+                (
+                    "Instruments-grec-grpo-ranking-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft495",
+                    (333, 3326),
+                ),
+                (
+                    "Instruments-grec-grpo-rule-only-fixed-hint-mixed-single-generate-qwen2.5-3b-qwen4B-4-256-from-sft495",
+                    (333, 3326),
+                ),
                 ("Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495", (333, 3326)),
             ]:
                 for step in steps:

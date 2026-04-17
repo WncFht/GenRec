@@ -118,23 +118,17 @@ class Trainer:
         elif learner.lower() == "sgd":
             optimizer = optim.SGD(params, lr=learning_rate, weight_decay=weight_decay)
         elif learner.lower() == "adagrad":
-            optimizer = optim.Adagrad(
-                params, lr=learning_rate, weight_decay=weight_decay
-            )
+            optimizer = optim.Adagrad(params, lr=learning_rate, weight_decay=weight_decay)
             for state in optimizer.state.values():
                 for key, value in state.items():
                     if torch.is_tensor(value):
                         state[key] = value.to(self.device)
         elif learner.lower() == "rmsprop":
-            optimizer = optim.RMSprop(
-                params, lr=learning_rate, weight_decay=weight_decay
-            )
+            optimizer = optim.RMSprop(params, lr=learning_rate, weight_decay=weight_decay)
         elif learner.lower() == "adamw":
             optimizer = optim.AdamW(params, lr=learning_rate, weight_decay=weight_decay)
         else:
-            self.logger.warning(
-                "Received unrecognized optimizer, set default Adam optimizer"
-            )
+            self.logger.warning("Received unrecognized optimizer, set default Adam optimizer")
             optimizer = optim.Adam(params, lr=learning_rate)
         return optimizer
 
@@ -160,16 +154,11 @@ class Trainer:
         from index.utils import set_color
 
         train_loss_output = (
-            set_color("epoch %d training", "green")
-            + " ["
-            + set_color("time", "blue")
-            + ": %.2fs, "
+            set_color("epoch %d training", "green") + " [" + set_color("time", "blue") + ": %.2fs, "
         ) % (epoch_idx, e_time - s_time)
         train_loss_output += set_color("train loss", "blue") + f": {loss:.4f}"
         train_loss_output += ", "
-        train_loss_output += (
-            set_color("reconstruction loss", "blue") + f": {recon_loss:.4f}"
-        )
+        train_loss_output += set_color("reconstruction loss", "blue") + f": {recon_loss:.4f}"
         return train_loss_output + "]"
 
     def fit(self, data):

@@ -217,7 +217,9 @@ def test_discover_reusable_cache_picks_matching_latest_summary(tmp_path):
         '{"model_path":"m","data_dir":"d","index_path":"i","num_samples":2,"beam_sizes":[8,16],"hint_depth":1}',
         encoding="utf-8",
     )
-    good_details.write_text('{"8":{"base_rows":[],"hinted_rows":{}},"16":{"base_rows":[],"hinted_rows":{}}}', encoding="utf-8")
+    good_details.write_text(
+        '{"8":{"base_rows":[],"hinted_rows":{}},"16":{"base_rows":[],"hinted_rows":{}}}', encoding="utf-8"
+    )
 
     bad_summary = cache_dir / "bad_summary.json"
     bad_details = cache_dir / "bad_details.json"

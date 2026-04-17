@@ -47,9 +47,7 @@ def parse_args():
     )
     parser.add_argument("--eval_step", type=int, default=50, help="eval step")
     parser.add_argument("--learner", type=str, default="AdamW", help="optimizer")
-    parser.add_argument(
-        "--lr_scheduler_type", type=str, default="constant", help="scheduler"
-    )
+    parser.add_argument("--lr_scheduler_type", type=str, default="constant", help="scheduler")
     parser.add_argument("--warmup_epochs", type=int, default=50, help="warmup epochs")
     data_group = parser.add_mutually_exclusive_group()
     data_group.add_argument(
@@ -87,9 +85,7 @@ def parse_args():
         default="True",
         help="Use large scale data for kmeans_init ('True' or 'False').",
     )
-    parser.add_argument(
-        "--kmeans_iters", type=int, default=100, help="max kmeans iters"
-    )
+    parser.add_argument("--kmeans_iters", type=int, default=100, help="max kmeans iters")
     parser.add_argument(
         "--sk_epsilons",
         type=float,
@@ -108,18 +104,14 @@ def parse_args():
         default=[256, 256, 256],
         help="emb num of every vq",
     )
-    parser.add_argument(
-        "--e_dim", type=int, default=32, help="vq codebook embedding size"
-    )
+    parser.add_argument("--e_dim", type=int, default=32, help="vq codebook embedding size")
     parser.add_argument(
         "--quant_loss_weight",
         type=float,
         default=1.0,
         help="vq quantion loss weight",
     )
-    parser.add_argument(
-        "--beta", type=float, default=0.25, help="Beta for commitment loss"
-    )
+    parser.add_argument("--beta", type=float, default=0.25, help="Beta for commitment loss")
     parser.add_argument(
         "--layers",
         type=int,
@@ -129,12 +121,8 @@ def parse_args():
     )
 
     parser.add_argument("--save_limit", type=int, default=5)
-    parser.add_argument(
-        "--ckpt_dir", type=str, default="", help="output directory for model"
-    )
-    parser.add_argument(
-        "--use_wandb", type=str2bool, default=False, help="use wandb or not"
-    )
+    parser.add_argument("--ckpt_dir", type=str, default="", help="output directory for model")
+    parser.add_argument("--use_wandb", type=str2bool, default=False, help="use wandb or not")
     parser.add_argument(
         "--wandb_project",
         type=str,
@@ -194,18 +182,14 @@ def clean_dataset_embeddings(dataset):
         mask = np.isfinite(emb).all(axis=1)
         num_bad = int(emb.shape[0] - mask.sum())
         if num_bad > 0:
-            print(
-                f"[warn] Dropping {num_bad} samples with NaN/Inf from dataset.embeddings (numpy)."
-            )
+            print(f"[warn] Dropping {num_bad} samples with NaN/Inf from dataset.embeddings (numpy).")
             dataset.embeddings = emb[mask]
     elif torch.is_tensor(emb):
         flat_finite = torch.isfinite(emb).view(emb.size(0), -1)
         mask = flat_finite.all(dim=1)
         num_bad = int(emb.size(0) - int(mask.sum().item()))
         if num_bad > 0:
-            print(
-                f"[warn] Dropping {num_bad} samples with NaN/Inf from dataset.embeddings (tensor)."
-            )
+            print(f"[warn] Dropping {num_bad} samples with NaN/Inf from dataset.embeddings (tensor).")
             dataset.embeddings = emb[mask]
     else:
         # 未知类型就直接跳过
@@ -251,11 +235,7 @@ if __name__ == "__main__":
 
     """build dataset"""
     train_paths = args.data_paths if args.data_paths is not None else [args.data_path]
-    data = (
-        MultiEmbDataset(train_paths)
-        if len(train_paths) > 1
-        else EmbDataset(train_paths[0])
-    )
+    data = MultiEmbDataset(train_paths) if len(train_paths) > 1 else EmbDataset(train_paths[0])
 
     # 训练前清理数据中的 NaN / Inf 样本（如果数据集支持）
     data, num_bad_global = clean_dataset_embeddings(data)
