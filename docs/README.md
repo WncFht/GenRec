@@ -30,11 +30,15 @@ Treat dated notes as snapshots, not evergreen source-of-truth docs. Current inve
 - `2026-03-17-genrec-training-speed-optimization-notes.md`: training-speed optimization ideas without changing step counts. Historical snapshot.
 - `2026-03-18-genrec-main-results-weekly.md`: detailed weekly report for the 2026-03-18 Instruments-grec result set. Historical snapshot.
 - `2026-03-19-genrec-results-weekly-summary.md`: condensed summary of the 2026-03-18 weekly report. Convenience note, not an independent source of truth.
+- `2026-04-01-games-grec-qwen4b-4-256-full-pipeline.md`: current Games pipeline note, now including the local `Games-grec` SFT plus three-line RL summaries from the synchronized `results/` tree.
 - `2026-04-02-genrec-results-since-2026-03-19-epoch-report.md`: epoch-aligned inventory and analysis of experiments visible in `results/` since the 2026-03-19 reporting boundary.
-- `2026-04-11-genrec-instruments-rl-variant-comparison.md`: unified seven-way comparison note for the main `Instruments-grec` RL variants, with locally generated checkpoint-curve assets and manual image-based comparison.
-- `2026-04-01-games-grec-qwen4b-4-256-full-pipeline.md`: current Games pipeline note. As of 2026-04-02, the local `results/` tree still has no `*Games*` result directories, so the "RL not started" status remains current.
 - `2026-04-02-instruments-lc-rec-reproduction.md`: operator note for converting `Instruments` data, training `LC-Rec` with `Qwen2.5-3B-Instruct`, and evaluating with GenRec's unified checkpoint script.
+- `2026-04-11-genrec-instruments-rl-variant-comparison.md`: unified seven-way comparison note for the main `Instruments-grec` RL variants, with locally generated checkpoint-curve assets and manual image-based comparison.
+- `2026-04-11-instruments-rl-next-ideas.md`: forward-looking note for the post-2026-04-11 `Instruments-grec` agenda, including `UFT-style` hint curriculum, hint-budget, and completion-length interpretation ideas.
 - `2026-04-14-fixed-hint-ce-launcher-status.md`: operator note for the `fixed-hint CE` launcher/trainer fixes, current default behavior, and why the latest remote run now counts as a normal startup.
+- `2026-04-16-genrec-rl-ce-formulas.md`: formula note aligning current GenRec RL/CE terms with `UFT`-style notation and reduction semantics.
+- `2026-04-16-instruments-dynamic-hint-max1-ablation.md`: focused note on the `dynamic hint max1` ablation versus `rule_only`, `dynamic gather-fix`, and clean fixed-hint references.
+- `2026-04-17-genrec-main-results-weekly.md`: weekly report draft covering the now-complete `Games-grec` mainline results plus the latest `Instruments-grec` `UFT` / `CE` / `CE-2` / `max1` follow-ups, with newer local CSV summaries preferred over stale checkpoint text when they disagree.
 
 ## Generated Planning Artifacts
 
