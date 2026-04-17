@@ -10,6 +10,8 @@ This directory mixes long-lived operator guides with dated research notes.
 
 ## Stable Guides
 
+- `background.md`: stable project background, task framing, and reading guide for the current doc set.
+- `progress.md`: evergreen per-dataset progress ledger for `Instruments`, `Games`, and `Arts`.
 - `experiment_tracking.md`: how to document experiments with `hope/` configs and `results/` outputs.
 - `eval_wandb_sidecar.md`: remote-to-local evaluation upload workflow and manifest conventions.
 - `runtime_paths.md`: local runtime directory conventions derived from current shell entrypoints.
