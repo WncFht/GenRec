@@ -35,11 +35,10 @@
 - 如果本次没有额外需要同步的文件，也要明确写出“本次无需额外同步文件”，不要省略这一句。
 
 ## 版本控制
-- 这个仓库默认使用 `git`，不要把 `jj` 当作日常主工作流。
-- 日常的状态、历史、diff、commit 和 push 都优先使用非交互式 `git` 命令。
-- 即使仓库里存在 `.jj/` 或共置元数据，也以 `git status`、`git log`、`git diff` 和 `git branch` 作为当前任务里的权威状态来源。
-- 只有当用户在当前任务里明确要求使用 `jj`，或者某个操作确实依赖 `jj` 特性时，才切换到 `jj`。
-- 如果当前处于 detached HEAD，先用 `git switch -c <branch>` 或切回已有分支，再继续 commit / push，不要默认走 `jj` bookmark 工作流。
+- 默认用 `git`。
+- 常规的 `status`、`log`、`diff`、`commit`、`push` 都用非交互式 `git`。
+- 只有当用户明确要求，或任务确实依赖 `jj` 特性时，才使用 `jj`。
+- 如果在 detached HEAD，上来先切到分支，再继续 commit / push。
 
 ## 训练上下文
 - RL 训练数据混合了多个任务。当 `task1_sid_sft`、`task4_hisTitle2sid` 和 `task5_title_desc2sid` 之间的结论可能不一致时，应分任务分析。
