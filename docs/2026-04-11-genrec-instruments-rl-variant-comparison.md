@@ -1,9 +1,9 @@
 # GenRec Instruments RL 七线主比较 + fixed-hint CE 补充（2026-04-11）
 
 - Record date: 2026-04-11
-- Last updated: 2026-04-16
+- Last updated: 2026-04-17
 - Goal: 把当前 `Instruments-grec` 里最常被一起讨论的 7 条 RL 线放到同一篇文档里，用统一 checkpoint 评测表和统一图片做一次手工对比，重点看 top-10 与 coverage 的取舍；同时补一个 focused `fixed-hint CE` 小节。
-- Current status: 已基于本地同步好的 `results/.../checkpoint-*/metrics.json` 重生七线对比图和导出表；`fixed taskfix` CE 小节现在纳入 non-CE、full `+CE` 和新的 `hintce-2` 短跑结果。
+- Current status: 已基于本地同步好的 `results/.../checkpoint-*/metrics.json` 重生七线对比图和导出表；`fixed taskfix` CE 小节现在纳入 non-CE、full `+CE` 和扩展到 `checkpoint-2664` 的 `hintce-2` 结果。
 
 ## 1. Config
 
@@ -93,18 +93,19 @@
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | corrected `fixed taskfix` | `checkpoint-2997` | 1.802 | 0.0931 | 0.1189 | 0.1094 | 0.1941 | 0.1962 | 0.400 | top-10 最强，但 early coverage spike 最明显 |
 | corrected `fixed taskfix + CE` | `checkpoint-2664` | 1.602 | 0.0915 | 0.1180 | 0.1081 | 0.1944 | 0.1947 | 2.000 | top-10 略弱，但 coverage 被拉成晚期平台 |
-| corrected `fixed taskfix + CE (hintce-2)` | `checkpoint-1332` | 0.801 | 0.0904 | 0.1148 | 0.1064 | 0.1893 | 0.1917 | 0.400 | 目前只跑到 `1332/3326`，仍是 early-run readout |
+| corrected `fixed taskfix + CE (hintce-2)` | `checkpoint-2664` | 1.602 | 0.0931 | 0.1168 | 0.1102 | 0.1951 | 0.1954 | 1.001 | 当前最强 CE 变体，但 trace 仍只到 `2664/3326` |
 
-这里要单独说明两点：
+这里要单独说明三点：
 
-- `hintce-2` 目前只有 `checkpoint-333/666/999/1332` 四个点，但它的 epoch 口径现在按 fixed family 的完整训练步数 `3326` 对齐，所以 `checkpoint-1332` 只对应 `epoch≈0.801`，`checkpoint-666` 的 coverage 峰值也只对应 `epoch≈0.400`。
-- full `+CE` 的 peak `HR@50` 现在应记为 `0.1947 @ checkpoint-3326`。之前把它写成 `0.1945 @ checkpoint-2331` 只是一个较早读数，不是当前同步结果里的最终峰值。
+- `hintce-2` 现在已经从 `checkpoint-1332` 扩到了 `checkpoint-2664`。它仍按 fixed family 的完整训练步数 `3326` 对齐，所以 best 点 `checkpoint-2664` 对应 `epoch≈1.602`，coverage 峰值 `checkpoint-1665` 对应 `epoch≈1.001`。
+- full `+CE` 的 peak `HR@50` 现在仍记为 `0.1947 @ checkpoint-3326`；而 `hintce-2` 的 peak `HR@50` 已经到 `0.1954 @ checkpoint-1665`。
+- 因此 `hintce-2` 已经不再只是 “early-run readout”。更准确的描述是：它现在是当前最强的 CE 变体，但因为 trace 还没到 `2997/3326`，还不能直接宣称它最终支配 non-CE。
 
-如果只看三条线共享的 `333/666/999/1332` 四个 checkpoint，可以得到更细的 early-train readout：
+按 best checkpoint 直接比较：
 
-- `hintce-2` 相对 full `+CE` 的 `NDCG@10` 差值依次是 `+0.0033`、`+0.0027`、`-0.0001`、`+0.0014`，说明它在早期 top-10 恢复更快。
-- 但 `HR@50` 只在 `333/666` 领先 full `+CE`（`+0.0049`、`+0.0029`），到了 `999/1332` 反而落后（`-0.0025`、`-0.0016`）。
-- 因此当前更合理的解释不是“`hintce-2` 已经赢了 full `+CE`”，而是“它像一个更激进的 early-train CE 变体，起量更快，但 late coverage 平台还没有证据超过 full `+CE`。”
+- `hintce-2` 相对 full `+CE` 多 `+0.0016` `NDCG@10`、少 `0.0012` `HR@10`、多 `+0.0021` `NDCG@50`、多 `+0.0007` `HR@50`，而且 peak `HR@50` 也再高 `+0.0007`。
+- `hintce-2` 相对 non-CE `fixed taskfix` 在 `NDCG@10` 上已经打平（都是 `0.0931`），`HR@10` 少 `0.0021`，但 `NDCG@50` 反而多 `+0.0008`、`HR@50` 多 `+0.0010`。
+- 这意味着当前最合理的解释已经从“更激进的 early-train CE 变体”变成“当前最有前景的 CE candidate”。
 
 ## 4. Manual Picture Comparison
 
@@ -158,9 +159,9 @@
 这两张图现在更适合读成“三线对比”，而不是单纯的 `+CE` / non-CE 二选一：
 
 - non-CE `fixed taskfix` 依然是更强的 headline top-10 线：best 点停在 `checkpoint-2997 / NDCG@10=0.0931`，并且在后半程 `NDCG@10` 与 `HR@10` 仍保持领先。
-- full `+CE` 没有把 peak coverage 推得更高，但明显把轨迹变平了。它没有 non-CE 那种 `epoch≈0.4` 的巨大 early spike，而是一路推到最右侧，最后形成 `HR@50≈0.1944~0.1947` 的晚期平台。
-- `hintce-2` 落在两者之间。它在 `333/666` 两个共享点同时优于 full `+CE` 的 top-10 和 coverage，更像一个更激进的 early-train 版本；但到 `1332` 时，`NDCG@10` 仍然低于 non-CE，`HR@50` 也略低于 full `+CE`。
-- 因为 `hintce-2` trace 只到 `1332`，当前图最该读的是“它的早期曲线形状”，而不是“它已经赢下最终设置”。在没有 `1665/1998/2664/3326` 后续点之前，不应该把它直接升成新的 CE 默认线。
+- full `+CE` 仍然最像“把 coverage 拉平为晚期平台”的正则版本。它没有 non-CE 那种 `epoch≈0.4` 的巨大 early spike，而是一路推到最右侧，最后形成 `HR@50≈0.1944~0.1947` 的晚期平台。
+- `hintce-2` 已经不再只是落在两者中间。扩到 `2664` 之后，它在 best 点上已经把 `NDCG@10` 拉到和 non-CE 持平，同时 `NDCG@50 / HR@50` 都超过 full `+CE`，而 peak `HR@50` 也抬到了 `0.1954`。
+- 当前真正需要保留的 caveat 只剩一个：`hintce-2` 还没到 `2997/3326`。所以它已经足够被视为 strongest CE variant，但还不该被写成“最终已经完全赢过 non-CE”。
 
 ### 4.5 Top-10 / Coverage Trade-off Scatter
 
@@ -180,13 +181,13 @@
 2. 在 dynamic family 里，`dynamic gather-fix` 仍应作为当前长跑默认对比线。它相对 `dynamic sid-only` 和 `ranking dynamic` 都是四指标同时更强的。
 3. 在 fixed family 里，corrected `fixed hint taskfix sid-only` 已经基本复现 old `fixed mixed-single` 的主要收益，而且定义更干净。后续如果只保留一个 clean fixed 参考线，优先保留它。
 4. corrected `fixed hint taskfix` 给出了当前最高的 coverage 峰值 `HR@50=0.1962`。如果后续要研究 early-stop 或 explicit coverage objective，这条线仍然值得单独盯。
-5. full `+CE` 现在更像一个“平滑训练轨迹”的正则项，而不是提升 headline 指标的增强项。它把 early spike 拉成了晚期 coverage 平台，但没有在 top-10 上超过 non-CE。
-6. `hintce-2` 是一个值得继续的 early-train 变体，但当前证据只够支持“起量更快”，还不够支持“最终更好”。在没有更长 trace 之前，它不该替代 full `+CE` 进入主结论。
+5. full `+CE` 现在更像一个“平滑训练轨迹”的正则项，而不是提升 headline 指标的增强项。它把 early spike 拉成了晚期 coverage 平台，但在 top-10 上仍然弱于 non-CE 和 `hintce-2`。
+6. `hintce-2` 现在已经是最强的 CE 变体，不再只是 early-train curiosity。它在 `NDCG@10` 上追平 non-CE，同时在 `NDCG@50 / HR@50` 上给出更好的 balanced readout；剩余问题只是不知道跑到 `2997/3326` 后能否稳住。
 7. old `fixed hint mixed-single` 仍然是很有价值的现象学上界，但它不适合再被当作“更正确的方法”。在公开汇报或主结论里，最好把它标成 historical / bug-tainted reference。
 
 ## 6. Next Actions
 
 1. 下一版主结果对比可以收缩成 4 条主线：`rule_only rerun`、`dynamic gather-fix`、corrected `fixed taskfix sid-only`、old `fixed mixed-single`（只作为 historical reference）。
 2. 如果目标是 coverage，不要只看最终 checkpoint；应该补更密的 early-stop 评测，优先围绕 corrected `fixed taskfix` 的 `checkpoint-666` 和 `dynamic gather-fix` 的 `checkpoint-1332`。
-3. 如果继续追 CE 方向，优先不是再加新命名，而是把 `hintce-2` 跑到至少 `2664/3326`，先看它会不会真的收敛到比 full `+CE` 更好的 late platform。
+3. 如果继续追 CE 方向，优先不是再加新命名，而是把 `hintce-2` 补到至少 `2997/3326`，先看它能不能把当前 `2664` 的 balanced 优势稳到 full trace 末端。
 4. 如果后续要对任务层面下结论，应该把这些主线再按 `task1_sid_sft`、`task4_hisTitle2sid`、`task5_title_desc2sid` 分开看。当前这篇 note 只覆盖 aggregate eval，不足以单独支持 task-level 结论，尤其 old fixed 的 bug 主要会扭曲 hardest task 的 hint 深度。

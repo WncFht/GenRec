@@ -1,8 +1,8 @@
 # Instruments Dynamic-Hint Max1 消融结果（2026-04-16）
 
 - Record date: 2026-04-16
-- Last updated: 2026-04-16
-- Status: 已同步 `max1` 结果并完成基于 `checkpoint-*/metrics.json` 的首轮分析；当前只同步到 `checkpoint-1665`，按与长跑 dynamic 线一致的 `3326 step = 2 epoch` 口径，这大约是 `epoch≈1.001`。训练日志和 train-time 标量还没一起同步回来，所以这篇 note 目前只覆盖 eval 侧证据。
+- Last updated: 2026-04-17
+- Status: 已同步 `max1` 结果并完成基于 `checkpoint-*/metrics.json` 的第二轮分析；当前已经同步到 `checkpoint-2997`，按与长跑 dynamic 线一致的 `3326 step = 2 epoch` 口径，这大约是 `epoch≈1.802`。训练日志和 train-time 标量还没一起同步回来，所以这篇 note 目前仍然只覆盖 eval 侧证据。
 - Goal: 在 `Instruments-grec` 上做一个最小改动的 `dynamic hint` 消融，只把 online hint budget 从 `<=3` 收紧到 `<=1`，不改 trainer 逻辑，不引入 no-hit 样本丢弃，然后看它和现有 dynamic / no-hint / fixed-hint 参考线相比到底落在什么位置。
 
 ## 1. 这次实验到底改了什么
@@ -74,7 +74,7 @@
 | `rule_only rerun` | `checkpoint-2997` | 1.802 | 0.0960 | 0.1179 | 0.1070 | 0.1681 | top-10 极值线，但 coverage 很低 |
 | `dynamic hint sid-only` | `checkpoint-2394` | 1.805 | 0.0921 | 0.1155 | 0.1065 | 0.1830 | 早期有 gain，后面偏平 |
 | `dynamic hint gather-fix` | `checkpoint-2997` | 1.802 | 0.0936 | 0.1169 | 0.1083 | 0.1855 | 当前长跑 dynamic baseline |
-| `dynamic hint max1` | `checkpoint-1332` | 0.801 | 0.0934 | 0.1158 | 0.1095 | 0.1905 | 还没跑满 2 epoch，但 top-10 已几乎追平 gather-fix |
+| `dynamic hint max1` | `checkpoint-1332` | 0.801 | 0.0934 | 0.1158 | 0.1095 | 0.1905 | best 点仍停在中前段，后续长尾并没有继续刷新 |
 | corrected `fixed taskfix sid-only` | `checkpoint-2652` | 2.000 | 0.0945 | 0.1205 | 0.1103 | 0.1935 | 当前 clean hint 上界参考 |
 
 按各自 best `NDCG@10` 点比较，`max1` 的关键差值是：
@@ -95,7 +95,7 @@
 | `dynamic hint max1` | `checkpoint-999` | 0.601 | 0.1907 | 0.0925 | peak coverage 略低于 gather-fix，但高于 sid-only 和 rule_only |
 | corrected `fixed taskfix sid-only` | `checkpoint-2652` | 2.000 | 0.1935 | 0.0945 | 仍然是更强的 clean hint 参考 |
 
-如果只看 coverage 峰值，`max1` 还没有超过 `dynamic gather-fix`，差 `0.0024` `HR@50`。但它比 `dynamic sid-only` 高 `0.0039`，比 `rule_only rerun` 高 `0.0139`，因此至少可以确认它不是“hint budget 收紧后 coverage 直接塌掉”的失败 run。更重要的是，这个 peak 发生在 `epoch≈0.601`，也就是它离完整 2 epoch 还早。
+如果只看 coverage 峰值，`max1` 还没有超过 `dynamic gather-fix`，差 `0.0024` `HR@50`。但它比 `dynamic sid-only` 高 `0.0039`，比 `rule_only rerun` 高 `0.0139`，因此至少可以确认它不是“hint budget 收紧后 coverage 直接塌掉”的失败 run。更重要的是，这个 peak 发生在 `epoch≈0.601`，而且后续同步到 `2997` 之后也没有再被刷新。
 
 ### 3.3 共享 checkpoint 的 readout
 
@@ -108,12 +108,17 @@
 | `999` | `0.0925 / 0.1907` | `0.0912 / 0.1905` | `0.0936 / 0.1768` |
 | `1332` | `0.0934 / 0.1905` | `0.0926 / 0.1931` | `0.0945 / 0.1754` |
 | `1665` | `0.0929 / 0.1879` | `0.0933 / 0.1902` | `0.0950 / 0.1743` |
+| `1998` | `0.0915 / 0.1807` | `0.0928 / 0.1857` | `0.0949 / 0.1663` |
+| `2331` | `0.0918 / 0.1776` | `0.0927 / 0.1863` | `0.0953 / 0.1659` |
+| `2664` | `0.0921 / 0.1779` | `0.0930 / 0.1853` | `0.0959 / 0.1684` |
+| `2997` | `0.0920 / 0.1783` | `0.0936 / 0.1855` | `0.0960 / 0.1681` |
 
 从这张表里可以读出三个更细的现象：
 
 - `max1` 在 very early 到 mid phase 不是保守的。它在 `333`（约 `epoch≈0.200`）时就比 `gather-fix` 多 `+0.0031` `NDCG@10`，而 `HR@50` 基本持平。
 - 到 `999` 时，`max1` 已经实现了比 `gather-fix` 更高的 `NDCG@10`，同时 `HR@50` 还略高 `+0.0002`。这说明“浅 hint budget 不一定只能换来更像 `rule_only` 的曲线”，它也可能把 dynamic family 重新推到更好的平衡区。
-- 但 `1665` 这个点提醒我们别过早下结论：按参考口径它只到 `epoch≈1.001`，此时 `gather-fix` 又在四指标上略微反超 `max1`。所以当前更准确的描述是“`max1` 前中期很强”，而不是“它已经无条件支配 `gather-fix`。”
+- 但扩到 `1998/2331/2664/2997` 之后，趋势已经很清楚了：`max1` 在 `epoch≈1.0` 之后持续回落。到 `checkpoint-2997`，它相对自己 best 点少了 `0.0014` `NDCG@10`、少了 `0.0034` `NDCG@50`、少了 `0.0122` `HR@50`。
+- 所以当前更准确的描述已经从“前中期很强”进一步收敛成：“`max1` 是一个明显的 early-stop candidate，但不是更强的 long-run default。”
 
 ## 4. Figure
 
@@ -126,7 +131,7 @@
 - `max1` 明显不是简单退化成 `rule_only`。两条线在 `NDCG@10` 上确实更接近了，但 `max1` 的 `HR@50` 始终高得多，尤其在 `999~1665` 区间一直维持在 `0.188~0.191`，而 `rule_only` 只有 `0.174~0.177`。
 - `max1` 也不是单纯被现有 dynamic baseline 支配。它在 `333/999/1332` 这几个关键点上都能给出比 `gather-fix` 更高的 `NDCG@10`，而 coverage 只在 `666/1332/1665` 这些点略输。
 - 但 `max1` 目前还没有把 fixed-hint upper bound 打穿。corrected `fixed taskfix sid-only` 仍然在四个面板里整体压在更右上侧，说明 “把 dynamic budget 收浅” 和 “直接给更稳定的 fixed hint scaffold” 还是两件事。
-- 由于 `max1` 只同步到 `1665`（约 `epoch≈1.001`），图上真正该读的是“它到中段为止的曲线形状”。如果后面继续跑到 `1998/2331/2664/2997/3326`，它是会像 `gather-fix` 一样继续稳住，还是会像某些 early-strong run 一样回落，现在还不能仅凭这张图决定。
+- 这次最重要的新信息就是：`max1` 现在已经同步到 `2997`（约 `epoch≈1.802`），而后半程走势基本确认了“回落而不是稳住”。换句话说，之前那个“也许只是还没跑完”的保留判断，现在已经大幅收窄了。
 
 ### 4.2 Focused Four-way Comparison
 
@@ -136,22 +141,22 @@
 
 这张四线图只保留 `fixed taskfix`、old `fixed`、`dynamic gather-fix` 和 `max1`，更适合回答“`max1` 到底是在追哪一类行为”：
 
-- `max1` 和 `dynamic gather-fix` 仍然是最接近的一对。两条 dynamic 线在 `333~1665` 的大部分区间都缠得很紧，说明 `max1` 不是跳到了完全不同的方法族。
-- 但 `max1` 在 `NDCG@50 / HR@50` 上明显更往 fixed family 靠。尤其在 `999/1332` 这两个点，它已经把 coverage 拉到接近 corrected `fixed taskfix` 的区间，而 `dynamic gather-fix` 还要再低一些。
+- `max1` 和 `dynamic gather-fix` 在前半程仍然是最接近的一对。两条 dynamic 线在 `333~1665` 的大部分区间都缠得很紧，说明 `max1` 不是跳到了完全不同的方法族。
+- 但新的长尾点把另一件事也说清楚了：`max1` 只是“前半程更往 fixed family 靠”，而不是整条曲线都更靠。到 `1998` 之后，它的 `HR@50` 很快滑到 `0.18` 左右，而 `dynamic gather-fix` 仍稳在 `0.185~0.186` 上方。
 - corrected `fixed taskfix` 依旧保留了最强的 coverage spike，old `fixed` 则给出更平的历史高位平台。把这两条线放进来之后，可以更清楚地看到：`max1` 目前更像是在 dynamic family 内部向 fixed trade-off 靠拢，而不是已经真正进入 fixed family 的 top-right 区域。
 - 这也是为什么我现在更愿意把 `max1` 叫作“最有希望的 shallow-budget dynamic”，而不是直接叫它新的 fixed 替代品。
 
 ## 5. Conclusions
 
-1. `max1` 当前可以算是最有希望的 shallow-budget dynamic 变体。按 best-point 看，它几乎追平 `dynamic gather-fix` 的 top-10，但把 `HR@50` 提高了 `+0.0050`。
+1. `max1` 仍然是最有意思的 shallow-budget dynamic 变体之一，但新的长尾结果说明它更像一个 early-stop 候选，而不是新的长期默认线。按 best-point 看，它几乎追平 `dynamic gather-fix` 的 top-10，并把 `HR@50` 提高了 `+0.0050`；但这些优势都停在前半程。
 2. 相比 `rule_only rerun`，`max1` 很明确地买回了 coverage，而且代价没有想象中大。它只丢了 `0.0026` `NDCG@10`，却多了 `0.0224` `HR@50`。
-3. `max1` 还没有超过 corrected `fixed taskfix sid-only` 这条 clean fixed 参考线，所以当前更稳妥的定位不是“新最优方法”，而是“当前 dynamic family 里最接近 fixed trade-off 的候选”。
-4. 现在最该防的误读是把这条 run 直接定性成“已经优于 gather-fix”。更严谨的说法是：它在 `333~1332`（约 `epoch≈0.200~0.801`）的前中期表现非常强，但到 `1665`（约 `epoch≈1.001`）时 `gather-fix` 又稍微拿回了优势。
+3. `max1` 还没有超过 corrected `fixed taskfix sid-only` 这条 clean fixed 参考线，所以当前更稳妥的定位不是“新最优方法”，而是“当前 dynamic family 里一个值得 early-stop 的候选”。
+4. 现在最该防的误读已经不只是“它可能还没跑完”。更严谨的说法是：它在 `333~1332`（约 `epoch≈0.200~0.801`）的前中期表现非常强，但从 `1665` 往后就开始持续落后于 `gather-fix`，而且这个差距在 `1998~2997` 区间已经稳定存在。
 5. 因为 train-time 日志还没同步回来，这篇 note 只能支持 eval-side 结论。`selected_hint_depth_mean`、`selected_depth_1_frac`、`mean_length` 等机制解释现在仍然是待验证假说，不应该写成已经被日志证实。
 
 ## 6. Next Actions
 
 1. 把 `max1` 对应的 launcher log 或 wandb 导出一起同步回来，优先验证 `dynamic_hint_max_depth=1`、`selected_hint_depth_mean`、`selected_depth_1_frac`、`max_depth_miss_frac` 和 `completions/mean_length`。
-2. 如果这条 run 还在继续，优先补到 `1998/2331/2664/2997/3326`。当前真正缺的不是更多 baseline，而是 `max1` 自己的 late-stage trace。
-3. 如果后续要给 dynamic family 选默认线，我会先把 `max1` 和 `gather-fix` 做一次 task-level 对照，尤其看 hardest slice 是否仍然保住 coverage。
+2. 如果这条 run 还会继续，`3326` 当然还值得补齐；但现在真正更重要的不是“等最后一个点”，而是把 `999/1332` 这两个 best-window checkpoint 当作候选 early-stop 点认真分析。
+3. 如果后续要给 dynamic family 选默认线，我会先把 `max1` 和 `gather-fix` 做一次 task-level 对照，尤其看 `max1` 的前半程优势是否集中在某几个 slice，以及后半程回落主要伤在哪些 slice。
 4. 如果后续要做更激进的 budget 实验，下一步更合理的是围绕 `max1` 补 trainer-side diagnostics，而不是直接跳到“hint1 miss 就丢样本”的更大改动。
