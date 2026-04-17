@@ -23,6 +23,60 @@ from util import (
 )
 
 
+def _parse_task_names(raw_task_names: Optional[str]) -> Optional[list[str]]:
+    if raw_task_names is None:
+        return None
+    task_names = [task_name.strip() for task_name in str(raw_task_names).split(",") if task_name.strip()]
+    return task_names or None
+
+
+def _filter_dataset_by_task_names(dataset, split_name: str, raw_task_names: Optional[str]):
+    requested_task_names = _parse_task_names(raw_task_names)
+    if not requested_task_names:
+        return dataset, None, sorted(
+            {
+                str(example.get("extra_info", {}).get("task", "")).strip()
+                for example in dataset
+                if str(example.get("extra_info", {}).get("task", "")).strip()
+            }
+        )
+
+    requested_task_name_set = set(requested_task_names)
+    available_task_names = set()
+    selected_indices: list[int] = []
+
+    for index, example in enumerate(dataset):
+        extra_info = example.get("extra_info")
+        if not isinstance(extra_info, dict):
+            raise ValueError(f"Missing extra_info.task in {split_name} split at index {index}.")
+        task_name = str(extra_info.get("task", "")).strip()
+        if not task_name:
+            raise ValueError(f"Missing extra_info.task in {split_name} split at index {index}.")
+        available_task_names.add(task_name)
+        if task_name in requested_task_name_set:
+            selected_indices.append(index)
+
+    if not available_task_names:
+        raise ValueError(f"empty filtered {split_name} split after applying tasks {requested_task_names}; available tasks: []")
+
+    unknown_task_names = sorted(requested_task_name_set - available_task_names)
+    if unknown_task_names:
+        raise ValueError(
+            f"unknown {split_name} task names: {unknown_task_names}; available tasks: {sorted(available_task_names)}"
+        )
+    if not selected_indices:
+        raise ValueError(
+            f"empty filtered {split_name} split after applying tasks {requested_task_names}; "
+            f"available tasks: {sorted(available_task_names)}"
+        )
+
+    if hasattr(dataset, "select"):
+        filtered_dataset = dataset.select(selected_indices)
+    else:
+        filtered_dataset = dataset.__class__([dataset[index] for index in selected_indices])
+    return filtered_dataset, requested_task_names, sorted(available_task_names)
+
+
 def main(
     model: str = "saves/qwen2.5-0.5b/full/Industrial_and_Scientific-sft-dsz0",
     index_path: str = "data/Industrial_and_Scientific/Industrial_and_Scientific.index.json",
@@ -70,6 +124,8 @@ def main(
     hint_ce_loss_coef: float = 0.0,
     dynamic_hint_max_depth: Optional[int] = None,
     dynamic_hint_apply_to_eval: bool = False,
+    train_task_names: Optional[str] = None,
+    eval_task_names: Optional[str] = None,
     bf16: bool = True,
     deepspeed: Optional[str] = None,
     report_to: Optional[str] = None,
@@ -130,6 +186,28 @@ def main(
     train_dataset = dataset["train"]
     eval_dataset = dataset["valid"]
     test_dataset = dataset["test"]  # noqa: F841
+
+    train_dataset, resolved_train_task_names, train_available_task_names = _filter_dataset_by_task_names(
+        train_dataset,
+        split_name="train",
+        raw_task_names=train_task_names,
+    )
+    eval_dataset, resolved_eval_task_names, eval_available_task_names = _filter_dataset_by_task_names(
+        eval_dataset,
+        split_name="eval",
+        raw_task_names=eval_task_names,
+    )
+
+    print_main_process(
+        f"[INFO] train_task_names={resolved_train_task_names}, "
+        f"train_available_tasks={train_available_task_names}, "
+        f"train_size={len(train_dataset)}"
+    )
+    print_main_process(
+        f"[INFO] eval_task_names={resolved_eval_task_names}, "
+        f"eval_available_tasks={eval_available_task_names}, "
+        f"eval_size={len(eval_dataset)}"
+    )
 
     tokenizer = AutoTokenizer.from_pretrained(model)
 

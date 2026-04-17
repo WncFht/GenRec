@@ -1,6 +1,8 @@
 import pytest
 
 from analyze_rl_beam_hint import (
+    _filter_samples_by_task_names,
+    _parse_task_names,
     aggregate_run_summary,
     aggregate_stage_summary,
     build_group_pattern,
@@ -10,6 +12,52 @@ from analyze_rl_beam_hint import (
     extract_sid_tokens,
     summarize_group,
 )
+
+
+def test_parse_task_names_normalizes_csv_values():
+    assert _parse_task_names(" task1_sid_sft , task5_title_desc2sid ,, ") == [
+        "task1_sid_sft",
+        "task5_title_desc2sid",
+    ]
+
+
+def test_filter_samples_by_task_names_keeps_only_requested_tasks():
+    samples = [
+        {"extra_info": {"task": "task1_sid_sft", "index": 0}},
+        {"extra_info": {"task": "task4_hisTitle2sid", "index": 1}},
+        {"extra_info": {"task": "task5_title_desc2sid", "index": 2}},
+    ]
+
+    filtered_samples, requested_task_names, available_task_names = _filter_samples_by_task_names(
+        samples,
+        raw_task_names="task1_sid_sft,task5_title_desc2sid",
+    )
+
+    assert [sample["extra_info"]["task"] for sample in filtered_samples] == [
+        "task1_sid_sft",
+        "task5_title_desc2sid",
+    ]
+    assert requested_task_names == ["task1_sid_sft", "task5_title_desc2sid"]
+    assert available_task_names == ["task1_sid_sft", "task4_hisTitle2sid", "task5_title_desc2sid"]
+
+
+def test_filter_samples_by_task_names_rejects_unknown_task_names():
+    samples = [{"extra_info": {"task": "task1_sid_sft", "index": 0}}]
+
+    with pytest.raises(ValueError, match="unknown task names.*missing_task"):
+        _filter_samples_by_task_names(samples, raw_task_names="missing_task")
+
+
+def test_filter_samples_by_task_names_rejects_missing_task_metadata():
+    samples = [{"extra_info": {"index": 0}}]
+
+    with pytest.raises(ValueError, match="Missing extra_info.task"):
+        _filter_samples_by_task_names(samples, raw_task_names="task1_sid_sft")
+
+
+def test_filter_samples_by_task_names_rejects_empty_filtered_result():
+    with pytest.raises(ValueError, match="empty filtered sample set"):
+        _filter_samples_by_task_names([], raw_task_names="task1_sid_sft")
 
 
 def test_extract_sid_tokens_returns_ordered_sid_tokens():

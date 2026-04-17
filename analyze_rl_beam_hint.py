@@ -134,6 +134,54 @@ def _safe_mean(values: Iterable[float]) -> float:
     return sum(values) / len(values)
 
 
+def _parse_task_names(raw_task_names: str | None) -> list[str] | None:
+    if raw_task_names is None:
+        return None
+    task_names = [task_name.strip() for task_name in str(raw_task_names).split(",") if task_name.strip()]
+    return task_names or None
+
+
+def _filter_samples_by_task_names(
+    samples: list[dict[str, Any]],
+    raw_task_names: str | None,
+) -> tuple[list[dict[str, Any]], list[str] | None, list[str]]:
+    requested_task_names = _parse_task_names(raw_task_names)
+    available_task_names: set[str] = set()
+    sample_tasks: list[str] = []
+
+    for index, sample in enumerate(samples):
+        extra_info = sample.get("extra_info")
+        if not isinstance(extra_info, dict):
+            raise ValueError(f"Missing extra_info.task in train sample index {index}.")
+        task_name = str(extra_info.get("task", "")).strip()
+        if not task_name:
+            raise ValueError(f"Missing extra_info.task in train sample index {index}.")
+        available_task_names.add(task_name)
+        sample_tasks.append(task_name)
+
+    sorted_available_task_names = sorted(available_task_names)
+    if not requested_task_names:
+        return samples, None, sorted_available_task_names
+
+    if not available_task_names:
+        raise ValueError(f"empty filtered sample set after applying tasks {requested_task_names}; available tasks: []")
+
+    unknown_task_names = sorted(set(requested_task_names) - available_task_names)
+    if unknown_task_names:
+        raise ValueError(f"unknown task names: {unknown_task_names}; available tasks: {sorted_available_task_names}")
+
+    requested_task_name_set = set(requested_task_names)
+    filtered_samples = [
+        sample for sample, task_name in zip(samples, sample_tasks) if task_name in requested_task_name_set
+    ]
+    if not filtered_samples:
+        raise ValueError(
+            f"empty filtered sample set after applying tasks {requested_task_names}; "
+            f"available tasks: {sorted_available_task_names}"
+        )
+    return filtered_samples, requested_task_names, sorted_available_task_names
+
+
 def _normalize_fixed_hint_index(source_index: Any) -> str:
     try:
         return str(int(source_index))
@@ -922,6 +970,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--reuse-summary-path")
     parser.add_argument("--reuse-details-path")
     parser.add_argument("--disable-cache-reuse", action="store_true")
+    parser.add_argument("--task-names")
     parser.add_argument("--export-fixed-hint-depth-map-path")
     parser.add_argument("--export-fixed-hint-beam-size", type=int, default=16)
     parser.add_argument("--export-fixed-hint-unsolved-depth", type=int, default=3)
@@ -933,6 +982,10 @@ def main() -> None:
     args = parse_args()
     beam_sizes = [int(part.strip()) for part in args.beam_sizes.split(",") if part.strip()]
     samples = _load_train_samples(args.data_dir, max_samples=args.max_samples, offset=args.offset)
+    samples, requested_task_names, available_task_names = _filter_samples_by_task_names(samples, args.task_names)
+    print(
+        f"Task filter: requested={requested_task_names}, available={available_task_names}, filtered_sample_count={len(samples)}"
+    )
     max_hint_depth = args.max_hint_depth if args.max_hint_depth is not None else args.hint_depth
     if max_hint_depth < 0:
         max_hint_depth = _auto_max_hint_depth(samples)
@@ -989,6 +1042,8 @@ def main() -> None:
         "beam_sizes": beam_sizes,
         "hint_depth": args.hint_depth,
         "max_hint_depth": max_hint_depth,
+        "task_names": requested_task_names,
+        "available_task_names": available_task_names,
         "new_tokens_path": tokens_path,
         "new_tokens_added": added_tokens,
         "cache": cache_meta,
@@ -1002,6 +1057,8 @@ def main() -> None:
             "num_samples": len(samples),
             "beam_sizes": beam_sizes,
             "max_hint_depth": max_hint_depth,
+            "task_names": requested_task_names,
+            "available_task_names": available_task_names,
             "cache": cache_meta,
         },
         "results": {},

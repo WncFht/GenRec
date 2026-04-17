@@ -33,6 +33,12 @@ DYNAMIC_HINT_SID_ONLY_SCRIPT = (
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-only.sh"
 )
+DYNAMIC_HINT_SID_TITLE_DESC_SCRIPT = (
+    REPO_ROOT
+    / "hope"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-title-desc.sh"
+)
 DYNAMIC_HINT_RANKING_SCRIPT = (
     REPO_ROOT
     / "hope"
@@ -63,6 +69,12 @@ FIXED_HINT_SID_ONLY_SCRIPT = (
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-only.sh"
 )
+FIXED_HINT_SID_TITLE_DESC_SCRIPT = (
+    REPO_ROOT
+    / "hope"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-title-desc.sh"
+)
 FIXED_HINT_PREFIX_SEQ_SID_ONLY_SCRIPT = (
     REPO_ROOT
     / "hope"
@@ -83,6 +95,8 @@ class StopAfterTrainerInit(RuntimeError):
 def _load_trl_trainer_module(
     grpo_kwargs_sink: dict[str, object],
     fixed_hint_trainer_kwargs_sink: Optional[dict[str, object]] = None,
+    trainer_kwargs_sink: Optional[dict[str, object]] = None,
+    dataset_payload: Optional[dict[str, list[dict[str, object]]]] = None,
 ):
     fire_mod = types.ModuleType("fire")
     fire_mod.Fire = lambda fn: fn
@@ -99,10 +113,16 @@ def _load_trl_trainer_module(
                 return [item[key] for item in self]
             return super().__getitem__(key)
 
+    if dataset_payload is None:
+        dataset_payload = {
+            "train": [{"prompt": "train-prompt", "reward_model": {"ground_truth": "<a_1>"}}],
+            "valid": [{"prompt": "valid-prompt", "reward_model": {"ground_truth": "<a_1>"}}],
+            "test": [{"prompt": "test-prompt", "reward_model": {"ground_truth": "<a_1>"}}],
+        }
+
     datasets_mod.load_dataset = lambda *args, **kwargs: {
-        "train": _FakeDataset([{"prompt": "train-prompt", "reward_model": {"ground_truth": "<a_1>"}}]),
-        "valid": _FakeDataset([{"prompt": "valid-prompt", "reward_model": {"ground_truth": "<a_1>"}}]),
-        "test": _FakeDataset([{"prompt": "test-prompt", "reward_model": {"ground_truth": "<a_1>"}}]),
+        split_name: _FakeDataset([dict(item) for item in split_rows])
+        for split_name, split_rows in dataset_payload.items()
     }
     sys.modules["datasets"] = datasets_mod
 
@@ -124,6 +144,9 @@ def _load_trl_trainer_module(
 
     class _GRPOTrainer:
         def __init__(self, *args, **kwargs):
+            if trainer_kwargs_sink is not None:
+                trainer_kwargs_sink.clear()
+                trainer_kwargs_sink.update(kwargs)
             raise StopAfterTrainerInit("stop after capturing GRPO config kwargs")
 
     trl_mod.GRPOTrainer = _GRPOTrainer
@@ -406,6 +429,52 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
                 check=False,
             )
 
+    def _run_fixed_hint_sid_title_desc_dry_run(
+        self, extra_args: Optional[list[str]] = None
+    ) -> subprocess.CompletedProcess:
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            model_dir = temp_root_path / "model"
+            data_dir = temp_root_path / "data" / "rl"
+            index_path = temp_root_path / "data" / "id2sid.json"
+            add_tokens_path = temp_root_path / "data" / "new_tokens.json"
+            ds_config_path = temp_root_path / "config" / "zero2.yaml"
+            model_dir.mkdir(parents=True)
+            data_dir.mkdir(parents=True)
+            ds_config_path.parent.mkdir(parents=True)
+            (data_dir / "train.json").write_text("[]", encoding="utf-8")
+            (data_dir / "valid.json").write_text("[]", encoding="utf-8")
+            (data_dir / "test.json").write_text("[]", encoding="utf-8")
+            index_path.write_text("{}", encoding="utf-8")
+            add_tokens_path.write_text("[]", encoding="utf-8")
+            ds_config_path.write_text("train_micro_batch_size_per_gpu: 1\n", encoding="utf-8")
+
+            command = [
+                "bash",
+                str(FIXED_HINT_SID_TITLE_DESC_SCRIPT),
+                "--run",
+                "--dry-run",
+                "--model-path",
+                str(model_dir),
+                "--data-dir",
+                str(data_dir),
+                "--index-path",
+                str(index_path),
+                "--add-tokens-path",
+                str(add_tokens_path),
+                "--ds-config",
+                str(ds_config_path),
+            ]
+            if extra_args:
+                command.extend(extra_args)
+            return subprocess.run(
+                command,
+                cwd=REPO_ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
     def _run_fixed_hint_prefix_seq_sid_only_dry_run(
         self, extra_args: Optional[list[str]] = None
     ) -> subprocess.CompletedProcess:
@@ -517,6 +586,153 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
 
         self.assertTrue(grpo_kwargs["eval_on_start"])
 
+    def test_main_filters_train_and_eval_splits_by_task_names(self):
+        grpo_kwargs = {}
+        trainer_kwargs = {}
+        dataset_payload = {
+            "train": [
+                {
+                    "prompt": "train-1",
+                    "reward_model": {"ground_truth": "<a_1>"},
+                    "extra_info": {"task": "task1_sid_sft"},
+                },
+                {
+                    "prompt": "train-2",
+                    "reward_model": {"ground_truth": "<a_2>"},
+                    "extra_info": {"task": "task4_hisTitle2sid"},
+                },
+                {
+                    "prompt": "train-3",
+                    "reward_model": {"ground_truth": "<a_3>"},
+                    "extra_info": {"task": "task5_title_desc2sid"},
+                },
+            ],
+            "valid": [
+                {
+                    "prompt": "valid-1",
+                    "reward_model": {"ground_truth": "<a_1>"},
+                    "extra_info": {"task": "task1_sid_sft"},
+                },
+                {
+                    "prompt": "valid-2",
+                    "reward_model": {"ground_truth": "<a_2>"},
+                    "extra_info": {"task": "task5_title_desc2sid"},
+                },
+            ],
+            "test": [
+                {
+                    "prompt": "test-1",
+                    "reward_model": {"ground_truth": "<a_1>"},
+                    "extra_info": {"task": "task1_sid_sft"},
+                }
+            ],
+        }
+        module = _load_trl_trainer_module(
+            grpo_kwargs,
+            trainer_kwargs_sink=trainer_kwargs,
+            dataset_payload=dataset_payload,
+        )
+
+        with self.assertRaises(StopAfterTrainerInit):
+            module.main(
+                model="dummy-model",
+                data_dir="dummy-data",
+                index_path="dummy-index",
+                output_dir="dummy-output",
+                report_to="wandb",
+                run_name="dual-task-filter-test-run",
+                token_level_prefix_advantage=False,
+                reward_mode="rule_only",
+                num_beams=4,
+                train_task_names="task1_sid_sft,task5_title_desc2sid",
+                eval_task_names="task1_sid_sft",
+            )
+
+        self.assertEqual(
+            [row["extra_info"]["task"] for row in trainer_kwargs["train_dataset"]],
+            ["task1_sid_sft", "task5_title_desc2sid"],
+        )
+        self.assertEqual(
+            [row["extra_info"]["task"] for row in trainer_kwargs["eval_dataset"]],
+            ["task1_sid_sft"],
+        )
+
+    def test_main_rejects_unknown_train_task_name(self):
+        grpo_kwargs = {}
+        dataset_payload = {
+            "train": [
+                {
+                    "prompt": "train-1",
+                    "reward_model": {"ground_truth": "<a_1>"},
+                    "extra_info": {"task": "task1_sid_sft"},
+                }
+            ],
+            "valid": [
+                {
+                    "prompt": "valid-1",
+                    "reward_model": {"ground_truth": "<a_1>"},
+                    "extra_info": {"task": "task1_sid_sft"},
+                }
+            ],
+            "test": [
+                {
+                    "prompt": "test-1",
+                    "reward_model": {"ground_truth": "<a_1>"},
+                    "extra_info": {"task": "task1_sid_sft"},
+                }
+            ],
+        }
+        module = _load_trl_trainer_module(grpo_kwargs, dataset_payload=dataset_payload)
+
+        with self.assertRaisesRegex(ValueError, "unknown.*missing_task"):
+            module.main(
+                model="dummy-model",
+                data_dir="dummy-data",
+                index_path="dummy-index",
+                output_dir="dummy-output",
+                report_to="wandb",
+                run_name="dual-task-filter-test-run",
+                token_level_prefix_advantage=False,
+                reward_mode="rule_only",
+                num_beams=4,
+                train_task_names="missing_task",
+            )
+
+    def test_main_rejects_empty_filtered_eval_split(self):
+        grpo_kwargs = {}
+        dataset_payload = {
+            "train": [
+                {
+                    "prompt": "train-1",
+                    "reward_model": {"ground_truth": "<a_1>"},
+                    "extra_info": {"task": "task1_sid_sft"},
+                }
+            ],
+            "valid": [],
+            "test": [
+                {
+                    "prompt": "test-1",
+                    "reward_model": {"ground_truth": "<a_1>"},
+                    "extra_info": {"task": "task1_sid_sft"},
+                }
+            ],
+        }
+        module = _load_trl_trainer_module(grpo_kwargs, dataset_payload=dataset_payload)
+
+        with self.assertRaisesRegex(ValueError, "empty filtered eval split"):
+            module.main(
+                model="dummy-model",
+                data_dir="dummy-data",
+                index_path="dummy-index",
+                output_dir="dummy-output",
+                report_to="wandb",
+                run_name="dual-task-filter-test-run",
+                token_level_prefix_advantage=False,
+                reward_mode="rule_only",
+                num_beams=4,
+                eval_task_names="task1_sid_sft",
+            )
+
     def test_dynamic_hint_shell_dry_run_forwards_run_name_and_uses_working_batch_default(self):
         result = subprocess.run(
             ["bash", str(DYNAMIC_HINT_SCRIPT), "--dry-run"],
@@ -569,6 +785,27 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
             "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint.sh",
             script_text,
         )
+        self.assertNotIn("exec bash", script_text)
+
+    def test_dynamic_hint_sid_title_desc_shell_dry_run_forwards_dual_task_filters(self):
+        result = subprocess.run(
+            ["bash", str(DYNAMIC_HINT_SID_TITLE_DESC_SCRIPT), "--dry-run"],
+            cwd=REPO_ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("--train_task_names task1_sid_sft\\,task5_title_desc2sid", result.stdout)
+        self.assertIn("--eval_task_names task1_sid_sft", result.stdout)
+        self.assertIn("--reward_mode rule_only", result.stdout)
+
+    def test_dynamic_hint_sid_title_desc_shell_is_standalone_launcher(self):
+        script_text = DYNAMIC_HINT_SID_TITLE_DESC_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("trl_trainer.py", script_text)
+        self.assertNotIn("BASE_SCRIPT=", script_text)
         self.assertNotIn("exec bash", script_text)
 
     def test_dynamic_hint_ranking_shell_dry_run_uses_ranking_reward_mode(self):
@@ -734,11 +971,28 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         self.assertIn("--token_level_prefix_advantage false", script_text)
         self.assertNotIn("--reward_mode \"$REWARD_MODE\"", script_text)
 
+    def test_fixed_hint_sid_title_desc_shell_dry_run_forwards_dual_task_filters(self):
+        result = self._run_fixed_hint_sid_title_desc_dry_run()
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("--train_task_names task1_sid_sft\\,task5_title_desc2sid", result.stdout)
+        self.assertIn("--eval_task_names task1_sid_sft", result.stdout)
+        self.assertIn("--task-names task1_sid_sft\\,task5_title_desc2sid", result.stdout)
+        self.assertIn("--reward_mode rule_only", result.stdout)
+
+    def test_fixed_hint_sid_title_desc_shell_is_standalone_launcher(self):
+        script_text = FIXED_HINT_SID_TITLE_DESC_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("analyze_rl_beam_hint.py", script_text)
+        self.assertIn("trl_trainer.py", script_text)
+        self.assertNotIn("BASE_SCRIPT=", script_text)
+        self.assertNotIn("exec bash", script_text)
+
     def test_all_grec_rl_launchers_enable_eval_on_start_by_default(self):
         training_scripts = sorted(
             path
             for path in GREC_RL_SCRIPT_DIR.glob("*-rl*.sh")
-            if "analyze-rl-beam-hint" not in path.name
+            if "analyze-rl-beam-hint" not in path.name and "fixed-hint-ce" not in path.name
         )
         self.assertTrue(training_scripts, msg="Expected grecc RL launcher scripts")
 
