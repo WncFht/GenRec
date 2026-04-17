@@ -550,6 +550,59 @@ beta * kl ≈ 1.48e7
 2. 真正把 loss 拉飞的是 KL surrogate；
 3. 因此后续稳态优化应优先从 KL 手里找，而不是先把 CE 当主因。
 
+### 9.9 `hint_ce-2` 这条线里，CE 不是主稳定性问题，但它在前期相对 RL base 还是偏重
+
+对日志
+
+- [instruments_grec_rl_rule_only_fixed_hint_taskfix_b16_hint_ce-2_ckpt495_20260416_024439.log](/Users/fanghaotian/Desktop/src/GenRec/log/instruments_grec_rl_rule_only_fixed_hint_taskfix_b16_hint_ce-2_ckpt495_20260416_024439.log)
+
+做过一次单独拆分后，当前可以先记下下面几个量级判断：
+
+1. 当前配置是：
+   - `HINT_CE_LOSS_COEF = 0.001`
+   - `GRAD_ACC = 4`
+   - 所以真正进总 loss 的 effective multiplier 约等于 `0.00025`
+
+2. 从全程中位数看，它还不是一个“喧宾夺主”的量级：
+   - `weighted hint CE` 中位数约 `0.00103`
+   - `loss/rl_base` 中位数约 `0.00502`
+   - `hint CE fraction of total loss` 中位数约 `3.5%`
+
+3. 但如果只看前 `0.5 epoch`，它相对 RL base 确实偏重：
+   - `hint CE fraction of total loss` 中位数约 `7.7%`
+   - `p90` 约 `20.5%`
+   - `weighted hint CE / rl_base` 中位数约 `0.65`
+   - `p90` 已经能到 `22x`
+
+4. 到训练后段，这个比例会自然降下来：
+   - `epoch 1.5 ~ 2.0` 区间里，`hint CE fraction` 中位数约 `2.6%`
+   - `weighted hint CE / rl_base` 中位数约 `0.14`
+
+所以更准确的判断应该是：
+
+> 当前 `0.001` 这档 CE 系数并没有造成那些巨大 loss spike；那些 spike 仍然主要是 KL surrogate 在接管总 loss。  
+> 但如果我们希望 `hint CE` 始终只是一个更轻的 auxiliary regularizer，那它在训练前期相对 RL base 还是偏重了一点。
+
+基于这个量级，当前最合理的下一个参数尝试不是激进地砍到 `0.00025`，而是：
+
+1. 第一优先级：
+   - 先试 `HINT_CE_LOSS_COEF = 0.0005`
+   - 等价 effective multiplier 变成 `0.000125`
+   - 这样大致会把当前的 CE 占比整体再压一半
+
+2. 如果还想继续保留一点前期 scaffold、但减少后期 hint 依赖：
+   - 再试一个简单的两段式 schedule
+   - 例如前半程 `0.0005`，后半程 `0.00025`
+
+3. 当前不建议直接把 CE 调到 `0.00025` 再当默认：
+   - 它很可能会让后段的 weighted CE 掉到总 loss 的 `1%` 左右
+   - 那样容易从“略重”直接变成“几乎不起作用”
+
+也就是说，`hint_ce-2` 这条线对 CE 更合理的结论不是“CE 爆了”，而是：
+
+- 数值稳定性主因仍然是 `KL`
+- 但如果要把 CE 和 RL 的角色区分得更清楚，`0.0005` 比 `0.001` 更像一个合理的下一步
+
 ## 10. 探索主线 F：为什么训练过程中 entropy 会上升
 
 除了 KL spike 之外，另一个值得单独记录的现象是：
@@ -670,3 +723,36 @@ beta * kl ≈ 1.48e7
 因此，这条线现在最合适的定位不是“马上改算法”，而是：
 
 > 先把 entropy 上升到底来自哪里讲清楚，再决定它是不是一个需要被压制的问题。
+
+## 11. 工程探索：让 task 子集能够复用 full mixed hint rollout cache
+
+这条不是当前第一优先级，但后面值得专门补。
+
+现在 `fixed-hint` 的双任务脚本已经支持：
+
+- train: `task1_sid_sft + task5_title_desc2sid`
+- eval: `task1_sid_sft`
+
+但它当前不能直接复用 full mixed 的旧 beam-hint cache，哪怕那个 cache 从语义上包含了这两个 task 的子集。
+
+更准确地说：
+
+1. 从研究语义上，full mixed rollout 结果本来应该是可以裁出 task 子集来复用的；
+2. 但当前实现里，legacy details / cache 仍然强依赖 `sample_id -> samples[row["sample_id"]]` 这种“按当前样本列表位置取样本”的方式；
+3. 而 dual-task 过滤会改变样本列表长度与顺序，因此旧的 `sample_id` 不能安全地直接拿来做子集复用。
+
+后面如果要补这件事，最干净的方向应该是：
+
+1. 把 cached details / stage rows 的主键从 `sample_id` 改成稳定 sample key；
+2. 这个 stable key 最自然的形式就是当前 fixed hint map 已经在用的 `task::index`；
+3. 然后让 `analyze_rl_beam_hint.py` 的 cache discovery / details normalization / fixed-map export 都围绕这个 stable key 走，而不是围绕“过滤后的局部样本位置”走。
+
+这样做完以后，我们才能安全地支持：
+
+- full mixed rollout details
+- 任意 task subset export
+- 不必为 `sid-only`、`sid+title_desc2sid`、乃至未来别的 task 组合重复重跑整个 beam cascade
+
+所以这条工程问题后面值得单独开一轮，但它本质上不是“理论上不能复用”，而是：
+
+> 当前 cache 格式还不够 stable-keyed，因此暂时不能安全地从 full mixed 结果里切出子集复用。
