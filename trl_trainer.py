@@ -23,10 +23,14 @@ from util import (
 )
 
 
-def _parse_task_names(raw_task_names: Optional[str]) -> Optional[list[str]]:
+def _parse_task_names(raw_task_names) -> Optional[list[str]]:
     if raw_task_names is None:
         return None
-    task_names = [task_name.strip() for task_name in str(raw_task_names).split(",") if task_name.strip()]
+
+    raw_values = raw_task_names if isinstance(raw_task_names, (list, tuple)) else [raw_task_names]
+    task_names = []
+    for raw_value in raw_values:
+        task_names.extend(task_name.strip() for task_name in str(raw_value).split(",") if task_name.strip())
     return task_names or None
 
 

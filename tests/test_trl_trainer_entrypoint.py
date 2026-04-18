@@ -666,6 +666,72 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
             ["task1_sid_sft"],
         )
 
+    def test_main_accepts_fire_tuple_for_train_task_names(self):
+        grpo_kwargs = {}
+        trainer_kwargs = {}
+        dataset_payload = {
+            "train": [
+                {
+                    "prompt": "train-1",
+                    "reward_model": {"ground_truth": "<a_1>"},
+                    "extra_info": {"task": "task1_sid_sft"},
+                },
+                {
+                    "prompt": "train-2",
+                    "reward_model": {"ground_truth": "<a_2>"},
+                    "extra_info": {"task": "task5_title_desc2sid"},
+                },
+            ],
+            "valid": [
+                {
+                    "prompt": "valid-1",
+                    "reward_model": {"ground_truth": "<a_1>"},
+                    "extra_info": {"task": "task1_sid_sft"},
+                },
+                {
+                    "prompt": "valid-2",
+                    "reward_model": {"ground_truth": "<a_2>"},
+                    "extra_info": {"task": "task5_title_desc2sid"},
+                },
+            ],
+            "test": [
+                {
+                    "prompt": "test-1",
+                    "reward_model": {"ground_truth": "<a_1>"},
+                    "extra_info": {"task": "task1_sid_sft"},
+                }
+            ],
+        }
+        module = _load_trl_trainer_module(
+            grpo_kwargs,
+            trainer_kwargs_sink=trainer_kwargs,
+            dataset_payload=dataset_payload,
+        )
+
+        with self.assertRaises(StopAfterTrainerInit):
+            module.main(
+                model="dummy-model",
+                data_dir="dummy-data",
+                index_path="dummy-index",
+                output_dir="dummy-output",
+                report_to="wandb",
+                run_name="dual-task-filter-test-run",
+                token_level_prefix_advantage=False,
+                reward_mode="rule_only",
+                num_beams=4,
+                train_task_names=("task1_sid_sft", "task5_title_desc2sid"),
+                eval_task_names="task1_sid_sft",
+            )
+
+        self.assertEqual(
+            [row["extra_info"]["task"] for row in trainer_kwargs["train_dataset"]],
+            ["task1_sid_sft", "task5_title_desc2sid"],
+        )
+        self.assertEqual(
+            [row["extra_info"]["task"] for row in trainer_kwargs["eval_dataset"]],
+            ["task1_sid_sft"],
+        )
+
     def test_main_rejects_unknown_train_task_name(self):
         grpo_kwargs = {}
         dataset_payload = {
