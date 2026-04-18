@@ -1,0 +1,2 @@
+variant_key,variant_label,checkpoint,NDCG@10,HR@10,NDCG@50,HR@50,NDCG@5,HR@5
+sft495,SFT495,checkpoint-495,0.0823,0.1094,0.0985,0.1844,0.0771,0.0932
