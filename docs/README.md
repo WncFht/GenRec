@@ -41,6 +41,7 @@ Treat dated notes as snapshots, not evergreen source-of-truth docs. Current inve
 - `2026-04-16-genrec-rl-ce-formulas.md`: formula note aligning current GenRec RL/CE terms with `UFT`-style notation and reduction semantics.
 - `2026-04-16-instruments-dynamic-hint-max1-ablation.md`: focused note on the `dynamic hint max1` ablation versus `rule_only`, `dynamic gather-fix`, and clean fixed-hint references.
 - `2026-04-17-genrec-main-results-weekly.md`: weekly report draft covering the now-complete `Games-grec` mainline results plus the latest `Instruments-grec` `UFT` / `CE` / `CE-2` / `max1` follow-ups, with newer local CSV summaries preferred over stale checkpoint text when they disagree.
+- `2026-04-19-instruments-dual-task-single-hint-tracking.md`: tracking note for the new `Instruments-grec` dual-task-filtered and single-hint settings, including launcher-level setting differences and the first synced `sid-hint-only-mixed` checkpoints.
 
 ## Generated Planning Artifacts
 

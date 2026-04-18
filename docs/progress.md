@@ -1,6 +1,6 @@
 # GenRec 进度维护
 
-- 最后更新：2026-04-18
+- 最后更新：2026-04-19
 - 维护目的：用一个稳定文件追踪当前各数据集的实验阶段、已经跑过的线、试过的 idea，以及下一步。
 
 ## 1. 更新规则
@@ -103,14 +103,20 @@
   但长跑到后段会回落，因此更像 early-stop 候选，不是新的默认长跑线。
 - `hintce-2` 的训练日志拆分已经补过一轮：
   当前 `weighted_hint_ce_loss` 大体稳定在 `~1e-3`，前期相对 `RL base` 略重，但主 spike 仍然主要由 `KL` 驱动，而不是 CE 本身。
-- 仓库现在已经支持一个 engineering setting：
-  mixed-task 训练仍保留三任务，但只对 `task1_sid_sft` 注入 fixed hint，`task4/task5` 强制 zero-hint；
-  这是后面验证“sid scaffold 能否外溢到其他 task”时的直接入口，但目前还没有完整结果可以引用。
+- 仓库现在已经支持一条 dual-task filtered setting：
+  `task1_sid_sft + task5_title_desc2sid` 参与 train，`task4_hisTitle2sid` 被移除，eval 仍只看 `task1_sid_sft`；dynamic / fixed 两个 launcher 都已落地，但截至 `2026-04-19` 的本地 `results/` 还没有同步到对应结果目录。
+- mixed-task `single-hint` setting 已经有首轮结果：
+  训练仍保留三任务，但只对 `task1_sid_sft` 注入 fixed hint，`task4/task5` 强制 zero-hint；
+  当前本地已同步到 `checkpoint-999`，best readout 是
+  `NDCG@10=0.0924 / HR@10=0.1166 / NDCG@50=0.1087 / HR@50=0.1928`。
+- `single-hint mixed` 相比 full mixed fixed-hint 在前 `333/666/999` checkpoint 的 top-10 略强，但 `HR@50` 略低；
+  目前还只能记成 early trade-off signal，不能替代 full mixed 或 corrected `sid-only` 基线。
 
 ### 当前最值得继续做的事
 
 - 把 `UFT-style hint curriculum` 落到 corrected `fixed taskfix sid-only` 上。
 - 对 `hintce-2` 做更细的 task-level 和训练日志分析，确认为什么 balanced 优势出现在中后段而不是最终点。
+- 把 dual-task `sid + title_desc2sid` dynamic / fixed 两条线的首轮 eval 同步下来，并和 `dynamic gather-fix` / corrected `fixed taskfix sid-only` 做 first-look 对比。
 - 对 `max1` 补回 train-time 日志和 diagnostics，尤其是 `selected_hint_depth_mean`、`selected_depth_1_frac`、`mean_length`。
 - 在主线对比里优先保留 4 条：`rule_only rerun`、`dynamic gather-fix`、corrected `fixed taskfix sid-only`、old `fixed mixed-single`（仅作历史参考）。
 
@@ -121,6 +127,7 @@
 - [2026-04-11-genrec-instruments-rl-variant-comparison.md](2026-04-11-genrec-instruments-rl-variant-comparison.md)
 - [2026-04-11-instruments-rl-next-ideas.md](2026-04-11-instruments-rl-next-ideas.md)
 - [2026-04-16-instruments-dynamic-hint-max1-ablation.md](2026-04-16-instruments-dynamic-hint-max1-ablation.md)
+- [2026-04-19-instruments-dual-task-single-hint-tracking.md](2026-04-19-instruments-dual-task-single-hint-tracking.md)
 
 ## 4. Games
 
