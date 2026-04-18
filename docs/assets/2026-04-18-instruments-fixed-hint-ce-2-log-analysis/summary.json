@@ -1,0 +1,38 @@
+{
+  "log_path": "/Users/fanghaotian/Desktop/src/GenRec/log/instruments_grec_rl_rule_only_fixed_hint_taskfix_b16_hint_ce_ckpt495_20260414_041008.log",
+  "hint_ce_loss_coef": 0.001,
+  "grad_acc": 4,
+  "effective_hint_ce_multiplier": 0.00025,
+  "train_rows": 3326,
+  "eval_rows": 33,
+  "train": {
+    "epoch_min": 0.0,
+    "epoch_max": 2.0,
+    "loss_min": 0.003,
+    "loss_median": 0.0299,
+    "loss_max": 74327744.0,
+    "hint_ce_loss_min": 2.9850446581840515,
+    "hint_ce_loss_median": 4.1755582094192505,
+    "hint_ce_loss_max": 5.539364218711853,
+    "weighted_hint_ce_min": 0.0007462611645460129,
+    "weighted_hint_ce_median": 0.0010438895523548126,
+    "weighted_hint_ce_max": 0.0013848410546779633,
+    "hint_ce_fraction_median": 0.03591478538390566,
+    "hint_ce_fraction_p90": 0.08712576588197632,
+    "hint_ce_fraction_max": 0.2539083794240029,
+    "entropy_min": 0.6335606575012207,
+    "entropy_max": 2.375909209251404,
+    "reward_min": 0.0703125,
+    "reward_max": 0.2822265625
+  },
+  "eval": {
+    "epoch_min": 0.06,
+    "epoch_max": 1.98,
+    "reward_start": 0.009871495327102804,
+    "reward_end": 0.010608936915887851,
+    "reward_max": 0.010733060747663552,
+    "reward_best_epoch": 1.02,
+    "entropy_start": 1.1714077062138888,
+    "entropy_end": 1.6331615092598388
+  }
+}

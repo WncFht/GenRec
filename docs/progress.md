@@ -101,6 +101,11 @@
 - `max1` 是当前最值得继续解释的 shallow-budget dynamic：
   best 点在 `checkpoint-1332 / NDCG@10=0.0934 / HR@50=0.1905`
   但长跑到后段会回落，因此更像 early-stop 候选，不是新的默认长跑线。
+- `hintce-2` 的训练日志拆分已经补过一轮：
+  当前 `weighted_hint_ce_loss` 大体稳定在 `~1e-3`，前期相对 `RL base` 略重，但主 spike 仍然主要由 `KL` 驱动，而不是 CE 本身。
+- 仓库现在已经支持一个 engineering setting：
+  mixed-task 训练仍保留三任务，但只对 `task1_sid_sft` 注入 fixed hint，`task4/task5` 强制 zero-hint；
+  这是后面验证“sid scaffold 能否外溢到其他 task”时的直接入口，但目前还没有完整结果可以引用。
 
 ### 当前最值得继续做的事
 
