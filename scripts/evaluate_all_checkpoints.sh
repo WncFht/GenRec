@@ -36,6 +36,11 @@ Watcher examples:
     --stable-age-seconds 300 \
     --stable-confirmation-polls 2
 
+  # Keep the watcher attached to GPUs while idle
+  IDLE_HOLD_ENABLED=1 \
+  IDLE_HOLD_MEMORY_RATIO=0.95 \
+  bash scripts/evaluate_all_checkpoints.sh run
+
 Legacy environment overrides:
   EVAL_SCRIPT=./evaluate_sft_3b.sh
   PYTHON_BIN=python
@@ -60,6 +65,9 @@ Watcher environment overrides:
   POLL_INTERVAL_SECONDS=60
   STABLE_AGE_SECONDS=180
   STABLE_CONFIRMATION_POLLS=2
+  IDLE_HOLD_ENABLED=0
+  IDLE_HOLD_MEMORY_RATIO=0.95
+  IDLE_HOLD_RELEASE_GRACE_SECONDS=5
   WATCH_STATE_PATH=state/evaluate_all_checkpoints/watch_state.json
 EOF
 }

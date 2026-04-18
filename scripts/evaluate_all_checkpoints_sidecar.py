@@ -17,6 +17,7 @@ from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from threading import Event, Lock, Thread
 from typing import Any
 
 
@@ -41,6 +42,9 @@ class WatcherConfig:
     stable_age_seconds: int
     stable_confirmation_polls: int
     poll_interval_seconds: int
+    idle_hold_enabled: bool
+    idle_hold_memory_ratio: float
+    idle_hold_release_grace_seconds: int
     state_path: Path
 
 
@@ -58,6 +62,123 @@ class CheckpointTask:
     index_path: Path
     data_profile: str
     cb_width: str
+
+
+class TorchIdleGpuHolder:
+    """Keep the watch process attached to the same GPUs while idle."""
+
+    _ALLOCATION_CHUNK_BYTES = 256 * 1024 * 1024
+
+    def __init__(self, cuda_list: str, memory_ratio: float):
+        self.cuda_list = cuda_list
+        self.memory_ratio = memory_ratio
+        self._lock = Lock()
+        self._stop_event = Event()
+        self._thread: Thread | None = None
+
+    def ensure_running(self) -> None:
+        with self._lock:
+            if self._thread is not None and self._thread.is_alive():
+                return
+            self._stop_event = Event()
+            self._thread = Thread(
+                target=self._run,
+                name="evaluate-all-checkpoints-idle-holder",
+                daemon=True,
+            )
+            self._thread.start()
+
+    def stop(self) -> None:
+        with self._lock:
+            thread = self._thread
+            stop_event = self._stop_event
+            self._thread = None
+            self._stop_event = Event()
+
+        if thread is None:
+            return
+
+        stop_event.set()
+        thread.join(timeout=30)
+        if thread.is_alive():
+            logging.warning("Idle GPU holder thread did not stop within timeout")
+
+    def _run(self) -> None:
+        gpu_ids: list[int] = []
+        allocated_gib: dict[int, float] = {}
+        blocks: list[list[Any]] = []
+        torch = None
+        try:
+            import torch as torch_module
+        except ImportError as exc:
+            logging.warning("Idle GPU holder unavailable because torch import failed: %s", exc)
+            return
+
+        torch = torch_module
+        if not torch.cuda.is_available():
+            logging.warning("Idle GPU holder requested but CUDA is unavailable")
+            return
+
+        try:
+            gpu_ids = parse_cuda_list(self.cuda_list, torch.cuda.device_count())
+        except ValueError as exc:
+            logging.warning("Idle GPU holder disabled due to invalid CUDA_LIST=%r: %s", self.cuda_list, exc)
+            return
+
+        if not gpu_ids:
+            logging.warning("Idle GPU holder requested but no GPU ids were resolved from CUDA_LIST=%r", self.cuda_list)
+            return
+
+        try:
+            for gpu_id in gpu_ids:
+                if self._stop_event.is_set():
+                    return
+
+                device = torch.device(f"cuda:{gpu_id}")
+                total_memory = torch.cuda.get_device_properties(device).total_memory
+                target_bytes = int(total_memory * self.memory_ratio)
+                allocated_bytes = 0
+                device_blocks: list[Any] = []
+
+                while allocated_bytes < target_bytes and not self._stop_event.is_set():
+                    next_chunk = min(self._ALLOCATION_CHUNK_BYTES, target_bytes - allocated_bytes)
+                    if next_chunk <= 0:
+                        break
+                    try:
+                        block = torch.empty(next_chunk, dtype=torch.uint8, device=device)
+                    except Exception as exc:
+                        logging.warning(
+                            "Idle GPU holder stopped allocating on cuda:%d after %.2f GiB: %s",
+                            gpu_id,
+                            allocated_bytes / (1024**3),
+                            exc,
+                        )
+                        break
+                    device_blocks.append(block)
+                    allocated_bytes += block.nelement()
+
+                blocks.append(device_blocks)
+                allocated_gib[gpu_id] = allocated_bytes / (1024**3)
+                logging.info(
+                    "Idle GPU holder reserved %.2f GiB on cuda:%d (target %.1f%%)",
+                    allocated_gib[gpu_id],
+                    gpu_id,
+                    self.memory_ratio * 100.0,
+                )
+
+            while not self._stop_event.wait(1):
+                continue
+        finally:
+            blocks.clear()
+            if torch is not None:
+                try:
+                    for gpu_id in gpu_ids:
+                        with torch.cuda.device(gpu_id):
+                            torch.cuda.empty_cache()
+                except Exception as exc:
+                    logging.warning("Idle GPU holder cleanup raised: %s", exc)
+            if gpu_ids:
+                logging.info("Idle GPU holder released GPUs=%s", gpu_ids)
 
 
 def now_utc_iso() -> str:
@@ -120,6 +241,36 @@ def exclusive_lock(lock_path: Path):
 def stable_hash(payload: Any) -> str:
     raw = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
     return hashlib.sha1(raw.encode("utf-8")).hexdigest()
+
+
+def parse_cuda_list(raw_value: str, device_count: int) -> list[int]:
+    available_gpu_ids = list(range(device_count))
+    normalized = raw_value.strip()
+    if not normalized or normalized in {"all", "remaining"}:
+        return available_gpu_ids
+
+    resolved_gpu_ids: list[int] = []
+    seen_gpu_ids: set[int] = set()
+    for token in normalized.replace(",", " ").split():
+        if "-" in token:
+            start_text, end_text = token.split("-", 1)
+            start = int(start_text)
+            end = int(end_text)
+            if end < start:
+                raise ValueError(f"invalid GPU range: {token}")
+            gpu_candidates = range(start, end + 1)
+        else:
+            gpu_candidates = [int(token)]
+
+        for gpu_id in gpu_candidates:
+            if gpu_id not in available_gpu_ids:
+                raise ValueError(f"GPU {gpu_id} is unavailable")
+            if gpu_id in seen_gpu_ids:
+                continue
+            seen_gpu_ids.add(gpu_id)
+            resolved_gpu_ids.append(gpu_id)
+
+    return resolved_gpu_ids
 
 
 def parse_checkpoint_step(name: str) -> int | None:
@@ -549,6 +700,15 @@ def serialize_task(task: CheckpointTask) -> dict[str, Any]:
     return payload
 
 
+def build_idle_gpu_holder(config: WatcherConfig) -> TorchIdleGpuHolder | None:
+    if not config.idle_hold_enabled:
+        return None
+    return TorchIdleGpuHolder(
+        cuda_list=config.cuda_list,
+        memory_ratio=config.idle_hold_memory_ratio,
+    )
+
+
 def run_task(config: WatcherConfig, state: dict[str, Any], task: CheckpointTask, dry_run: bool) -> dict[str, Any]:
     command = ["bash", str(config.eval_script), str(task.model_root)]
     env = os.environ.copy()
@@ -604,6 +764,33 @@ def run_task(config: WatcherConfig, state: dict[str, Any], task: CheckpointTask,
     return record_task_success(state, finished_at)
 
 
+def execute_watch_iteration(
+    config: WatcherConfig,
+    state: dict[str, Any],
+    *,
+    dry_run: bool,
+    idle_holder: TorchIdleGpuHolder | Any | None,
+) -> dict[str, Any]:
+    state, ready_tasks = scan_pending_tasks(config, state)
+    save_json_atomic(config.state_path, state)
+
+    if ready_tasks:
+        if idle_holder is not None:
+            idle_holder.stop()
+            if config.idle_hold_release_grace_seconds > 0:
+                time.sleep(config.idle_hold_release_grace_seconds)
+        state = run_task(config, state, ready_tasks[0], dry_run=dry_run)
+        save_json_atomic(config.state_path, state)
+        return state
+
+    if idle_holder is not None:
+        idle_holder.ensure_running()
+
+    logging.info("No ready tasks. Sleeping %ss", config.poll_interval_seconds)
+    time.sleep(config.poll_interval_seconds)
+    return state
+
+
 def execute_once(config: WatcherConfig, *, dry_run: bool) -> int:
     state = load_watch_state(config.state_path)
     state, ready_tasks = scan_pending_tasks(config, state)
@@ -624,18 +811,22 @@ def execute_once(config: WatcherConfig, *, dry_run: bool) -> int:
 def execute_watch(config: WatcherConfig, *, dry_run: bool) -> int:
     lock_path = config.state_path.parent / ".watch.lock"
     with exclusive_lock(lock_path):
-        while True:
-            state = load_watch_state(config.state_path)
-            state, ready_tasks = scan_pending_tasks(config, state)
-            save_json_atomic(config.state_path, state)
-
-            if ready_tasks:
-                state = run_task(config, state, ready_tasks[0], dry_run=dry_run)
-                save_json_atomic(config.state_path, state)
-                continue
-
-            logging.info("No ready tasks. Sleeping %ss", config.poll_interval_seconds)
-            time.sleep(config.poll_interval_seconds)
+        idle_holder = build_idle_gpu_holder(config)
+        try:
+            while True:
+                state = load_watch_state(config.state_path)
+                execute_watch_iteration(
+                    config,
+                    state,
+                    dry_run=dry_run,
+                    idle_holder=idle_holder,
+                )
+        except KeyboardInterrupt:
+            logging.info("Watcher interrupted")
+            return 130
+        finally:
+            if idle_holder is not None:
+                idle_holder.stop()
 
 
 def resolve_path(path_str: str, base: Path) -> Path:
@@ -647,6 +838,10 @@ def resolve_path(path_str: str, base: Path) -> Path:
 
 def build_config_from_args(args: argparse.Namespace, cwd: Path) -> WatcherConfig:
     repo_root = resolve_path(args.repo_root, cwd)
+    if not 0 < args.idle_hold_memory_ratio <= 1:
+        raise ValueError("--idle-hold-memory-ratio must be within (0, 1]")
+    if args.idle_hold_release_grace_seconds < 0:
+        raise ValueError("--idle-hold-release-grace-seconds must be >= 0")
     return WatcherConfig(
         repo_root=repo_root,
         results_root=resolve_path(args.results_root, cwd),
@@ -664,6 +859,9 @@ def build_config_from_args(args: argparse.Namespace, cwd: Path) -> WatcherConfig
         stable_age_seconds=args.stable_age_seconds,
         stable_confirmation_polls=args.stable_confirmation_polls,
         poll_interval_seconds=args.poll_interval_seconds,
+        idle_hold_enabled=args.idle_hold_enabled == "1",
+        idle_hold_memory_ratio=args.idle_hold_memory_ratio,
+        idle_hold_release_grace_seconds=args.idle_hold_release_grace_seconds,
         state_path=resolve_path(args.state_path, cwd),
     )
 
@@ -696,6 +894,20 @@ def build_parser() -> argparse.ArgumentParser:
             "--poll-interval-seconds",
             type=int,
             default=int(os.environ.get("POLL_INTERVAL_SECONDS", "60")),
+        )
+        target.add_argument(
+            "--idle-hold-enabled",
+            default=os.environ.get("IDLE_HOLD_ENABLED", "0"),
+        )
+        target.add_argument(
+            "--idle-hold-memory-ratio",
+            type=float,
+            default=float(os.environ.get("IDLE_HOLD_MEMORY_RATIO", "0.95")),
+        )
+        target.add_argument(
+            "--idle-hold-release-grace-seconds",
+            type=int,
+            default=int(os.environ.get("IDLE_HOLD_RELEASE_GRACE_SECONDS", "5")),
         )
         target.add_argument(
             "--state-path",

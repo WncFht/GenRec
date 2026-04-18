@@ -6,6 +6,7 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
+from unittest import mock
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -229,8 +230,21 @@ class EvaluateAllCheckpointWatcherTests(unittest.TestCase):
             stable_age_seconds=60,
             stable_confirmation_polls=2,
             poll_interval_seconds=30,
+            idle_hold_enabled=False,
+            idle_hold_memory_ratio=0.95,
+            idle_hold_release_grace_seconds=5,
             state_path=temp_root / "state" / "watch_state.json",
         )
+
+    class FakeIdleHolder:
+        def __init__(self):
+            self.events = []
+
+        def ensure_running(self):
+            self.events.append("ensure_running")
+
+        def stop(self):
+            self.events.append("stop")
 
     @staticmethod
     def write_file(path: Path, content: str, mtime_epoch: int) -> None:
@@ -385,6 +399,94 @@ class EvaluateAllCheckpointWatcherTests(unittest.TestCase):
             self.assertEqual(len(tasks), 1)
             self.assertEqual(tasks[0].model_name, "Games-sft-qwen4B-4-256-dsz0")
             self.assertEqual(tasks[0].checkpoint_step, 64)
+
+    def test_watch_iteration_starts_idle_holder_while_waiting(self):
+        sidecar = load_sidecar_module()
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            config = self.make_config(sidecar, temp_root_path)
+            config = sidecar.WatcherConfig(
+                **{**config.__dict__, "idle_hold_enabled": True}
+            )
+            state = sidecar.normalize_watch_state({})
+            holder = self.FakeIdleHolder()
+
+            with (
+                mock.patch.object(sidecar, "scan_pending_tasks", return_value=(state, [])),
+                mock.patch.object(sidecar, "save_json_atomic"),
+                mock.patch.object(sidecar.time, "sleep") as sleep_mock,
+            ):
+                returned_state = sidecar.execute_watch_iteration(
+                    config,
+                    state,
+                    dry_run=False,
+                    idle_holder=holder,
+                )
+
+            self.assertEqual(returned_state, state)
+            self.assertEqual(holder.events, ["ensure_running"])
+            sleep_mock.assert_called_once_with(config.poll_interval_seconds)
+
+    def test_watch_iteration_stops_idle_holder_before_running_task(self):
+        sidecar = load_sidecar_module()
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            config = self.make_config(sidecar, temp_root_path)
+            config = sidecar.WatcherConfig(
+                **{**config.__dict__, "idle_hold_enabled": True}
+            )
+            state = sidecar.normalize_watch_state({})
+            holder = self.FakeIdleHolder()
+            task = sidecar.CheckpointTask(
+                root_kind="sft",
+                model_root=config.sft_root / "Games-sft-qwen4B-4-256-dsz0",
+                model_name="Games-sft-qwen4B-4-256-dsz0",
+                checkpoint_path=config.sft_root / "Games-sft-qwen4B-4-256-dsz0" / "checkpoint-128",
+                checkpoint_name="checkpoint-128",
+                checkpoint_step=128,
+                result_dir=config.results_root / "Games-sft-qwen4B-4-256-dsz0" / "checkpoint-128",
+                category="Games",
+                test_data_path=config.data_root / "Games" / "sft" / "test.json",
+                index_path=config.data_root / "Games" / "id2sid.json",
+                data_profile="fixed:games_default",
+                cb_width="256",
+            )
+
+            events = []
+
+            def record_sleep(seconds):
+                events.append(("sleep", seconds))
+
+            def record_run_task(run_config, run_state, run_task_obj, dry_run):
+                self.assertIs(run_config, config)
+                self.assertIs(run_state, state)
+                self.assertEqual(run_task_obj, task)
+                self.assertFalse(dry_run)
+                events.append("run_task")
+                return run_state
+
+            with (
+                mock.patch.object(sidecar, "scan_pending_tasks", return_value=(state, [task])),
+                mock.patch.object(sidecar, "save_json_atomic"),
+                mock.patch.object(sidecar, "run_task", side_effect=record_run_task),
+                mock.patch.object(sidecar.time, "sleep", side_effect=record_sleep),
+            ):
+                returned_state = sidecar.execute_watch_iteration(
+                    config,
+                    state,
+                    dry_run=False,
+                    idle_holder=holder,
+                )
+
+            self.assertEqual(returned_state, state)
+            self.assertEqual(holder.events, ["stop"])
+            self.assertEqual(
+                events,
+                [
+                    ("sleep", config.idle_hold_release_grace_seconds),
+                    "run_task",
+                ],
+            )
 
 
 if __name__ == "__main__":
