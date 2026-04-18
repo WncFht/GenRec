@@ -75,6 +75,12 @@ FIXED_HINT_SID_TITLE_DESC_SCRIPT = (
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-title-desc.sh"
 )
+FIXED_HINT_SID_HINT_ONLY_MIXED_SCRIPT = (
+    REPO_ROOT
+    / "hope"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-hint-only-mixed.sh"
+)
 FIXED_HINT_PREFIX_SEQ_SID_ONLY_SCRIPT = (
     REPO_ROOT
     / "hope"
@@ -93,6 +99,7 @@ def _load_trl_trainer_module(
     fixed_hint_trainer_kwargs_sink: Optional[dict[str, object]] = None,
     trainer_kwargs_sink: Optional[dict[str, object]] = None,
     dataset_payload: Optional[dict[str, list[dict[str, object]]]] = None,
+    apply_fixed_hint_depth_to_example_fn=None,
 ):
     fire_mod = types.ModuleType("fire")
     fire_mod.Fire = lambda fn: fn
@@ -156,12 +163,14 @@ def _load_trl_trainer_module(
     sys.modules["cli_utils"] = cli_utils_mod
 
     fixed_hint_utils_mod = types.ModuleType("fixed_hint_utils")
-    fixed_hint_utils_mod.apply_fixed_hint_depth_to_example = lambda example, hint_map, **kwargs: {
-        **example,
-        "oracle_hint_depth": 0,
-        "oracle_hint_text": "",
-        "oracle_hint_unsolved": False,
-    }
+    if apply_fixed_hint_depth_to_example_fn is None:
+        apply_fixed_hint_depth_to_example_fn = lambda example, hint_map, **kwargs: {
+            **example,
+            "oracle_hint_depth": 0,
+            "oracle_hint_text": "",
+            "oracle_hint_unsolved": False,
+        }
+    fixed_hint_utils_mod.apply_fixed_hint_depth_to_example = apply_fixed_hint_depth_to_example_fn
     fixed_hint_utils_mod.load_fixed_hint_depth_map = lambda path: {}
     sys.modules["fixed_hint_utils"] = fixed_hint_utils_mod
 
@@ -733,6 +742,111 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
                 eval_task_names="task1_sid_sft",
             )
 
+    def test_fixed_hint_task_names_only_apply_hints_to_selected_tasks(self):
+        grpo_kwargs = {}
+        fixed_hint_trainer_kwargs = {}
+        dataset_payload = {
+            "train": [
+                {
+                    "prompt": "train-1",
+                    "reward_model": {"ground_truth": "<a_1>"},
+                    "extra_info": {"task": "task1_sid_sft", "index": 10},
+                },
+                {
+                    "prompt": "train-2",
+                    "reward_model": {"ground_truth": "<a_2>"},
+                    "extra_info": {"task": "task4_hisTitle2sid", "index": 11},
+                },
+                {
+                    "prompt": "train-3",
+                    "reward_model": {"ground_truth": "<a_3>"},
+                    "extra_info": {"task": "task5_title_desc2sid", "index": 12},
+                },
+            ],
+            "valid": [
+                {
+                    "prompt": "valid-1",
+                    "reward_model": {"ground_truth": "<a_1>"},
+                    "extra_info": {"task": "task1_sid_sft", "index": 20},
+                }
+            ],
+            "test": [],
+        }
+
+        def fake_apply_fixed_hint_depth(example, hint_map, **kwargs):
+            return {
+                **example,
+                "oracle_hint_depth": 2,
+                "oracle_hint_text": "<a_1><b_2>",
+                "oracle_hint_unsolved": False,
+            }
+
+        module = _load_trl_trainer_module(
+            grpo_kwargs,
+            fixed_hint_trainer_kwargs_sink=fixed_hint_trainer_kwargs,
+            dataset_payload=dataset_payload,
+            apply_fixed_hint_depth_to_example_fn=fake_apply_fixed_hint_depth,
+        )
+
+        with self.assertRaises(StopAfterTrainerInit):
+            module.main(
+                model="dummy-model",
+                data_dir="dummy-data",
+                index_path="dummy-index",
+                output_dir="dummy-output",
+                report_to="wandb",
+                run_name="sid-hint-only-mixed-test-run",
+                token_level_prefix_advantage=False,
+                reward_mode="rule_only",
+                num_beams=4,
+                fixed_hint_depth_map_path="dummy-fixed-hint-map.json",
+                fixed_hint_task_names="task1_sid_sft",
+            )
+
+        train_rows = list(fixed_hint_trainer_kwargs["train_dataset"])
+        self.assertEqual(train_rows[0]["oracle_hint_depth"], 2)
+        self.assertEqual(train_rows[0]["oracle_hint_text"], "<a_1><b_2>")
+        self.assertEqual(train_rows[1]["oracle_hint_depth"], 0)
+        self.assertEqual(train_rows[1]["oracle_hint_text"], "")
+        self.assertEqual(train_rows[2]["oracle_hint_depth"], 0)
+        self.assertEqual(train_rows[2]["oracle_hint_text"], "")
+
+    def test_fixed_hint_task_names_reject_unknown_task(self):
+        grpo_kwargs = {}
+        dataset_payload = {
+            "train": [
+                {
+                    "prompt": "train-1",
+                    "reward_model": {"ground_truth": "<a_1>"},
+                    "extra_info": {"task": "task1_sid_sft", "index": 10},
+                }
+            ],
+            "valid": [
+                {
+                    "prompt": "valid-1",
+                    "reward_model": {"ground_truth": "<a_1>"},
+                    "extra_info": {"task": "task1_sid_sft", "index": 20},
+                }
+            ],
+            "test": [],
+        }
+        module = _load_trl_trainer_module(grpo_kwargs, dataset_payload=dataset_payload)
+
+        with self.assertRaisesRegex(ValueError, "unknown fixed-hint task names"):
+            module.main(
+                model="dummy-model",
+                data_dir="dummy-data",
+                index_path="dummy-index",
+                output_dir="dummy-output",
+                report_to="wandb",
+                run_name="sid-hint-only-mixed-test-run",
+                token_level_prefix_advantage=False,
+                reward_mode="rule_only",
+                num_beams=4,
+                fixed_hint_depth_map_path="dummy-fixed-hint-map.json",
+                fixed_hint_task_names="missing_task",
+            )
+
     def test_dynamic_hint_shell_dry_run_forwards_run_name_and_uses_working_batch_default(self):
         result = subprocess.run(
             ["bash", str(DYNAMIC_HINT_SCRIPT), "--dry-run"],
@@ -984,6 +1098,61 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
 
     def test_fixed_hint_sid_title_desc_shell_is_standalone_launcher(self):
         script_text = FIXED_HINT_SID_TITLE_DESC_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("analyze_rl_beam_hint.py", script_text)
+        self.assertIn("trl_trainer.py", script_text)
+        self.assertNotIn("BASE_SCRIPT=", script_text)
+        self.assertNotIn("exec bash", script_text)
+
+    def test_fixed_hint_sid_hint_only_mixed_shell_dry_run_forwards_sid_only_hint_flags(self):
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            model_dir = temp_root_path / "model"
+            data_dir = temp_root_path / "data" / "rl"
+            index_path = temp_root_path / "data" / "id2sid.json"
+            add_tokens_path = temp_root_path / "data" / "new_tokens.json"
+            ds_config_path = temp_root_path / "config" / "zero2.yaml"
+            model_dir.mkdir(parents=True)
+            data_dir.mkdir(parents=True)
+            ds_config_path.parent.mkdir(parents=True)
+            (data_dir / "train.json").write_text("[]", encoding="utf-8")
+            (data_dir / "valid.json").write_text("[]", encoding="utf-8")
+            (data_dir / "test.json").write_text("[]", encoding="utf-8")
+            index_path.write_text("{}", encoding="utf-8")
+            add_tokens_path.write_text("[]", encoding="utf-8")
+            ds_config_path.write_text("train_micro_batch_size_per_gpu: 1\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    "bash",
+                    str(FIXED_HINT_SID_HINT_ONLY_MIXED_SCRIPT),
+                    "--run",
+                    "--dry-run",
+                    "--model-path",
+                    str(model_dir),
+                    "--data-dir",
+                    str(data_dir),
+                    "--index-path",
+                    str(index_path),
+                    "--add-tokens-path",
+                    str(add_tokens_path),
+                    "--ds-config",
+                    str(ds_config_path),
+                ],
+                cwd=REPO_ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("--task-names task1_sid_sft", result.stdout)
+        self.assertIn("--fixed_hint_task_names task1_sid_sft", result.stdout)
+        self.assertIn("--eval_task_names task1_sid_sft", result.stdout)
+        self.assertNotIn("--train_task_names", result.stdout)
+
+    def test_fixed_hint_sid_hint_only_mixed_shell_is_standalone_launcher(self):
+        script_text = FIXED_HINT_SID_HINT_ONLY_MIXED_SCRIPT.read_text(encoding="utf-8")
 
         self.assertIn("analyze_rl_beam_hint.py", script_text)
         self.assertIn("trl_trainer.py", script_text)

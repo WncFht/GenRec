@@ -30,6 +30,15 @@ def _parse_task_names(raw_task_names: Optional[str]) -> Optional[list[str]]:
     return task_names or None
 
 
+def _build_zero_hint_example(example: dict) -> dict:
+    return {
+        **example,
+        "oracle_hint_depth": 0,
+        "oracle_hint_text": "",
+        "oracle_hint_unsolved": False,
+    }
+
+
 def _filter_dataset_by_task_names(dataset, split_name: str, raw_task_names: Optional[str]):
     requested_task_names = _parse_task_names(raw_task_names)
     if not requested_task_names:
@@ -126,6 +135,7 @@ def main(
     fixed_hint_depth_map_path: Optional[str] = None,
     fixed_hint_depth_cap: Optional[int] = None,
     fixed_hint_unsolved_depth: int = 3,
+    fixed_hint_task_names: Optional[str] = None,
     fixed_hint_apply_to_eval: bool = False,
     hint_ce_loss_coef: float = 0.0,
     dynamic_hint_max_depth: Optional[int] = None,
@@ -225,8 +235,28 @@ def main(
             )
 
         fixed_hint_map = load_fixed_hint_depth_map(fixed_hint_depth_map_path)
+        resolved_fixed_hint_task_names = _parse_task_names(fixed_hint_task_names)
+        if resolved_fixed_hint_task_names is not None:
+            unknown_fixed_hint_task_names = sorted(set(resolved_fixed_hint_task_names) - set(train_available_task_names))
+            if unknown_fixed_hint_task_names:
+                raise ValueError(
+                    "unknown fixed-hint task names: "
+                    f"{unknown_fixed_hint_task_names}; available tasks: {train_available_task_names}"
+                )
+            fixed_hint_task_name_set = set(resolved_fixed_hint_task_names)
+        else:
+            fixed_hint_task_name_set = None
 
         def _inject_hint(example):
+            if fixed_hint_task_name_set is not None:
+                extra_info = example.get("extra_info")
+                if not isinstance(extra_info, dict):
+                    raise ValueError("Missing extra_info.task while applying fixed-hint task filter.")
+                task_name = str(extra_info.get("task", "")).strip()
+                if not task_name:
+                    raise ValueError("Missing extra_info.task while applying fixed-hint task filter.")
+                if task_name not in fixed_hint_task_name_set:
+                    return _build_zero_hint_example(example)
             enriched = apply_fixed_hint_depth_to_example(
                 example,
                 fixed_hint_map,
@@ -239,15 +269,7 @@ def main(
         if fixed_hint_apply_to_eval:
             eval_dataset = eval_dataset.map(_inject_hint, desc="Inject fixed oracle hints into eval dataset")
         else:
-            eval_dataset = eval_dataset.map(
-                lambda example: {
-                    **example,
-                    "oracle_hint_depth": 0,
-                    "oracle_hint_text": "",
-                    "oracle_hint_unsolved": False,
-                },
-                desc="Attach zero-depth fixed hint metadata to eval dataset",
-            )
+            eval_dataset = eval_dataset.map(_build_zero_hint_example, desc="Attach zero-depth fixed hint metadata to eval dataset")
 
         train_hint_depths = train_dataset["oracle_hint_depth"]
         hint_depth_hist = {depth: train_hint_depths.count(depth) for depth in sorted(set(train_hint_depths))}
@@ -256,6 +278,7 @@ def main(
         print_main_process(
             f"[INFO] fixed_hint_depth_cap={fixed_hint_depth_cap!r}, fixed_hint_unsolved_depth={fixed_hint_unsolved_depth}"
         )
+        print_main_process(f"[INFO] fixed_hint_task_names={resolved_fixed_hint_task_names}")
         print_main_process(f"[INFO] train_oracle_hint_depth_hist={hint_depth_hist}")
     elif dynamic_hint_enabled:
         print_main_process("[INFO] dynamic_hint_generation_mode=cascade")
