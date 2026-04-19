@@ -37,6 +37,12 @@ VARIANTS = [
         "epoch_max_step": 3326,
     },
     {
+        "key": "fixed_old",
+        "label": "RL fixed old",
+        "model_dir": "Instruments-grec-grpo-rule-only-fixed-hint-mixed-single-generate-qwen2.5-3b-qwen4B-4-256-from-sft495",
+        "color": "#6d597a",
+    },
+    {
         "key": "fixed_taskfix",
         "label": "RL fixed taskfix",
         "model_dir": "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",

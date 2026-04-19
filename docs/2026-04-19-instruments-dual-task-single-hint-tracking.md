@@ -174,6 +174,7 @@
 | `rule_only` | `checkpoint-2997` | `1.802` | `0.0960` | `0.1681` |
 | `dynamic gather-fix` | `checkpoint-2997` | `1.802` | `0.0936` | `0.1855` |
 | `dynamic dual-task` | `checkpoint-906` | `0.545` | `0.0900` | `0.1875` |
+| `fixed old` | `checkpoint-3326` | `2.000` | `0.0953` | `0.1938` |
 | `fixed taskfix` | `checkpoint-2997` | `1.802` | `0.0931` | `0.1941` |
 | corrected `fixed taskfix sid-only` | `checkpoint-2652` | `2.000` | `0.0945` | `0.1935` |
 | `single-hint mixed` | `checkpoint-1665` | `1.001` | `0.0947` | `0.1935` |
@@ -182,6 +183,7 @@
 
 - 即使只看已同步到的早期段，`single-hint mixed` 也已经站到了 fixed family 附近，而不是掉回 dynamic 或 plain `rule_only` 的区域。
 - 它相对 `dynamic gather-fix` 的当前可见 best 点，多 `+0.0011` `NDCG@10`、多 `+0.0080` `HR@50`，已经明显站进 fixed family 的 region。
+- `fixed old` 也已经被重新拉回来了，它在这张图里更像一条历史上界参考线：`NDCG@10=0.0953 / HR@50=0.1938`，比 corrected `fixed taskfix sid-only` 略强一点，但带 legacy caveat。
 - 它相对 corrected `fixed taskfix sid-only` 的最终点，还只差 `0.0002` `NDCG@10` 和 `0.0000` `HR@50`；这说明这条线现在已经不是“看起来像”，而是真的可以放进 fixed family 主讨论里。
 
 ### 4.2 公平早期窗口：统一只看 `step <= 999`
@@ -203,6 +205,7 @@
 | `rule_only` | `checkpoint-999` | `0.0936` | `0.1768` | top-10 最高，但 coverage 仍最低 |
 | `dynamic gather-fix` | `checkpoint-999` | `0.0912` | `0.1905` | dynamic baseline 的平衡点 |
 | `dynamic dual-task` | `checkpoint-906` | `0.0900` | `0.1875` | 第一版 dual-task dynamic，仍低于 gather-fix |
+| `fixed old` | `checkpoint-999` | `0.0917` | `0.1912` | legacy fixed reference，介于 corrected fixed 与 single-hint 之间 |
 | `fixed taskfix` | `checkpoint-666` | `0.0901` | `0.1962` | coverage 峰值最强，但 top-10 明显更低 |
 | corrected `fixed taskfix sid-only` | `checkpoint-532` | `0.0925` | `0.1910` | 当前 clean fixed 的 early strong point |
 | `single-hint mixed` | `checkpoint-999` | `0.0924` | `0.1928` | 早期窗口里最值得继续补长的新线 |
@@ -214,6 +217,7 @@
 - 相比 `dynamic gather-fix`，它多 `+0.0012` `NDCG@10`、多 `+0.0023` `HR@50`；
   当前早期窗口里，它是同时压过 canonical dynamic baseline 的。
 - `dynamic dual-task` 目前的早期窗口 best 是 `checkpoint-906 / NDCG@10=0.0900 / HR@50=0.1875`，它还没到能和 `dynamic gather-fix` 正面并列的位置，但至少已经不是空目录了。
+- `fixed old` 在早期窗口里已经回到 `checkpoint-999 / NDCG@10=0.0917 / HR@50=0.1912`，它的角色更像历史上界参考线，而不是 clean baseline。
 - 相比 corrected `fixed taskfix sid-only`，它几乎打平 top-10（`-0.0001`），但 `HR@50` 还多 `+0.0018`；
   因此当前最有价值的判断不是“它已经赢过 sid-only”，而是“它已经足够接近 corrected clean fixed 的 early trade-off”。
 - 相比 full mixed `fixed taskfix`，它把 `NDCG@10` 拉高了 `+0.0023`，代价是 `HR@50` 少 `0.0034`；

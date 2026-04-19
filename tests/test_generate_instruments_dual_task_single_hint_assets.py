@@ -52,6 +52,10 @@ class GenerateInstrumentsDualTaskSingleHintAssetsTests(unittest.TestCase):
                     302,
                     906,
                 ),
+                "Instruments-grec-grpo-rule-only-fixed-hint-mixed-single-generate-qwen2.5-3b-qwen4B-4-256-from-sft495": (
+                    333,
+                    3326,
+                ),
                 "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495": (333, 3326),
                 "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495": (266, 2652),
                 "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-hint-only-mixed-sft495": (333, 999),
@@ -76,6 +80,10 @@ class GenerateInstrumentsDualTaskSingleHintAssetsTests(unittest.TestCase):
             dynamic_dual_last = df[(df["variant_key"] == "dynamic_dual_task") & (df["step"] == 906)].iloc[0]
             self.assertEqual(dynamic_dual_last["max_step"], 3326)
             self.assertAlmostEqual(dynamic_dual_last["epoch_progress"], 906 / 3326 * 2.0, places=6)
+
+            fixed_old_last = df[(df["variant_key"] == "fixed_old") & (df["step"] == 3326)].iloc[0]
+            self.assertEqual(fixed_old_last["max_step"], 3326)
+            self.assertAlmostEqual(fixed_old_last["epoch_progress"], 2.0, places=6)
 
             sid_only_last = df[(df["variant_key"] == "fixed_taskfix_sid_only") & (df["step"] == 2652)].iloc[0]
             self.assertEqual(sid_only_last["max_step"], 2652)
