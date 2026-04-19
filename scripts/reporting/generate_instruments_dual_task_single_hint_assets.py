@@ -30,6 +30,13 @@ VARIANTS = [
         "color": "#1d3557",
     },
     {
+        "key": "dynamic_dual_task",
+        "label": "RL dynamic dual-task",
+        "model_dir": "Instruments-grec-grpo-rule-only-dynamic-hint-sid-title-desc-qwen2.5-3b-qwen4B-4-256-from-sft495",
+        "color": "#457b9d",
+        "epoch_max_step": 3326,
+    },
+    {
         "key": "fixed_taskfix",
         "label": "RL fixed taskfix",
         "model_dir": "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
