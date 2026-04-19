@@ -68,7 +68,8 @@ METRIC_COLUMNS = ["NDCG@10", "HR@10", "NDCG@50", "HR@50"]
 SUPTITLE_Y = 0.94
 LEGEND_BBOX_Y = 0.995
 TIGHT_LAYOUT_TOP = 0.88
-EARLY_WINDOW_MAX_STEP = 999
+DYNAMIC_FAMILY_KEYS = ["dynamic_gather_fix", "dynamic_dual_task"]
+FIXED_FAMILY_KEYS = ["fixed_old", "fixed_taskfix", "fixed_taskfix_sid_only", "single_hint_mixed"]
 
 
 def _variant_map() -> dict[str, dict[str, object]]:
@@ -122,10 +123,6 @@ def build_dataframe() -> pd.DataFrame:
     for variant in VARIANTS:
         rows.extend(load_variant_rows(variant))
     return pd.DataFrame(rows)
-
-
-def filter_step_ceiling(df: pd.DataFrame, max_step: int) -> pd.DataFrame:
-    return df[df["step"] <= max_step].copy()
 
 
 def build_best_summary(df: pd.DataFrame) -> pd.DataFrame:
@@ -240,13 +237,9 @@ def main() -> None:
     sft_reference = load_sft_reference()
     df = build_dataframe()
     best_df = build_best_summary(df)
-    early_df = filter_step_ceiling(df, EARLY_WINDOW_MAX_STEP)
-    early_best_df = build_best_summary(early_df)
 
     save_csv(ASSET_DIR / "single_hint_tracking_checkpoint_metrics.csv", df)
     save_csv(ASSET_DIR / "single_hint_tracking_best_summary.csv", best_df)
-    save_csv(ASSET_DIR / "single_hint_tracking_early_window_checkpoint_metrics.csv", early_df)
-    save_csv(ASSET_DIR / "single_hint_tracking_early_window_best_summary.csv", early_best_df)
     save_csv(ASSET_DIR / "sft495_reference_metrics.csv", pd.DataFrame([sft_reference]))
 
     variant_keys = [variant["key"] for variant in VARIANTS]
@@ -258,26 +251,25 @@ def main() -> None:
         sft_reference,
     )
     plot_metric_panels(
-        early_df,
-        variant_keys,
-        f"Instruments-grec Single-hint Mixed vs Baselines (Step <= {EARLY_WINDOW_MAX_STEP})",
-        ASSET_DIR / "single_hint_vs_baselines_early_window_epoch_curves.png",
+        df,
+        DYNAMIC_FAMILY_KEYS,
+        "Instruments-grec Dynamic Family Curves",
+        ASSET_DIR / "single_hint_vs_dynamic_family_epoch_curves.png",
         sft_reference,
     )
-    plot_best_scatter(
-        early_best_df,
-        variant_keys,
-        f"Instruments-grec Single-hint Mixed vs Baselines (Best <= Step {EARLY_WINDOW_MAX_STEP})",
-        ASSET_DIR / "single_hint_vs_baselines_early_window_best_ndcg10_vs_hr50_scatter.png",
+    plot_metric_panels(
+        df,
+        FIXED_FAMILY_KEYS,
+        "Instruments-grec Fixed Family Curves",
+        ASSET_DIR / "single_hint_vs_fixed_family_epoch_curves.png",
+        sft_reference,
     )
 
     print(f"checkpoint_metrics_csv={ASSET_DIR / 'single_hint_tracking_checkpoint_metrics.csv'}")
     print(f"best_summary_csv={ASSET_DIR / 'single_hint_tracking_best_summary.csv'}")
-    print(f"early_checkpoint_metrics_csv={ASSET_DIR / 'single_hint_tracking_early_window_checkpoint_metrics.csv'}")
-    print(f"early_best_summary_csv={ASSET_DIR / 'single_hint_tracking_early_window_best_summary.csv'}")
     print(f"full_curve_png={ASSET_DIR / 'single_hint_vs_baselines_epoch_curves.png'}")
-    print(f"early_curve_png={ASSET_DIR / 'single_hint_vs_baselines_early_window_epoch_curves.png'}")
-    print(f"early_scatter_png={ASSET_DIR / 'single_hint_vs_baselines_early_window_best_ndcg10_vs_hr50_scatter.png'}")
+    print(f"dynamic_family_png={ASSET_DIR / 'single_hint_vs_dynamic_family_epoch_curves.png'}")
+    print(f"fixed_family_png={ASSET_DIR / 'single_hint_vs_fixed_family_epoch_curves.png'}")
 
 
 if __name__ == "__main__":

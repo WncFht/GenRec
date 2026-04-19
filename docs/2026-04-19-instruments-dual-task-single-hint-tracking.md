@@ -152,13 +152,11 @@
 - checkpoint-level tables:
   - [`single_hint_tracking_checkpoint_metrics.csv`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_tracking_checkpoint_metrics.csv)
   - [`single_hint_tracking_best_summary.csv`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_tracking_best_summary.csv)
-  - [`single_hint_tracking_early_window_checkpoint_metrics.csv`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_tracking_early_window_checkpoint_metrics.csv)
-  - [`single_hint_tracking_early_window_best_summary.csv`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_tracking_early_window_best_summary.csv)
   - [`sft495_reference_metrics.csv`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/sft495_reference_metrics.csv)
 - figure assets:
   - [`single_hint_vs_baselines_epoch_curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_baselines_epoch_curves.png)
-  - [`single_hint_vs_baselines_early_window_epoch_curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_baselines_early_window_epoch_curves.png)
-  - [`single_hint_vs_baselines_early_window_best_ndcg10_vs_hr50_scatter.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_baselines_early_window_best_ndcg10_vs_hr50_scatter.png)
+  - [`single_hint_vs_dynamic_family_epoch_curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_dynamic_family_epoch_curves.png)
+  - [`single_hint_vs_fixed_family_epoch_curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_fixed_family_epoch_curves.png)
 
 ## 4. Manual Picture Comparison
 
@@ -193,42 +191,45 @@
 - `single-hint mixed` 相对 corrected `fixed taskfix sid-only` 的当前 best 点，已经多 `+0.0003` `NDCG@10`、多 `+0.0023` `HR@50`；所以这条线现在已经可以被视为一个真实的主候选，而不是旁支。
 - `dynamic dual-task` 目前的 full-trace best 在 `checkpoint-1510 / NDCG@10=0.0930 / HR@50=0.1885`，比 canonical `dynamic gather-fix` 仍弱，但已经足够纳入后续 dual-task 跟踪。
 
-### 4.2 公平早期窗口：统一只看 `step <= 999`
+### 4.2 Dynamic Family
 
-- [`single_hint_vs_baselines_early_window_epoch_curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_baselines_early_window_epoch_curves.png)
+- [`single_hint_vs_dynamic_family_epoch_curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_dynamic_family_epoch_curves.png)
 
-![Single-hint mixed vs baselines early-window curves](assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_baselines_early_window_epoch_curves.png)
+![Single-hint mixed vs dynamic family curves](assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_dynamic_family_epoch_curves.png)
 
-- [`single_hint_vs_baselines_early_window_best_ndcg10_vs_hr50_scatter.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_baselines_early_window_best_ndcg10_vs_hr50_scatter.png)
+这张图现在只保留 dynamic family：
 
-![Single-hint mixed vs baselines early-window scatter](assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_baselines_early_window_best_ndcg10_vs_hr50_scatter.png)
+- `dynamic gather-fix`
+- `dynamic dual-task`
 
-这组图是当前更应该相信的 first-look，因为所有线都统一截到 `step <= 999`。
+最有用的读法：
 
-按 early-window best checkpoint 比：
+- `dynamic dual-task` 现在已经不是“只有一个 early readout”，而是同步到了 `checkpoint-1812`，full-trace best 在 `checkpoint-1510 / NDCG@10=0.0930 / HR@50=0.1885`。
+- 但它相对 canonical `dynamic gather-fix` 仍然全线偏弱：
+  `NDCG@10 -0.0006`、`HR@50 -0.0030`。
+- 所以当前更合理的说法不是“dual-task dynamic 已经赢了 dynamic baseline”，而是：
+  它已经进入可比较状态，但还没有超 `gather-fix`。
 
-| Variant | Best checkpoint | NDCG@10 | HR@50 | Readout |
-| --- | --- | ---: | ---: | --- |
-| `rule_only` | `checkpoint-999` | `0.0936` | `0.1768` | top-10 最高，但 coverage 仍最低 |
-| `dynamic gather-fix` | `checkpoint-999` | `0.0912` | `0.1905` | dynamic baseline 的平衡点 |
-| `dynamic dual-task` | `checkpoint-906` | `0.0900` | `0.1875` | dual-task dynamic 的当前 early readout |
-| `fixed old` | `checkpoint-999` | `0.0917` | `0.1912` | legacy fixed reference，介于 corrected fixed 与 single-hint 之间 |
-| `fixed taskfix` | `checkpoint-666` | `0.0901` | `0.1962` | coverage 峰值最强，但 top-10 明显更低 |
-| corrected `fixed taskfix sid-only` | `checkpoint-532` | `0.0925` | `0.1910` | 当前 clean fixed 的 early strong point |
-| `single-hint mixed` | `checkpoint-999` | `0.0924` | `0.1928` | 早期窗口里最值得继续补长的新线 |
+### 4.3 Fixed Family
 
-这组公平窗口里，`single-hint mixed` 的位置可以更清楚地读成：
+- [`single_hint_vs_fixed_family_epoch_curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_fixed_family_epoch_curves.png)
 
-- 相比 `rule_only`，它只少 `0.0012` `NDCG@10`，但多 `+0.0160` `HR@50`；
-  也就是说它已经明显不是“拿 coverage 换 top-10”的 plain exact reward 型走势。
-- 相比 `dynamic gather-fix`，它多 `+0.0012` `NDCG@10`、多 `+0.0023` `HR@50`；
-  当前早期窗口里，它是同时压过 canonical dynamic baseline 的。
-- `dynamic dual-task` 当前早期窗口 best 是 `checkpoint-906 / NDCG@10=0.0900 / HR@50=0.1875`，它还没到能和 `dynamic gather-fix` 正面并列的位置，但已经能当成真正的第一版 dual-task dynamic 结果。
-- `fixed old` 在早期窗口里已经回到 `checkpoint-999 / NDCG@10=0.0917 / HR@50=0.1912`，它的角色更像历史上界参考线，而不是 clean baseline。
-- 相比 corrected `fixed taskfix sid-only`，它几乎打平 top-10（`-0.0001`），但 `HR@50` 还多 `+0.0018`；
-  因此当前最有价值的判断不是“它已经赢过 sid-only”，而是“它已经足够接近 corrected clean fixed 的 early trade-off”。
-- 相比 full mixed `fixed taskfix`，它把 `NDCG@10` 拉高了 `+0.0023`，代价是 `HR@50` 少 `0.0034`；
-  这更像一个更激进的 early top-10 版本，而不是简单 dominated 的弱线。
+![Single-hint mixed vs fixed family curves](assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_fixed_family_epoch_curves.png)
+
+这张图现在专门看 fixed family：
+
+- `fixed old`
+- `fixed taskfix`
+- corrected `fixed taskfix sid-only`
+- `single-hint mixed`
+
+这张图最关键的读法是：
+
+- `single-hint mixed` 现在已经不只是“接近 fixed family”，而是开始站到 fixed family 的前沿区域。
+- 它当前 full-trace best 在 `checkpoint-2664 / NDCG@10=0.0948 / HR@50=0.1958`，已经同时超过 corrected `fixed taskfix sid-only` 的 `0.0945 / 0.1935`。
+- 和 `fixed old` 比，它仍然还差一点 top-10（`0.0948` vs `0.0953`），但 `HR@50` 已经更高（`0.1958` vs `0.1938`）。
+- 因此现在最值得继续补长的，不再只是“single-hint 有没有信号”，而是：
+  它能不能在后段继续维持住相对 corrected clean fixed 的领先。
 
 ## 5. 下一步怎么续写
 

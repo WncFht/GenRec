@@ -90,26 +90,14 @@ class GenerateInstrumentsDualTaskSingleHintAssetsTests(unittest.TestCase):
             self.assertEqual(sid_only_last["max_step"], 2652)
             self.assertAlmostEqual(sid_only_last["epoch_progress"], 2.0, places=6)
 
-    def test_filter_step_ceiling_and_best_summary_use_same_early_window(self):
+    def test_family_variant_groups_match_expected(self):
         module = _load_module()
 
-        df = pd.DataFrame(
-            [
-                {"variant_key": "single_hint_mixed", "variant_label": "single", "checkpoint": "checkpoint-333", "step": 333, "NDCG@10": 0.0861, "HR@10": 0.1112, "NDCG@50": 0.1012, "HR@50": 0.1813},
-                {"variant_key": "single_hint_mixed", "variant_label": "single", "checkpoint": "checkpoint-999", "step": 999, "NDCG@10": 0.0924, "HR@10": 0.1166, "NDCG@50": 0.1087, "HR@50": 0.1928},
-                {"variant_key": "fixed_taskfix", "variant_label": "fixed", "checkpoint": "checkpoint-999", "step": 999, "NDCG@10": 0.0881, "HR@10": 0.1137, "NDCG@50": 0.1055, "HR@50": 0.1946},
-                {"variant_key": "fixed_taskfix", "variant_label": "fixed", "checkpoint": "checkpoint-1332", "step": 1332, "NDCG@10": 0.0909, "HR@10": 0.1161, "NDCG@50": 0.1077, "HR@50": 0.1931},
-            ]
+        self.assertEqual(module.DYNAMIC_FAMILY_KEYS, ["dynamic_gather_fix", "dynamic_dual_task"])
+        self.assertEqual(
+            module.FIXED_FAMILY_KEYS,
+            ["fixed_old", "fixed_taskfix", "fixed_taskfix_sid_only", "single_hint_mixed"],
         )
-
-        early_df = module.filter_step_ceiling(df, 999)
-        self.assertEqual(sorted(early_df["step"].unique().tolist()), [333, 999])
-        self.assertNotIn(1332, early_df["step"].tolist())
-
-        best_df = module.build_best_summary(early_df)
-        fixed_row = best_df[best_df["variant_key"] == "fixed_taskfix"].iloc[0]
-        self.assertEqual(fixed_row["checkpoint"], "checkpoint-999")
-        self.assertEqual(fixed_row["step"], 999)
 
     def test_plot_best_scatter_skips_missing_variants(self):
         module = _load_module()
@@ -137,6 +125,48 @@ class GenerateInstrumentsDualTaskSingleHintAssetsTests(unittest.TestCase):
             )
             self.assertTrue(out_path.exists())
             plt.close("all")
+
+    def test_main_writes_family_curves_without_early_window_outputs(self):
+        module = _load_module()
+
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            results_root = temp_root_path / "results"
+            assets_root = temp_root_path / "assets"
+
+            sft_path = results_root / "Instruments-grec-sft-qwen4B-4-256-dsz0" / "checkpoint-495" / "metrics.json"
+            sft_path.parent.mkdir(parents=True, exist_ok=True)
+            sft_path.write_text(json.dumps({"NDCG@10": 0.0823, "HR@10": 0.1094, "NDCG@50": 0.0985, "HR@50": 0.1844}))
+
+            variant_steps = {
+                "Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495": (333, 999),
+                "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495": (333, 999),
+                "Instruments-grec-grpo-rule-only-dynamic-hint-sid-title-desc-qwen2.5-3b-qwen4B-4-256-from-sft495": (302, 906),
+                "Instruments-grec-grpo-rule-only-fixed-hint-mixed-single-generate-qwen2.5-3b-qwen4B-4-256-from-sft495": (333, 999),
+                "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495": (333, 999),
+                "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495": (266, 532),
+                "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-hint-only-mixed-sft495": (333, 999),
+            }
+
+            for model_dir, steps in variant_steps.items():
+                for step in steps:
+                    path = results_root / model_dir / f"checkpoint-{step}" / "metrics.json"
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text(json.dumps({"NDCG@10": 0.09, "HR@10": 0.11, "NDCG@50": 0.107, "HR@50": 0.19}))
+
+            module.RESULTS_ROOT = results_root
+            module.ASSET_DIR = assets_root
+            module.SFT_METRICS_PATH = sft_path
+
+            module.main()
+
+            self.assertTrue((assets_root / "single_hint_vs_baselines_epoch_curves.png").exists())
+            self.assertTrue((assets_root / "single_hint_vs_dynamic_family_epoch_curves.png").exists())
+            self.assertTrue((assets_root / "single_hint_vs_fixed_family_epoch_curves.png").exists())
+            self.assertFalse((assets_root / "single_hint_tracking_early_window_checkpoint_metrics.csv").exists())
+            self.assertFalse((assets_root / "single_hint_tracking_early_window_best_summary.csv").exists())
+            self.assertFalse((assets_root / "single_hint_vs_baselines_early_window_epoch_curves.png").exists())
+            self.assertFalse((assets_root / "single_hint_vs_baselines_early_window_best_ndcg10_vs_hr50_scatter.png").exists())
 
 
 if __name__ == "__main__":
