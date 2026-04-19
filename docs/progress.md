@@ -104,19 +104,23 @@
 - `hintce-2` 的训练日志拆分已经补过一轮：
   当前 `weighted_hint_ce_loss` 大体稳定在 `~1e-3`，前期相对 `RL base` 略重，但主 spike 仍然主要由 `KL` 驱动，而不是 CE 本身。
 - 仓库现在已经支持一条 dual-task filtered setting：
-  `task1_sid_sft + task5_title_desc2sid` 参与 train，`task4_hisTitle2sid` 被移除，eval 仍只看 `task1_sid_sft`；dynamic / fixed 两个 launcher 都已落地，但当前本地 `results/` 快照里还没有 dual-task 对应目录。
-- mixed-task `single-hint` setting 当前本地快照仍只同步到 `checkpoint-999`：
+  `task1_sid_sft + task5_title_desc2sid` 参与 train，`task4_hisTitle2sid` 被移除，eval 仍只看 `task1_sid_sft`；dynamic / fixed 两个 launcher 都已落地，其中 `dynamic dual-task` 已同步到 `checkpoint-1812`，但 `fixed dual-task` 仍未出现在本地 `results/` 目录。
+- mixed-task `single-hint` setting 已经补到中后段 checkpoint：
   训练仍保留三任务，但只对 `task1_sid_sft` 注入 fixed hint，`task4/task5` 强制 zero-hint；
-  当前 best readout 仍是
-  `NDCG@10=0.0924 / HR@10=0.1166 / NDCG@50=0.1087 / HR@50=0.1928`。
-- `single-hint mixed` 相比 full mixed fixed-hint 在前 `333/666/999` checkpoint 的 top-10 略强，但 `HR@50` 略低；
-  当前更适合继续作为 early-window strong candidate 跟踪，而不是按已经跑到中段 best 点来解读。
+  当前本地已同步到 `checkpoint-2997`，best readout 已上移到
+  `NDCG@10=0.0948 / HR@10=0.1180 / NDCG@50=0.1116 / HR@50=0.1958`。
+- `single-hint mixed` 不再只是 early-window strong candidate；
+  它现在在 `checkpoint-2664` 已经同时压过 corrected `fixed taskfix sid-only` 的 `NDCG@10` 和 `HR@50`，因此已经是需要认真对待的主候选。
+- `dynamic dual-task` 当前更像第一版可见轨迹：
+  `checkpoint-302/604/906/1208/1510/1812` 已同步，best 点暂时是
+  `checkpoint-1510 / NDCG@10=0.0930 / HR@50=0.1885`。
 
 ### 当前最值得继续做的事
 
 - 把 `UFT-style hint curriculum` 落到 corrected `fixed taskfix sid-only` 上。
 - 对 `hintce-2` 做更细的 task-level 和训练日志分析，确认为什么 balanced 优势出现在中后段而不是最终点。
-- 把 dual-task `sid + title_desc2sid` dynamic / fixed 两条线重新同步出来，再和 `single-hint mixed` 放在同一张图里继续补长。
+- 把 `fixed dual-task` 线同步出来，并继续观察 `dynamic dual-task` 能否从当前 `1510` 左右的 best 点往上推。
+- 把 `single-hint mixed` 补到 `3326+`，确认当前 `2664` 的 best 点是不是稳定平台。
 - 对 `max1` 补回 train-time 日志和 diagnostics，尤其是 `selected_hint_depth_mean`、`selected_depth_1_frac`、`mean_length`。
 - 在主线对比里优先保留 4 条：`rule_only rerun`、`dynamic gather-fix`、corrected `fixed taskfix sid-only`、old `fixed mixed-single`（仅作历史参考）。
 
