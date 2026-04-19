@@ -207,7 +207,10 @@ def plot_best_scatter(best_df: pd.DataFrame, variant_keys: list[str], title: str
     variants = _variant_map()
     fig, ax = plt.subplots(figsize=(7.8, 5.4))
     for variant_key in variant_keys:
-        row = best_df[best_df["variant_key"] == variant_key].iloc[0]
+        variant_rows = best_df[best_df["variant_key"] == variant_key]
+        if variant_rows.empty:
+            continue
+        row = variant_rows.iloc[0]
         variant = variants[variant_key]
         ax.scatter(
             float(row["NDCG@10"]),

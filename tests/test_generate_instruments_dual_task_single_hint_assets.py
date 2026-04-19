@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import pandas as pd
 
 
@@ -109,6 +110,33 @@ class GenerateInstrumentsDualTaskSingleHintAssetsTests(unittest.TestCase):
         fixed_row = best_df[best_df["variant_key"] == "fixed_taskfix"].iloc[0]
         self.assertEqual(fixed_row["checkpoint"], "checkpoint-999")
         self.assertEqual(fixed_row["step"], 999)
+
+    def test_plot_best_scatter_skips_missing_variants(self):
+        module = _load_module()
+
+        best_df = pd.DataFrame(
+            [
+                {
+                    "variant_key": "single_hint_mixed",
+                    "variant_label": "single",
+                    "checkpoint": "checkpoint-999",
+                    "step": 999,
+                    "NDCG@10": 0.0924,
+                    "HR@50": 0.1928,
+                }
+            ]
+        )
+
+        with tempfile.TemporaryDirectory() as temp_root:
+            out_path = Path(temp_root) / "scatter.png"
+            module.plot_best_scatter(
+                best_df,
+                ["single_hint_mixed", "dynamic_dual_task"],
+                "test scatter",
+                out_path,
+            )
+            self.assertTrue(out_path.exists())
+            plt.close("all")
 
 
 if __name__ == "__main__":

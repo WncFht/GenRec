@@ -3,7 +3,7 @@
 - 记录日期：2026-04-19
 - 最后更新：2026-04-19
 - 目标：把这轮 `Instruments-grec` 新开的两种训练 setting 记成一份可持续续写的 tracking note，并对齐当前本地 `results/` 同步状态。
-- 当前状态：`bash scripts/sync_results_from_remote.sh unpack` 已在本地完成；`single-hint mixed` 已补到 `checkpoint-1998`，`dynamic dual-task` 已有 `checkpoint-302/604/906`，`fixed dual-task` 仍未出现在当前 `results/` / manifest 快照里。
+- 当前状态：`bash scripts/sync_results_from_remote.sh unpack` 已在本地完成；当前本地 `results/` 快照里，`single-hint mixed` 只同步到 `checkpoint-999`，两条 `dual-task sid+title_desc` 线都还没有出现在当前 `results/` / manifest 快照里。
 
 ## 1. 这次在跟踪哪两种 setting
 
@@ -46,7 +46,7 @@
   `dynamic_hint_apply_to_eval=false`
 - 预期训练输出目录：
   `rl_outputs/Instruments-grec-grpo-rule-only-dynamic-hint-sid-title-desc-qwen2.5-3b-qwen4B-4-256-from-sft495`
-- 当前结果目录：
+- 预期结果目录：
   `results/Instruments-grec-grpo-rule-only-dynamic-hint-sid-title-desc-qwen2.5-3b-qwen4B-4-256-from-sft495`
 
 #### B. Fixed hint dual-task
@@ -87,16 +87,13 @@
 
 ## 3. 当前 result 跟踪
 
-### 3.1 `single-hint mixed` 已经补到中段 checkpoint
+### 3.1 `single-hint mixed` 当前只同步到 `checkpoint-999`
 
 当前本地 `results/` 已同步到：
 
 - `checkpoint-333`
 - `checkpoint-666`
 - `checkpoint-999`
-- `checkpoint-1332`
-- `checkpoint-1665`
-- `checkpoint-1998`
 
 指标来源：
 
@@ -106,7 +103,7 @@
 
 | Variant | Best checkpoint | NDCG@10 | HR@10 | NDCG@50 | HR@50 |
 | --- | --- | ---: | ---: | ---: | ---: |
-| `fixedhint-taskfix-b16-sid-hint-only-mixed` | `checkpoint-1665` | `0.0947` | `0.1190` | `0.1108` | `0.1935` |
+| `fixedhint-taskfix-b16-sid-hint-only-mixed` | `checkpoint-999` | `0.0924` | `0.1166` | `0.1087` | `0.1928` |
 
 完整同步到的点：
 
@@ -115,31 +112,29 @@
 | `checkpoint-333` | `0.0861` | `0.1112` | `0.1012` | `0.1813` |
 | `checkpoint-666` | `0.0903` | `0.1153` | `0.1070` | `0.1927` |
 | `checkpoint-999` | `0.0924` | `0.1166` | `0.1087` | `0.1928` |
-| `checkpoint-1332` | `0.0920` | `0.1148` | `0.1083` | `0.1908` |
-| `checkpoint-1665` | `0.0947` | `0.1190` | `0.1108` | `0.1935` |
-| `checkpoint-1998` | `0.0942` | `0.1171` | `0.1103` | `0.1919` |
 
 和 full mixed fixed-hint baseline
 `results/Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495`
 在同 checkpoint 的对照读法：
 
-- `single-hint mixed` 在 `checkpoint-1665` 已经把 `NDCG@10` 拉到 `0.0947`，超过 full mixed fixed-hint 的 `0.0931`，同时 `HR@50=0.1935` 也已经回到 corrected fixed sid-only 附近。
-- 这说明它不只是早期 spike，而是开始出现真正的中段 best 点。
-- 但它仍然没有压过 corrected `fixed taskfix sid-only` 的整体平衡读法，所以现在更适合记成“值得继续补长的强线”，而不是直接替代基线。
+- `single-hint mixed` 在当前本地快照里，仍然维持“前 `1k` step 内 top-10 更积极、coverage 也不差”的 early-window 读法。
+- 它在 `checkpoint-999` 的 `NDCG@10=0.0924 / HR@50=0.1928`，比 full mixed fixed-hint 在同 checkpoint 的 top-10 更高，但还不能当作最终全程结论。
+- 因此当前更合适的定位仍然是：这是最值得继续补长的一条新线，而不是已经跑满并盖棺定论的替代基线。
 
-### 3.2 `dual-task sid+title_desc` 现在已经有一条动态线的首轮结果
+### 3.2 两条 `dual-task sid+title_desc` 线当前都还没有本地结果
 
-截至这次 `2026-04-19` 本地同步，`fixed dual-task` 结果目录仍然不存在：
+截至当前这次本地 `results/` 快照，下面两个结果目录都还不存在：
 
+- `results/Instruments-grec-grpo-rule-only-dynamic-hint-sid-title-desc-qwen2.5-3b-qwen4B-4-256-from-sft495`
 - `results/Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-title-desc-sft495`
 
-但 `dynamic dual-task` 已经开始同步，并且 `results/.wandb_eval_manifest.json` 里也有对应 `model_dir` 条目。
+`results/.wandb_eval_manifest.json` 当前也只包含 `single-hint mixed` 这条线，没有 dual-task 目录的 manifest 条目。
 
 当前把它们记成：
 
-- `dynamic dual-task` 已有首轮 checkpoint
-- `fixed dual-task` 仍待同步
-- 后续仍然可以把两条线并列跟踪，不用再改主 note 结构
+- launcher / setting 已准备好
+- 本地 tracking 已开
+- 等下一次远端 eval 结果同步后，把 dual-task 的第一轮 checkpoint 指标直接续写到这篇 note
 
 ### 3.3 Derived comparison assets
 
@@ -165,7 +160,7 @@
 这张图的读法要分两层：
 
 1. 它已经足够说明 `single-hint mixed` 不只是“一个孤立的新 launcher”，而是能被稳定放进当前 `Instruments` 主 baseline 族里一起比较。
-2. 它现在已经同步到 `checkpoint-1998`，因此图上能走到 `epoch≈1.00`；但仍然还没跑满全长，所以不能把这条线现在的位置直接当成最终定论。
+2. 它当前只同步到 `checkpoint-999`，因此图上自然只走到 `epoch≈0.60`；不能把这条线现在的位置直接当成最终定论。
 
 按当前可见 best checkpoint 比：
 
@@ -173,18 +168,17 @@
 | --- | --- | ---: | ---: | ---: |
 | `rule_only` | `checkpoint-2997` | `1.802` | `0.0960` | `0.1681` |
 | `dynamic gather-fix` | `checkpoint-2997` | `1.802` | `0.0936` | `0.1855` |
-| `dynamic dual-task` | `checkpoint-906` | `0.545` | `0.0900` | `0.1875` |
 | `fixed old` | `checkpoint-3326` | `2.000` | `0.0953` | `0.1938` |
 | `fixed taskfix` | `checkpoint-2997` | `1.802` | `0.0931` | `0.1941` |
 | corrected `fixed taskfix sid-only` | `checkpoint-2652` | `2.000` | `0.0945` | `0.1935` |
-| `single-hint mixed` | `checkpoint-1665` | `1.001` | `0.0947` | `0.1935` |
+| `single-hint mixed` | `checkpoint-999` | `0.601` | `0.0924` | `0.1928` |
 
 当前最重要的读法：
 
 - 即使只看已同步到的早期段，`single-hint mixed` 也已经站到了 fixed family 附近，而不是掉回 dynamic 或 plain `rule_only` 的区域。
-- 它相对 `dynamic gather-fix` 的当前可见 best 点，多 `+0.0011` `NDCG@10`、多 `+0.0080` `HR@50`，已经明显站进 fixed family 的 region。
+- 它相对 `dynamic gather-fix` 的当前可见 best 点，只少 `0.0012` `NDCG@10`，但多 `+0.0073` `HR@50`，已经明显站进 fixed family 的 region。
 - `fixed old` 也已经被重新拉回来了，它在这张图里更像一条历史上界参考线：`NDCG@10=0.0953 / HR@50=0.1938`，比 corrected `fixed taskfix sid-only` 略强一点，但带 legacy caveat。
-- 它相对 corrected `fixed taskfix sid-only` 的最终点，还只差 `0.0002` `NDCG@10` 和 `0.0000` `HR@50`；这说明这条线现在已经不是“看起来像”，而是真的可以放进 fixed family 主讨论里。
+- 它相对 corrected `fixed taskfix sid-only` 的最终点，还只差 `0.0021` `NDCG@10` 和 `0.0007` `HR@50`；这说明这条线至少值得继续补长，而不是只记成工程分支。
 
 ### 4.2 公平早期窗口：统一只看 `step <= 999`
 
@@ -204,7 +198,6 @@
 | --- | --- | ---: | ---: | --- |
 | `rule_only` | `checkpoint-999` | `0.0936` | `0.1768` | top-10 最高，但 coverage 仍最低 |
 | `dynamic gather-fix` | `checkpoint-999` | `0.0912` | `0.1905` | dynamic baseline 的平衡点 |
-| `dynamic dual-task` | `checkpoint-906` | `0.0900` | `0.1875` | 第一版 dual-task dynamic，仍低于 gather-fix |
 | `fixed old` | `checkpoint-999` | `0.0917` | `0.1912` | legacy fixed reference，介于 corrected fixed 与 single-hint 之间 |
 | `fixed taskfix` | `checkpoint-666` | `0.0901` | `0.1962` | coverage 峰值最强，但 top-10 明显更低 |
 | corrected `fixed taskfix sid-only` | `checkpoint-532` | `0.0925` | `0.1910` | 当前 clean fixed 的 early strong point |
@@ -216,7 +209,6 @@
   也就是说它已经明显不是“拿 coverage 换 top-10”的 plain exact reward 型走势。
 - 相比 `dynamic gather-fix`，它多 `+0.0012` `NDCG@10`、多 `+0.0023` `HR@50`；
   当前早期窗口里，它是同时压过 canonical dynamic baseline 的。
-- `dynamic dual-task` 目前的早期窗口 best 是 `checkpoint-906 / NDCG@10=0.0900 / HR@50=0.1875`，它还没到能和 `dynamic gather-fix` 正面并列的位置，但至少已经不是空目录了。
 - `fixed old` 在早期窗口里已经回到 `checkpoint-999 / NDCG@10=0.0917 / HR@50=0.1912`，它的角色更像历史上界参考线，而不是 clean baseline。
 - 相比 corrected `fixed taskfix sid-only`，它几乎打平 top-10（`-0.0001`），但 `HR@50` 还多 `+0.0018`；
   因此当前最有价值的判断不是“它已经赢过 sid-only”，而是“它已经足够接近 corrected clean fixed 的 early trade-off”。
