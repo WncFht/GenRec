@@ -1,7 +1,7 @@
 # 2026-04-19 Instruments 双任务过滤 / 单任务 Hint 训练跟踪
 
 - 记录日期：2026-04-19
-- 最后更新：2026-04-19
+- 最后更新：2026-04-20
 - 目标：把这轮 `Instruments-grec` 新开的两种训练 setting 记成一份可持续续写的 tracking note，并对齐当前本地 `results/` 同步状态。
 - 当前状态：`bash scripts/sync_results_from_remote.sh unpack` 已在本地完成；当前本地 `results/` 快照里，`single-hint mixed` 只同步到 `checkpoint-999`，两条 `dual-task sid+title_desc` 线都还没有出现在当前 `results/` / manifest 快照里。
 
