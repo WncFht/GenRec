@@ -113,7 +113,7 @@
   它现在在 `checkpoint-2664` 已经同时压过 corrected `fixed taskfix sid-only` 的 `NDCG@10` 和 `HR@50`，而且到完整尾点 `checkpoint-3326` 仍维持 `HR@50=0.1951`，因此已经是需要认真对待的主候选。
 - `dynamic dual-task` 现在更像一条“已经可比较、但还没赢 baseline”的完整首轮轨迹：
   raw full-trace best 点是 `checkpoint-1510 / epoch=1.111 / NDCG@10=0.0930 / HR@50=0.1885`；
-  若看和其它 run 的共同 late-window 对齐资产，则按 `9` 个点映射到 `aligned_epoch=1.75 -> 2.0`，checkpoint 不要求对齐。
+  若看和其它 run 的共同 late-window 对齐资产，则当前只对齐已生成的前 `9` 个 slot，对应 `aligned_epoch=1.75 -> 1.9722`，最后一个 `2.0` slot 仍 pending，checkpoint 不要求对齐。
 
 ### 当前最值得继续做的事
 

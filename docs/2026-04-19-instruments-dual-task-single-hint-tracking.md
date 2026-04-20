@@ -148,7 +148,7 @@
 
 - `dynamic dual-task` 已有 `checkpoint-302/604/906/1208/1510/1812/2114/2416/2718` 这 `9` 个 checkpoint
 - raw full-trace 口径现在按它自己的 `2718 step = 2 epoch` 去算，所以这条线的 `epoch_progress` 是 `0.222 -> 2.000`，不会再被别的 run 的总 ckpt 压扁
-- 如果要做共同 late-window 对比，则看新增的 `late_epoch_aligned_*` 资产：它把各条线最后 `9` 个 readout 映射到共同的 `aligned_epoch=1.75 -> 2.0`，此时 epoch 对齐，但 checkpoint 不要求对齐
+- 如果要做共同 late-window 对比，则看新增的 `late_epoch_aligned_*` 资产：它只对齐当前已经生成出来的前 `9` 个 slot，并把它们映射到共同的 `aligned_epoch=1.75 -> 1.9722`；最后一个 `2.0` slot 仍视为 pending。这里是 epoch 对齐，但 checkpoint 不要求对齐
 - `fixed dual-task` 仍待同步
 - 后续仍然可以把两条线并列跟踪，不用再改主 note 结构
 
@@ -226,18 +226,18 @@
 - [`single_hint_vs_baselines_late_epoch_aligned_curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_baselines_late_epoch_aligned_curves.png)
 - [`single_hint_vs_dynamic_family_late_epoch_aligned_curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_dynamic_family_late_epoch_aligned_curves.png)
 
-这组图不是 raw `epoch_progress`，而是专门为当前 `dynamic dual-task` 的 `9` 个 readout 做的比较轴：
+这组图不是 raw `epoch_progress`，而是专门为当前 `dynamic dual-task` 的 `9` 个已生成 readout 做的比较轴：
 
 - 把 `dynamic dual-task` 现有 `9` 个 checkpoint 当作锚点数。
-- 各条线都取自己最后 `9` 个 readout。
-- 再把这 `9` 个点统一映射到 `aligned_epoch=1.75 -> 2.0`。
-- 所以这里是 epoch 对齐，但 checkpoint 不要求对齐。
+- 各条线都只取与这 `9` 个已生成 slot 对应的前缀点；如果最后一个 terminal slot 还没生成，就不把它硬塞进来。
+- 再把这 `9` 个点统一映射到 `aligned_epoch=1.75 -> 1.9722`。
+- 所以这里是 epoch 对齐，但 checkpoint 不要求对齐；同时不会把一个还没生成的最后点硬映成 `2.0`。
 
 按这套 aligned 资产去读：
 
-- `dynamic dual-task` 在共同 late-window 轴上的 best 点仍是 `checkpoint-1510 @ aligned_epoch=1.875`。
-- `single-hint mixed` 在这套轴上的 best 点是 `checkpoint-2664 @ aligned_epoch=1.9375`，而最终尾点 `checkpoint-3326` 对应 `aligned_epoch=2.0`。
-- 这样看最大的好处是：`dynamic dual-task` 不会再因为别的 run 的总 ckpt 更长，而在 late-window 视角里被直接裁掉。
+- `dynamic dual-task` 在共同 late-window 轴上的 best 点仍是 `checkpoint-1510 @ aligned_epoch=1.8611`。
+- `single-hint mixed` 在这套轴上的 best 点是 `checkpoint-2664 @ aligned_epoch=1.9444`；当前 aligned 资产只用到 `checkpoint-2997 @ aligned_epoch=1.9722`，不会提前消费 terminal `checkpoint-3326`。
+- 这样看最大的好处是：`dynamic dual-task` 不会再因为别的 run 的总 ckpt 更长，而在 late-window 视角里被直接裁掉；同时也不会把“还没生成的最后一个点”假装成已经对齐好的 `2.0`。
 
 ### 4.4 Fixed Family
 

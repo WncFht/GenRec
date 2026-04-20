@@ -72,6 +72,7 @@ FIXED_FAMILY_KEYS = ["fixed_old", "fixed_taskfix", "fixed_taskfix_sid_only", "si
 LATE_ALIGNMENT_REFERENCE_KEY = "dynamic_dual_task"
 LATE_ALIGNMENT_EPOCH_START = 1.75
 LATE_ALIGNMENT_EPOCH_END = 2.0
+LATE_ALIGNMENT_PENDING_FINAL_SLOT = True
 
 
 def _variant_map() -> dict[str, dict[str, object]]:
@@ -162,15 +163,16 @@ def build_late_aligned_dataframe(
         raise ValueError(f"Missing reference variant for late alignment: {reference_key}")
 
     point_count = len(reference_df)
-    aligned_epochs = _build_epoch_grid(point_count, epoch_start, epoch_end)
+    alignment_slot_count = point_count + 1 if LATE_ALIGNMENT_PENDING_FINAL_SLOT else point_count
+    aligned_epochs = _build_epoch_grid(alignment_slot_count, epoch_start, epoch_end)[:point_count]
     rows: list[dict[str, object]] = []
 
     for variant_key in df["variant_key"].unique():
-        variant_df = df[df["variant_key"] == variant_key].sort_values("step").tail(point_count).reset_index(drop=True)
+        variant_df = df[df["variant_key"] == variant_key].sort_values("step").head(point_count).reset_index(drop=True)
         if variant_df.empty:
             continue
 
-        variant_epochs = aligned_epochs[-len(variant_df) :]
+        variant_epochs = aligned_epochs[: len(variant_df)]
         for idx, (_, row) in enumerate(variant_df.iterrows(), start=1):
             out_row = row.to_dict()
             out_row["aligned_epoch"] = variant_epochs[idx - 1]

@@ -90,7 +90,7 @@ class GenerateInstrumentsDualTaskSingleHintAssetsTests(unittest.TestCase):
             self.assertEqual(sid_only_last["max_step"], 2652)
             self.assertAlmostEqual(sid_only_last["epoch_progress"], 2.0, places=6)
 
-    def test_late_alignment_uses_dynamic_dual_point_count_and_tail_order(self):
+    def test_late_alignment_uses_generated_prefix_and_keeps_final_slot_pending(self):
         module = _load_module()
 
         rows = []
@@ -141,13 +141,13 @@ class GenerateInstrumentsDualTaskSingleHintAssetsTests(unittest.TestCase):
         self.assertEqual(len(dynamic_dual_df), 9)
         self.assertEqual(dynamic_dual_df["step"].tolist(), [302, 604, 906, 1208, 1510, 1812, 2114, 2416, 2718])
         self.assertAlmostEqual(dynamic_dual_df.iloc[0]["aligned_epoch"], 1.75, places=6)
-        self.assertAlmostEqual(dynamic_dual_df.iloc[-1]["aligned_epoch"], 2.0, places=6)
+        self.assertAlmostEqual(dynamic_dual_df.iloc[-1]["aligned_epoch"], 1.9722222222222223, places=6)
 
         single_hint_df = aligned_df[aligned_df["variant_key"] == "single_hint_mixed"].sort_values("aligned_epoch")
         self.assertEqual(len(single_hint_df), 9)
-        self.assertEqual(single_hint_df["step"].tolist(), [666, 999, 1332, 1665, 1998, 2331, 2664, 2997, 3326])
+        self.assertEqual(single_hint_df["step"].tolist(), [333, 666, 999, 1332, 1665, 1998, 2331, 2664, 2997])
         self.assertAlmostEqual(single_hint_df.iloc[0]["aligned_epoch"], 1.75, places=6)
-        self.assertAlmostEqual(single_hint_df.iloc[-1]["aligned_epoch"], 2.0, places=6)
+        self.assertAlmostEqual(single_hint_df.iloc[-1]["aligned_epoch"], 1.9722222222222223, places=6)
 
     def test_family_variant_groups_match_expected(self):
         module = _load_module()
