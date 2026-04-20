@@ -31,7 +31,7 @@ class GenerateInstrumentsDualTaskSingleHintAssetsTests(unittest.TestCase):
         self.assertLess(module.TIGHT_LAYOUT_TOP, module.SUPTITLE_Y)
         self.assertLess(module.TIGHT_LAYOUT_TOP, 0.9)
 
-    def test_single_hint_alignment_uses_full_mixed_reference_horizon(self):
+    def test_single_hint_alignment_keeps_full_mixed_horizon_but_dynamic_dual_uses_its_own_max_step(self):
         module = _load_module()
 
         with tempfile.TemporaryDirectory() as temp_root:
@@ -79,8 +79,8 @@ class GenerateInstrumentsDualTaskSingleHintAssetsTests(unittest.TestCase):
             self.assertAlmostEqual(single_hint_last["epoch_progress"], 999 / 3326 * 2.0, places=6)
 
             dynamic_dual_last = df[(df["variant_key"] == "dynamic_dual_task") & (df["step"] == 906)].iloc[0]
-            self.assertEqual(dynamic_dual_last["max_step"], 3326)
-            self.assertAlmostEqual(dynamic_dual_last["epoch_progress"], 906 / 3326 * 2.0, places=6)
+            self.assertEqual(dynamic_dual_last["max_step"], 906)
+            self.assertAlmostEqual(dynamic_dual_last["epoch_progress"], 2.0, places=6)
 
             fixed_old_last = df[(df["variant_key"] == "fixed_old") & (df["step"] == 3326)].iloc[0]
             self.assertEqual(fixed_old_last["max_step"], 3326)
@@ -89,6 +89,65 @@ class GenerateInstrumentsDualTaskSingleHintAssetsTests(unittest.TestCase):
             sid_only_last = df[(df["variant_key"] == "fixed_taskfix_sid_only") & (df["step"] == 2652)].iloc[0]
             self.assertEqual(sid_only_last["max_step"], 2652)
             self.assertAlmostEqual(sid_only_last["epoch_progress"], 2.0, places=6)
+
+    def test_late_alignment_uses_dynamic_dual_point_count_and_tail_order(self):
+        module = _load_module()
+
+        rows = []
+
+        def add_variant_rows(variant_key: str, variant_label: str, model_dir: str, color: str, steps: list[int], max_step: int) -> None:
+            for step in steps:
+                rows.append(
+                    {
+                        "variant_key": variant_key,
+                        "variant_label": variant_label,
+                        "model_dir": model_dir,
+                        "checkpoint": f"checkpoint-{step}",
+                        "step": step,
+                        "max_step": max_step,
+                        "observed_max_step": max_step,
+                        "epoch_progress": step / max_step * 2.0,
+                        "color": color,
+                        "NDCG@10": 0.09,
+                        "HR@10": 0.11,
+                        "NDCG@50": 0.107,
+                        "HR@50": 0.19,
+                        "NDCG@5": 0.084,
+                        "HR@5": 0.096,
+                    }
+                )
+
+        add_variant_rows(
+            "dynamic_dual_task",
+            "RL dynamic dual-task",
+            "dynamic-dual",
+            "#457b9d",
+            [302, 604, 906, 1208, 1510, 1812, 2114, 2416, 2718],
+            2718,
+        )
+        add_variant_rows(
+            "single_hint_mixed",
+            "RL single-hint mixed",
+            "single-hint",
+            "#b5179e",
+            [333, 666, 999, 1332, 1665, 1998, 2331, 2664, 2997, 3326],
+            3326,
+        )
+
+        df = pd.DataFrame(rows)
+        aligned_df = module.build_late_aligned_dataframe(df)
+
+        dynamic_dual_df = aligned_df[aligned_df["variant_key"] == "dynamic_dual_task"].sort_values("aligned_epoch")
+        self.assertEqual(len(dynamic_dual_df), 9)
+        self.assertEqual(dynamic_dual_df["step"].tolist(), [302, 604, 906, 1208, 1510, 1812, 2114, 2416, 2718])
+        self.assertAlmostEqual(dynamic_dual_df.iloc[0]["aligned_epoch"], 1.75, places=6)
+        self.assertAlmostEqual(dynamic_dual_df.iloc[-1]["aligned_epoch"], 2.0, places=6)
+
+        single_hint_df = aligned_df[aligned_df["variant_key"] == "single_hint_mixed"].sort_values("aligned_epoch")
+        self.assertEqual(len(single_hint_df), 9)
+        self.assertEqual(single_hint_df["step"].tolist(), [666, 999, 1332, 1665, 1998, 2331, 2664, 2997, 3326])
+        self.assertAlmostEqual(single_hint_df.iloc[0]["aligned_epoch"], 1.75, places=6)
+        self.assertAlmostEqual(single_hint_df.iloc[-1]["aligned_epoch"], 2.0, places=6)
 
     def test_family_variant_groups_match_expected(self):
         module = _load_module()
@@ -163,6 +222,10 @@ class GenerateInstrumentsDualTaskSingleHintAssetsTests(unittest.TestCase):
             self.assertTrue((assets_root / "single_hint_vs_baselines_epoch_curves.png").exists())
             self.assertTrue((assets_root / "single_hint_vs_dynamic_family_epoch_curves.png").exists())
             self.assertTrue((assets_root / "single_hint_vs_fixed_family_epoch_curves.png").exists())
+            self.assertTrue((assets_root / "late_epoch_aligned_checkpoint_metrics.csv").exists())
+            self.assertTrue((assets_root / "late_epoch_aligned_best_summary.csv").exists())
+            self.assertTrue((assets_root / "single_hint_vs_baselines_late_epoch_aligned_curves.png").exists())
+            self.assertTrue((assets_root / "single_hint_vs_dynamic_family_late_epoch_aligned_curves.png").exists())
             self.assertFalse((assets_root / "single_hint_tracking_early_window_checkpoint_metrics.csv").exists())
             self.assertFalse((assets_root / "single_hint_tracking_early_window_best_summary.csv").exists())
             self.assertFalse((assets_root / "single_hint_vs_baselines_early_window_epoch_curves.png").exists())

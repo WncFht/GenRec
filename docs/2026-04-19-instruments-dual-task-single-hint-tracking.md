@@ -3,7 +3,7 @@
 - 记录日期：2026-04-19
 - 最后更新：2026-04-20
 - 目标：把这轮 `Instruments-grec` 新开的两种训练 setting 记成一份可持续续写的 tracking note，并对齐当前本地 `results/` 同步状态。
-- 当前状态：`bash scripts/sync_results_from_remote.sh unpack` 已在本地完成；当前本地 `results/` 快照里，`single-hint mixed` 已同步到 `checkpoint-2997`，`dynamic dual-task` 已同步到 `checkpoint-1812`，`fixed dual-task` 仍未出现在当前 `results/` / manifest 快照里。
+- 当前状态：`bash scripts/sync_results_from_remote.sh unpack` 已在本地完成；当前本地 `results/` 快照里，`single-hint mixed` 已同步到完整 `checkpoint-3326`，`dynamic dual-task` 已同步到 `9` 个 checkpoint（`checkpoint-302` 到 `checkpoint-2718`），`fixed dual-task` 仍未出现在当前 `results/` / manifest 快照里。
 
 ## 1. 这次在跟踪哪两种 setting
 
@@ -87,7 +87,7 @@
 
 ## 3. 当前 result 跟踪
 
-### 3.1 `single-hint mixed` 已经补到 `checkpoint-2997`
+### 3.1 `single-hint mixed` 已经补到完整 `checkpoint-3326`
 
 当前本地 `results/` 已同步到：
 
@@ -100,6 +100,7 @@
 - `checkpoint-2331`
 - `checkpoint-2664`
 - `checkpoint-2997`
+- `checkpoint-3326`
 
 指标来源：
 
@@ -124,6 +125,7 @@
 | `checkpoint-2331` | `0.0946` | `0.1182` | `0.1111` | `0.1948` |
 | `checkpoint-2664` | `0.0948` | `0.1180` | `0.1116` | `0.1958` |
 | `checkpoint-2997` | `0.0947` | `0.1185` | `0.1112` | `0.1952` |
+| `checkpoint-3326` | `0.0945` | `0.1179` | `0.1111` | `0.1951` |
 
 和 full mixed fixed-hint baseline
 `results/Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495`
@@ -131,9 +133,10 @@
 
 - `single-hint mixed` 现在已经不只是 early-window candidate，而是开始形成更明确的中后段 best 区间。
 - 它在 `checkpoint-2664` 的 `NDCG@10=0.0948 / HR@50=0.1958`，已经高过 corrected `fixed taskfix sid-only` 的 `NDCG@10=0.0945 / HR@50=0.1935`。
-- 因此当前更合理的定位已经从“值得继续补长的新线”升级成“当前最强的 single-hint mixed 候选”，后续主要看它在 `3326+` 附近是否还能稳住。
+- `checkpoint-3326` 没有把 top-10 再推高，但尾段仍然维持在 `NDCG@10=0.0945 / HR@50=0.1951`，所以更合理的说法已经是：
+  这条线在完整 `2.0` epoch 尾段仍站在 fixed family 前沿，而不是只靠中段 bump。
 
-### 3.2 `dual-task sid+title_desc` 现在已经有一条动态线的首轮结果
+### 3.2 `dual-task sid+title_desc` 现在已经有 `9` 个 dynamic readout
 
 截至当前这次本地 `results/` 快照，`fixed dual-task` 结果目录仍然不存在：
 
@@ -143,20 +146,27 @@
 
 当前把它们记成：
 
-- `dynamic dual-task` 已有首轮 checkpoint，并且已经补到中段
+- `dynamic dual-task` 已有 `checkpoint-302/604/906/1208/1510/1812/2114/2416/2718` 这 `9` 个 checkpoint
+- raw full-trace 口径现在按它自己的 `2718 step = 2 epoch` 去算，所以这条线的 `epoch_progress` 是 `0.222 -> 2.000`，不会再被别的 run 的总 ckpt 压扁
+- 如果要做共同 late-window 对比，则看新增的 `late_epoch_aligned_*` 资产：它把各条线最后 `9` 个 readout 映射到共同的 `aligned_epoch=1.75 -> 2.0`，此时 epoch 对齐，但 checkpoint 不要求对齐
 - `fixed dual-task` 仍待同步
 - 后续仍然可以把两条线并列跟踪，不用再改主 note 结构
 
 ### 3.3 Derived comparison assets
 
-- checkpoint-level tables:
+- raw checkpoint-level tables:
   - [`single_hint_tracking_checkpoint_metrics.csv`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_tracking_checkpoint_metrics.csv)
   - [`single_hint_tracking_best_summary.csv`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_tracking_best_summary.csv)
   - [`sft495_reference_metrics.csv`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/sft495_reference_metrics.csv)
+- late-window aligned tables:
+  - [`late_epoch_aligned_checkpoint_metrics.csv`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/late_epoch_aligned_checkpoint_metrics.csv)
+  - [`late_epoch_aligned_best_summary.csv`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/late_epoch_aligned_best_summary.csv)
 - figure assets:
   - [`single_hint_vs_baselines_epoch_curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_baselines_epoch_curves.png)
   - [`single_hint_vs_dynamic_family_epoch_curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_dynamic_family_epoch_curves.png)
   - [`single_hint_vs_fixed_family_epoch_curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_fixed_family_epoch_curves.png)
+  - [`single_hint_vs_baselines_late_epoch_aligned_curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_baselines_late_epoch_aligned_curves.png)
+  - [`single_hint_vs_dynamic_family_late_epoch_aligned_curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_dynamic_family_late_epoch_aligned_curves.png)
 
 ## 4. Manual Picture Comparison
 
@@ -169,7 +179,7 @@
 这张图的读法要分两层：
 
 1. 它已经足够说明 `single-hint mixed` 不只是“一个孤立的新 launcher”，而是能被稳定放进当前 `Instruments` 主 baseline 族里一起比较。
-2. 它现在已经同步到 `checkpoint-2997`，图上能走到 `epoch≈1.80`；但还没看到更后段 checkpoint，所以仍不能把它直接当成最终定论。
+2. 它现在已经同步到完整 `checkpoint-3326`，图上能直接看到 `epoch=2.0` 的尾段；因此这里已经不是“等最后一个点”，而是读尾段是否稳住。
 
 按当前可见 best checkpoint 比：
 
@@ -177,7 +187,7 @@
 | --- | --- | ---: | ---: | ---: |
 | `rule_only` | `checkpoint-2997` | `1.802` | `0.0960` | `0.1681` |
 | `dynamic gather-fix` | `checkpoint-2997` | `1.802` | `0.0936` | `0.1855` |
-| `dynamic dual-task` | `checkpoint-1510` | `0.908` | `0.0930` | `0.1885` |
+| `dynamic dual-task` | `checkpoint-1510` | `1.111` | `0.0930` | `0.1885` |
 | `fixed old` | `checkpoint-3326` | `2.000` | `0.0953` | `0.1938` |
 | `fixed taskfix` | `checkpoint-2997` | `1.802` | `0.0931` | `0.1941` |
 | corrected `fixed taskfix sid-only` | `checkpoint-2652` | `2.000` | `0.0945` | `0.1935` |
@@ -185,11 +195,12 @@
 
 当前最重要的读法：
 
-- 即使只看已同步到的早期段，`single-hint mixed` 也已经站到了 fixed family 附近，而不是掉回 dynamic 或 plain `rule_only` 的区域。
+- 即使放到当前完整 raw full-trace 里看，`single-hint mixed` 也已经站到了 fixed family 附近，而不是掉回 dynamic 或 plain `rule_only` 的区域。
 - 它相对 `dynamic gather-fix` 的当前可见 best 点，多 `+0.0012` `NDCG@10`、多 `+0.0103` `HR@50`，已经明确站进 fixed family 的 region。
 - `fixed old` 也已经被重新拉回来了，它在这张图里更像一条历史上界参考线：`NDCG@10=0.0953 / HR@50=0.1938`，比 corrected `fixed taskfix sid-only` 略强一点，但带 legacy caveat。
 - `single-hint mixed` 相对 corrected `fixed taskfix sid-only` 的当前 best 点，已经多 `+0.0003` `NDCG@10`、多 `+0.0023` `HR@50`；所以这条线现在已经可以被视为一个真实的主候选，而不是旁支。
-- `dynamic dual-task` 目前的 full-trace best 在 `checkpoint-1510 / NDCG@10=0.0930 / HR@50=0.1885`，比 canonical `dynamic gather-fix` 仍弱，但已经足够纳入后续 dual-task 跟踪。
+- `single-hint mixed` 的完整尾点 `checkpoint-3326` 仍维持 `HR@50=0.1951`，所以这条线现在更像“完整 2 epoch 也没掉出前沿”的主候选，而不再只是中段幸运点。
+- `dynamic dual-task` 目前的 raw full-trace best 在 `checkpoint-1510 / epoch=1.111 / NDCG@10=0.0930 / HR@50=0.1885`，比 canonical `dynamic gather-fix` 仍弱，但已经足够纳入后续 dual-task 跟踪。
 
 ### 4.2 Dynamic Family
 
@@ -204,13 +215,31 @@
 
 最有用的读法：
 
-- `dynamic dual-task` 现在已经不是“只有一个 early readout”，而是同步到了 `checkpoint-1812`，full-trace best 在 `checkpoint-1510 / NDCG@10=0.0930 / HR@50=0.1885`。
+- `dynamic dual-task` 现在已经不是“只有一个 early readout”，而是同步到了完整 `9` 个 checkpoint，一直到 `checkpoint-2718`；raw full-trace best 仍在 `checkpoint-1510 / epoch=1.111 / NDCG@10=0.0930 / HR@50=0.1885`。
 - 但它相对 canonical `dynamic gather-fix` 仍然全线偏弱：
   `NDCG@10 -0.0006`、`HR@50 -0.0030`。
 - 所以当前更合理的说法不是“dual-task dynamic 已经赢了 dynamic baseline”，而是：
   它已经进入可比较状态，但还没有超 `gather-fix`。
 
-### 4.3 Fixed Family
+### 4.3 Late-Window Epoch Alignment
+
+- [`single_hint_vs_baselines_late_epoch_aligned_curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_baselines_late_epoch_aligned_curves.png)
+- [`single_hint_vs_dynamic_family_late_epoch_aligned_curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_dynamic_family_late_epoch_aligned_curves.png)
+
+这组图不是 raw `epoch_progress`，而是专门为当前 `dynamic dual-task` 的 `9` 个 readout 做的比较轴：
+
+- 把 `dynamic dual-task` 现有 `9` 个 checkpoint 当作锚点数。
+- 各条线都取自己最后 `9` 个 readout。
+- 再把这 `9` 个点统一映射到 `aligned_epoch=1.75 -> 2.0`。
+- 所以这里是 epoch 对齐，但 checkpoint 不要求对齐。
+
+按这套 aligned 资产去读：
+
+- `dynamic dual-task` 在共同 late-window 轴上的 best 点仍是 `checkpoint-1510 @ aligned_epoch=1.875`。
+- `single-hint mixed` 在这套轴上的 best 点是 `checkpoint-2664 @ aligned_epoch=1.9375`，而最终尾点 `checkpoint-3326` 对应 `aligned_epoch=2.0`。
+- 这样看最大的好处是：`dynamic dual-task` 不会再因为别的 run 的总 ckpt 更长，而在 late-window 视角里被直接裁掉。
+
+### 4.4 Fixed Family
 
 - [`single_hint_vs_fixed_family_epoch_curves.png`](/Users/fanghaotian/Desktop/src/GenRec/docs/assets/2026-04-19-instruments-dual-task-single-hint-tracking/single_hint_vs_fixed_family_epoch_curves.png)
 
@@ -228,13 +257,13 @@
 - `single-hint mixed` 现在已经不只是“接近 fixed family”，而是开始站到 fixed family 的前沿区域。
 - 它当前 full-trace best 在 `checkpoint-2664 / NDCG@10=0.0948 / HR@50=0.1958`，已经同时超过 corrected `fixed taskfix sid-only` 的 `0.0945 / 0.1935`。
 - 和 `fixed old` 比，它仍然还差一点 top-10（`0.0948` vs `0.0953`），但 `HR@50` 已经更高（`0.1958` vs `0.1938`）。
-- 因此现在最值得继续补长的，不再只是“single-hint 有没有信号”，而是：
-  它能不能在后段继续维持住相对 corrected clean fixed 的领先。
+- 因此现在最值得继续解释的，不再只是“single-hint 有没有信号”，而是：
+  它为什么能在完整尾段继续维持住相对 corrected clean fixed 的领先。
 
 ## 5. 下一步怎么续写
 
 - 下一次同步 result bundle 时，优先检查 `fixed dual-task` 线是否开始出现在 `results/` 和 manifest 里。
-- `single-hint mixed` 这条线继续往 `3326+` 补，再判断当前 `2664` 的 best 点是稳态平台还是中后段 bump。
+- `single-hint mixed` 已经补到完整 `checkpoint-3326`；下一步不是继续等点，而是解释为什么它在 `2664 -> 3326` 之间维持高位平台但没有继续抬高 top-10。
 - 一旦 dual-task 线有结果，优先把它们和下面两条 reference 放在一起做 first-look：
   - `dynamic gather-fix`
   - corrected `fixed taskfix sid-only`
