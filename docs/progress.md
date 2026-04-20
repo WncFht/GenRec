@@ -91,7 +91,9 @@
 
 - `fixed taskfix + CE`
 - `fixed taskfix + CE (hintce-2)`
+- `fixed taskfix + CE (hintce-3)`
 - `dynamic max1`
+- `fixed dual-task`
 
 当前结论：
 
@@ -104,7 +106,7 @@
 - `hintce-2` 的训练日志拆分已经补过一轮：
   当前 `weighted_hint_ce_loss` 大体稳定在 `~1e-3`，前期相对 `RL base` 略重，但主 spike 仍然主要由 `KL` 驱动，而不是 CE 本身。
 - 仓库现在已经支持一条 dual-task filtered setting：
-  `task1_sid_sft + task5_title_desc2sid` 参与 train，`task4_hisTitle2sid` 被移除，eval 仍只看 `task1_sid_sft`；dynamic / fixed 两个 launcher 都已落地，其中 `dynamic dual-task` 现在已经同步到 `9` 个 checkpoint（`checkpoint-302` 到 `checkpoint-2718`），但 `fixed dual-task` 仍未出现在本地 `results/` 目录。
+  `task1_sid_sft + task5_title_desc2sid` 参与 train，`task4_hisTitle2sid` 被移除，eval 仍只看 `task1_sid_sft`；dynamic / fixed 两个 launcher 都已落地，其中 `dynamic dual-task` 现在已经同步到 `10` 个 checkpoint（`checkpoint-302` 到 `checkpoint-3012`），而 `fixed dual-task` 也已经开始同步到 `checkpoint-302/604/906`。
 - mixed-task `single-hint` setting 已经补到中后段 checkpoint：
   训练仍保留三任务，但只对 `task1_sid_sft` 注入 fixed hint，`task4/task5` 强制 zero-hint；
   当前本地已同步到完整 `checkpoint-3326`，best readout 保持在
@@ -112,14 +114,22 @@
 - `single-hint mixed` 不再只是 early-window strong candidate；
   它现在在 `checkpoint-2664` 已经同时压过 corrected `fixed taskfix sid-only` 的 `NDCG@10` 和 `HR@50`，而且到完整尾点 `checkpoint-3326` 仍维持 `HR@50=0.1951`，因此已经是需要认真对待的主候选。
 - `dynamic dual-task` 现在更像一条“已经可比较、但还没赢 baseline”的完整首轮轨迹：
-  raw full-trace best 点是 `checkpoint-1510 / epoch=1.111 / NDCG@10=0.0930 / HR@50=0.1885`；
-  若看和其它 run 的共同 late-window 对齐资产，则当前只对齐已生成的前 `9` 个 slot，对应 `aligned_epoch=1.75 -> 1.9722`，最后一个 `2.0` slot 仍 pending，checkpoint 不要求对齐。
+  raw full-trace best 点仍是 `checkpoint-1510 / epoch≈1.003 / NDCG@10=0.0930 / HR@50=0.1885`；
+  最新同步到 `checkpoint-3012` 也还没有把它抬回 best window。
+- `fixed dual-task` 当前只是 first-look：
+  `checkpoint-302/604/906` 已同步，best 点是
+  `checkpoint-906 / NDCG@10=0.0910 / HR@50=0.1795`；
+  同一 aligned slot 下它的 top-10 略高于 dynamic dual-task 的 `checkpoint-906`，但 coverage 仍明显更弱。
+- `hintce-3` 当前只同步了 `checkpoint-333/666` 两个 early readout：
+  `checkpoint-666 / NDCG@10=0.0898 / HR@50=0.1924`；
+  目前还没看到能替代 `hintce-2` 的证据，更像一个需要继续补长的倍率试探。
 
 ### 当前最值得继续做的事
 
 - 把 `UFT-style hint curriculum` 落到 corrected `fixed taskfix sid-only` 上。
 - 对 `hintce-2` 做更细的 task-level 和训练日志分析，确认为什么 balanced 优势出现在中后段而不是最终点。
-- 把 `fixed dual-task` 线同步出来，并继续观察 `dynamic dual-task` 能否从当前 `1510` 左右的 best 点往上推。
+- 把 `fixed dual-task` 和 `hintce-3` 继续补到更多 checkpoints，再判断它们到底是 early noise 还是有稳定信号。
+- 继续观察 `dynamic dual-task` 能否从当前 `1510` 左右的 best 点往上推，还是 `3012` 之后仍然维持“中段最佳、尾段回落”的形态。
 - 解释 `single-hint mixed` 为什么在完整 `2.0` epoch 尾段维持高位平台，但没有超过 `checkpoint-2664` 的 top-10 峰值。
 - 对 `max1` 补回 train-time 日志和 diagnostics，尤其是 `selected_hint_depth_mean`、`selected_depth_1_frac`、`mean_length`。
 - 在主线对比里优先保留 4 条：`rule_only rerun`、`dynamic gather-fix`、corrected `fixed taskfix sid-only`、old `fixed mixed-single`（仅作历史参考）。

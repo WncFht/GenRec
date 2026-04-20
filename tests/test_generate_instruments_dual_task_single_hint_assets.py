@@ -58,7 +58,10 @@ class GenerateInstrumentsDualTaskSingleHintAssetsTests(unittest.TestCase):
                     3326,
                 ),
                 "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495": (333, 3326),
+                "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-2-sft495": (333, 666),
+                "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-3-sft495": (333, 666),
                 "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495": (266, 2652),
+                "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-title-desc-sft495": (302, 604),
                 "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-hint-only-mixed-sft495": (333, 999),
             }
 
@@ -89,6 +92,14 @@ class GenerateInstrumentsDualTaskSingleHintAssetsTests(unittest.TestCase):
             sid_only_last = df[(df["variant_key"] == "fixed_taskfix_sid_only") & (df["step"] == 2652)].iloc[0]
             self.assertEqual(sid_only_last["max_step"], 2652)
             self.assertAlmostEqual(sid_only_last["epoch_progress"], 2.0, places=6)
+
+            hintce3_last = df[(df["variant_key"] == "fixed_taskfix_hintce3") & (df["step"] == 666)].iloc[0]
+            self.assertEqual(hintce3_last["max_step"], 3326)
+            self.assertAlmostEqual(hintce3_last["epoch_progress"], 666 / 3326 * 2.0, places=6)
+
+            fixed_dual_last = df[(df["variant_key"] == "fixed_dual_task") & (df["step"] == 604)].iloc[0]
+            self.assertEqual(fixed_dual_last["max_step"], 906)
+            self.assertAlmostEqual(fixed_dual_last["epoch_progress"], 604 / 906 * 2.0, places=6)
 
     def test_late_alignment_uses_generated_prefix_and_keeps_final_slot_pending(self):
         module = _load_module()
@@ -133,6 +144,14 @@ class GenerateInstrumentsDualTaskSingleHintAssetsTests(unittest.TestCase):
             [333, 666, 999, 1332, 1665, 1998, 2331, 2664, 2997, 3326],
             3326,
         )
+        add_variant_rows(
+            "fixed_dual_task",
+            "RL fixed dual-task",
+            "fixed-dual",
+            "#8d99ae",
+            [302, 604, 906],
+            906,
+        )
 
         df = pd.DataFrame(rows)
         aligned_df = module.build_late_aligned_dataframe(df)
@@ -149,6 +168,12 @@ class GenerateInstrumentsDualTaskSingleHintAssetsTests(unittest.TestCase):
         self.assertAlmostEqual(single_hint_df.iloc[0]["aligned_epoch"], 1.75, places=6)
         self.assertAlmostEqual(single_hint_df.iloc[-1]["aligned_epoch"], 1.9722222222222223, places=6)
 
+        fixed_dual_df = aligned_df[aligned_df["variant_key"] == "fixed_dual_task"].sort_values("aligned_epoch")
+        self.assertEqual(len(fixed_dual_df), 3)
+        self.assertEqual(fixed_dual_df["step"].tolist(), [302, 604, 906])
+        self.assertAlmostEqual(fixed_dual_df.iloc[0]["aligned_epoch"], 1.75, places=6)
+        self.assertAlmostEqual(fixed_dual_df.iloc[-1]["aligned_epoch"], 1.8055555555555556, places=6)
+
     def test_family_variant_groups_match_expected(self):
         module = _load_module()
 
@@ -156,6 +181,11 @@ class GenerateInstrumentsDualTaskSingleHintAssetsTests(unittest.TestCase):
         self.assertEqual(
             module.FIXED_FAMILY_KEYS,
             ["fixed_old", "fixed_taskfix", "fixed_taskfix_sid_only", "single_hint_mixed"],
+        )
+        self.assertEqual(module.CE_SCALING_KEYS, ["fixed_taskfix", "fixed_taskfix_hintce2", "fixed_taskfix_hintce3"])
+        self.assertEqual(
+            module.DUAL_TASK_ALIGNED_KEYS,
+            ["dynamic_dual_task", "fixed_dual_task", "dynamic_gather_fix", "fixed_taskfix_sid_only"],
         )
 
     def test_plot_best_scatter_skips_missing_variants(self):
@@ -203,7 +233,10 @@ class GenerateInstrumentsDualTaskSingleHintAssetsTests(unittest.TestCase):
                 "Instruments-grec-grpo-rule-only-dynamic-hint-sid-title-desc-qwen2.5-3b-qwen4B-4-256-from-sft495": (302, 906),
                 "Instruments-grec-grpo-rule-only-fixed-hint-mixed-single-generate-qwen2.5-3b-qwen4B-4-256-from-sft495": (333, 999),
                 "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495": (333, 999),
+                "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-2-sft495": (333, 666),
+                "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-3-sft495": (333, 666),
                 "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495": (266, 532),
+                "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-title-desc-sft495": (302, 604),
                 "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-hint-only-mixed-sft495": (333, 999),
             }
 
@@ -226,6 +259,8 @@ class GenerateInstrumentsDualTaskSingleHintAssetsTests(unittest.TestCase):
             self.assertTrue((assets_root / "late_epoch_aligned_best_summary.csv").exists())
             self.assertTrue((assets_root / "single_hint_vs_baselines_late_epoch_aligned_curves.png").exists())
             self.assertTrue((assets_root / "single_hint_vs_dynamic_family_late_epoch_aligned_curves.png").exists())
+            self.assertTrue((assets_root / "hintce_scaling_epoch_curves.png").exists())
+            self.assertTrue((assets_root / "dual_task_family_late_epoch_aligned_curves.png").exists())
             self.assertFalse((assets_root / "single_hint_tracking_early_window_checkpoint_metrics.csv").exists())
             self.assertFalse((assets_root / "single_hint_tracking_early_window_best_summary.csv").exists())
             self.assertFalse((assets_root / "single_hint_vs_baselines_early_window_epoch_curves.png").exists())

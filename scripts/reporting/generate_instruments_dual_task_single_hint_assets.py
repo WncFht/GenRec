@@ -48,11 +48,32 @@ VARIANTS = [
         "color": "#f4a261",
     },
     {
+        "key": "fixed_taskfix_hintce2",
+        "label": "RL fixed taskfix + CE (hintce-2)",
+        "model_dir": "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-2-sft495",
+        "color": "#ffb703",
+        "epoch_max_step_ref_key": "fixed_taskfix",
+    },
+    {
+        "key": "fixed_taskfix_hintce3",
+        "label": "RL fixed taskfix + CE (hintce-3)",
+        "model_dir": "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-3-sft495",
+        "color": "#fb8500",
+        "epoch_max_step_ref_key": "fixed_taskfix",
+    },
+    {
         "key": "fixed_taskfix_sid_only",
         "label": "RL fixed taskfix sid-only",
         "model_dir": "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495",
         "color": "#e76f51",
         "epoch_max_step": 2652,
+    },
+    {
+        "key": "fixed_dual_task",
+        "label": "RL fixed dual-task",
+        "model_dir": "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-title-desc-sft495",
+        "color": "#8d99ae",
+        "epoch_max_step_ref_key": "dynamic_dual_task",
     },
     {
         "key": "single_hint_mixed",
@@ -67,8 +88,19 @@ METRIC_COLUMNS = ["NDCG@10", "HR@10", "NDCG@50", "HR@50"]
 SUPTITLE_Y = 0.94
 LEGEND_BBOX_Y = 0.995
 TIGHT_LAYOUT_TOP = 0.88
+BASELINE_KEYS = [
+    "rule_only",
+    "dynamic_gather_fix",
+    "dynamic_dual_task",
+    "fixed_old",
+    "fixed_taskfix",
+    "fixed_taskfix_sid_only",
+    "single_hint_mixed",
+]
 DYNAMIC_FAMILY_KEYS = ["dynamic_gather_fix", "dynamic_dual_task"]
 FIXED_FAMILY_KEYS = ["fixed_old", "fixed_taskfix", "fixed_taskfix_sid_only", "single_hint_mixed"]
+CE_SCALING_KEYS = ["fixed_taskfix", "fixed_taskfix_hintce2", "fixed_taskfix_hintce3"]
+DUAL_TASK_ALIGNED_KEYS = ["dynamic_dual_task", "fixed_dual_task", "dynamic_gather_fix", "fixed_taskfix_sid_only"]
 LATE_ALIGNMENT_REFERENCE_KEY = "dynamic_dual_task"
 LATE_ALIGNMENT_EPOCH_START = 1.75
 LATE_ALIGNMENT_EPOCH_END = 2.0
@@ -101,6 +133,16 @@ def load_variant_rows(variant: dict[str, object]) -> list[dict[str, object]]:
     steps = sorted(int(path.parent.name.split("-")[-1]) for path in metrics_files)
     observed_max_step = max(steps)
     max_step = int(variant.get("epoch_max_step", observed_max_step))
+    reference_key = variant.get("epoch_max_step_ref_key")
+    if reference_key:
+        reference_variant = _variant_map().get(str(reference_key))
+        if reference_variant is not None:
+            reference_root = RESULTS_ROOT / str(reference_variant["model_dir"])
+            reference_steps = sorted(
+                int(path.parent.name.split("-")[-1]) for path in reference_root.glob("checkpoint-*/metrics.json")
+            )
+            if reference_steps:
+                max_step = max(reference_steps)
     for step in steps:
         path = root / f"checkpoint-{step}" / "metrics.json"
         metrics = json.loads(path.read_text())
@@ -292,10 +334,9 @@ def main() -> None:
     save_csv(ASSET_DIR / "late_epoch_aligned_best_summary.csv", late_aligned_best_df)
     save_csv(ASSET_DIR / "sft495_reference_metrics.csv", pd.DataFrame([sft_reference]))
 
-    variant_keys = [variant["key"] for variant in VARIANTS]
     plot_metric_panels(
         df,
-        variant_keys,
+        BASELINE_KEYS,
         "Instruments-grec Single-hint Mixed vs Baselines",
         ASSET_DIR / "single_hint_vs_baselines_epoch_curves.png",
         sft_reference,
@@ -316,7 +357,7 @@ def main() -> None:
     )
     plot_metric_panels(
         late_aligned_df,
-        variant_keys,
+        BASELINE_KEYS,
         "Instruments-grec Single-hint Mixed vs Baselines (Late Epoch Aligned)",
         ASSET_DIR / "single_hint_vs_baselines_late_epoch_aligned_curves.png",
         sft_reference,
@@ -332,6 +373,22 @@ def main() -> None:
         x_column="aligned_epoch",
         x_label="Aligned Epoch",
     )
+    plot_metric_panels(
+        df,
+        CE_SCALING_KEYS,
+        "Instruments-grec Fixed Taskfix CE Scaling",
+        ASSET_DIR / "hintce_scaling_epoch_curves.png",
+        sft_reference,
+    )
+    plot_metric_panels(
+        late_aligned_df,
+        DUAL_TASK_ALIGNED_KEYS,
+        "Instruments-grec Dual-task Family (Aligned Slots)",
+        ASSET_DIR / "dual_task_family_late_epoch_aligned_curves.png",
+        sft_reference,
+        x_column="aligned_epoch",
+        x_label="Aligned Epoch",
+    )
 
     print(f"checkpoint_metrics_csv={ASSET_DIR / 'single_hint_tracking_checkpoint_metrics.csv'}")
     print(f"best_summary_csv={ASSET_DIR / 'single_hint_tracking_best_summary.csv'}")
@@ -342,6 +399,8 @@ def main() -> None:
     print(f"fixed_family_png={ASSET_DIR / 'single_hint_vs_fixed_family_epoch_curves.png'}")
     print(f"late_aligned_full_curve_png={ASSET_DIR / 'single_hint_vs_baselines_late_epoch_aligned_curves.png'}")
     print(f"late_aligned_dynamic_family_png={ASSET_DIR / 'single_hint_vs_dynamic_family_late_epoch_aligned_curves.png'}")
+    print(f"hintce_scaling_png={ASSET_DIR / 'hintce_scaling_epoch_curves.png'}")
+    print(f"dual_task_aligned_png={ASSET_DIR / 'dual_task_family_late_epoch_aligned_curves.png'}")
 
 
 if __name__ == "__main__":
