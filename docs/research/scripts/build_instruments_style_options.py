@@ -17,6 +17,8 @@ PREVIEW_PATH = ASSET_DIR / "style_option_preview.png"
 SFT_REFERENCE_COLOR = "#6b7280"
 REPORT_LINK_COLOR = "blue!45!black"
 REPORT_URL_COLOR = "blue!55!black"
+ACTIVE_PALETTE = "tableau-10"
+ACTIVE_CE_PROFILE = "CE-A"
 
 PALETTES = {
     "tableau-10": [
@@ -195,6 +197,7 @@ def write_markdown() -> None:
 
 - Generated at: `{timestamp}`
 - Preview image: [`assets/instruments-report/style_option_preview.png`](assets/instruments-report/style_option_preview.png)
+- Active selection: `{ACTIVE_PALETTE}` + `{ACTIVE_CE_PROFILE}`
 
 ## 1. Current inventory
 

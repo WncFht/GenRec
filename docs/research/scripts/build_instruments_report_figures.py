@@ -15,20 +15,35 @@ from instruments_plot_lib import (
 
 
 ASSET_DIR = Path(__file__).resolve().parents[1] / "assets" / "instruments-report"
+ACTIVE_PALETTE = "tableau-10"
+ACTIVE_CE_PROFILE = "CE-A"
+
+TABLEAU_10 = {
+    "blue": "#4E79A7",
+    "orange": "#F28E2B",
+    "red": "#E15759",
+    "teal": "#76B7B2",
+    "green": "#59A14F",
+    "yellow": "#EDC948",
+    "purple": "#B07AA1",
+    "pink": "#FF9DA7",
+    "brown": "#9C755F",
+    "gray": "#BAB0AB",
+}
 
 SPECS = [
     VariantSpec(
         key="rule_only",
         label="RL rule-only",
         model_dir="Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495",
-        color="#1b7f79",
+        color=TABLEAU_10["brown"],
         marker="o",
     ),
     VariantSpec(
         key="dynamic_sid_only",
         label="RL dynamic sid-only",
         model_dir="Instruments-grec-grpo-rule-only-dynamic-hint-sid-only-qwen2.5-3b-qwen4B-4-256-from-sft495",
-        color="#4e79a7",
+        color=TABLEAU_10["teal"],
         marker="s",
         epoch_max_step=2652,
         launcher_path="hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-only.sh",
@@ -37,7 +52,7 @@ SPECS = [
         key="dynamic_gather_fix",
         label="RL dynamic gather-fix",
         model_dir="Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495",
-        color="#12355b",
+        color=TABLEAU_10["blue"],
         marker="o",
         launcher_path="hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint.sh",
     ),
@@ -45,7 +60,7 @@ SPECS = [
         key="ranking_dynamic",
         label="RL ranking dynamic",
         model_dir="Instruments-grec-grpo-ranking-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft495",
-        color="#7b8fa1",
+        color=TABLEAU_10["gray"],
         marker="^",
         linestyle="--",
         launcher_path="hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-ranking-dynamic-hint.sh",
@@ -54,7 +69,7 @@ SPECS = [
         key="fixed_taskfix",
         label="RL fixed taskfix",
         model_dir="Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
-        color="#d88c3a",
+        color=TABLEAU_10["orange"],
         marker="o",
         launcher_path="hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint.sh",
     ),
@@ -62,7 +77,7 @@ SPECS = [
         key="fixed_taskfix_sid_only",
         label="RL fixed taskfix sid-only",
         model_dir="Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495",
-        color="#e4572e",
+        color=TABLEAU_10["red"],
         marker="s",
         epoch_max_step=2652,
         launcher_path="hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-only.sh",
@@ -71,7 +86,7 @@ SPECS = [
         key="fixed_old",
         label="RL fixed old",
         model_dir="Instruments-grec-grpo-rule-only-fixed-hint-mixed-single-generate-qwen2.5-3b-qwen4B-4-256-from-sft495",
-        color="#7d5a99",
+        color=TABLEAU_10["purple"],
         marker="D",
         linestyle="-.",
     ),
@@ -79,7 +94,7 @@ SPECS = [
         key="max1",
         label="RL dynamic max1",
         model_dir="Instruments-grec-grpo-rule-only-dynamic-hint-max1-qwen2.5-3b-qwen4B-4-256-from-sft495",
-        color="#0a9396",
+        color=TABLEAU_10["green"],
         marker="P",
         launcher_path="hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-max1.sh",
     ),
@@ -87,31 +102,34 @@ SPECS = [
         key="hintce_batch_mean",
         label="RL fixed CE batch-mean",
         model_dir="Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495",
-        color="#8c6a43",
-        marker="o",
+        color=TABLEAU_10["blue"],
+        marker="s",
+        linestyle="--",
         launcher_path="hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-ce.sh",
     ),
     VariantSpec(
         key="hintce_token_mean",
         label="RL fixed CE token-mean",
         model_dir="Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-2-sft495",
-        color="#c77d11",
-        marker="s",
+        color=TABLEAU_10["green"],
+        marker="^",
+        linestyle="-.",
         launcher_path="hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-ce.sh",
     ),
     VariantSpec(
         key="hintce_coef_005",
         label="RL fixed CE coef=0.005",
         model_dir="Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-3-sft495",
-        color="#bc3908",
-        marker="^",
+        color=TABLEAU_10["red"],
+        marker="D",
+        linestyle=":",
         launcher_path="hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-ce.sh",
     ),
     VariantSpec(
         key="single_hint_mixed",
         label="RL single-hint mixed",
         model_dir="Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-hint-only-mixed-sft495",
-        color="#c1128d",
+        color=TABLEAU_10["pink"],
         marker="P",
         launcher_path="hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-hint-only-mixed.sh",
     ),
@@ -119,7 +137,7 @@ SPECS = [
         key="dynamic_dual_task",
         label="RL dynamic dual-task",
         model_dir="Instruments-grec-grpo-rule-only-dynamic-hint-sid-title-desc-qwen2.5-3b-qwen4B-4-256-from-sft495",
-        color="#3d5a80",
+        color=TABLEAU_10["teal"],
         marker="o",
         launcher_path="hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-title-desc.sh",
     ),
@@ -127,7 +145,7 @@ SPECS = [
         key="fixed_dual_task",
         label="RL fixed dual-task",
         model_dir="Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-title-desc-sft495",
-        color="#8d99ae",
+        color=TABLEAU_10["gray"],
         marker="s",
         epoch_max_step_ref_key="dynamic_dual_task",
         launcher_path="hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-title-desc.sh",
@@ -138,6 +156,9 @@ SPECS = [
 def main() -> None:
     ASSET_DIR.mkdir(parents=True, exist_ok=True)
     export_metadata(ASSET_DIR / "instrument_variants_metadata.json", SPECS)
+
+    print(f"active_palette={ACTIVE_PALETTE}")
+    print(f"active_ce_profile={ACTIVE_CE_PROFILE}")
 
     df = build_dataframe(SPECS)
     best_df = build_best_summary(df)

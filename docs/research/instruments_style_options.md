@@ -1,33 +1,34 @@
 # Instruments Plot Style Options
 
-- Generated at: `2026-04-22T00:54:19+08:00`
+- Generated at: `2026-04-22T00:59:46+08:00`
 - Preview image: [`assets/instruments-report/style_option_preview.png`](assets/instruments-report/style_option_preview.png)
+- Active selection: `tableau-10` + `CE-A`
 
 ## 1. Current inventory
 
 - Current variant colors: `14` entries, all unique.
 - Current plot markers: `D`, `P`, `^`, `o`, `s`
-- Current line styles: `-`, `--`, `-.`
+- Current line styles: `-`, `--`, `-.`, `:`
 - Extra non-variant colors: SFT reference gray plus LaTeX link colors.
 
 ### Current variant styles
 
 | Key | Label | Color | Marker | Line |
 | --- | --- | --- | --- | --- |
-| rule_only | RL rule-only | #1b7f79 | o | - |
-| dynamic_sid_only | RL dynamic sid-only | #4e79a7 | s | - |
-| dynamic_gather_fix | RL dynamic gather-fix | #12355b | o | - |
-| ranking_dynamic | RL ranking dynamic | #7b8fa1 | ^ | -- |
-| fixed_taskfix | RL fixed taskfix | #d88c3a | o | - |
-| fixed_taskfix_sid_only | RL fixed taskfix sid-only | #e4572e | s | - |
-| fixed_old | RL fixed old | #7d5a99 | D | -. |
-| max1 | RL dynamic max1 | #0a9396 | P | - |
-| hintce_batch_mean | RL fixed CE batch-mean | #8c6a43 | o | - |
-| hintce_token_mean | RL fixed CE token-mean | #c77d11 | s | - |
-| hintce_coef_005 | RL fixed CE coef=0.005 | #bc3908 | ^ | - |
-| single_hint_mixed | RL single-hint mixed | #c1128d | P | - |
-| dynamic_dual_task | RL dynamic dual-task | #3d5a80 | o | - |
-| fixed_dual_task | RL fixed dual-task | #8d99ae | s | - |
+| rule_only | RL rule-only | #9C755F | o | - |
+| dynamic_sid_only | RL dynamic sid-only | #76B7B2 | s | - |
+| dynamic_gather_fix | RL dynamic gather-fix | #4E79A7 | o | - |
+| ranking_dynamic | RL ranking dynamic | #BAB0AB | ^ | -- |
+| fixed_taskfix | RL fixed taskfix | #F28E2B | o | - |
+| fixed_taskfix_sid_only | RL fixed taskfix sid-only | #E15759 | s | - |
+| fixed_old | RL fixed old | #B07AA1 | D | -. |
+| max1 | RL dynamic max1 | #59A14F | P | - |
+| hintce_batch_mean | RL fixed CE batch-mean | #4E79A7 | s | -- |
+| hintce_token_mean | RL fixed CE token-mean | #59A14F | ^ | -. |
+| hintce_coef_005 | RL fixed CE coef=0.005 | #E15759 | D | : |
+| single_hint_mixed | RL single-hint mixed | #FF9DA7 | P | - |
+| dynamic_dual_task | RL dynamic dual-task | #76B7B2 | o | - |
+| fixed_dual_task | RL fixed dual-task | #BAB0AB | s | - |
 
 ### Current support colors
 

@@ -136,7 +136,7 @@ def _plot_variant(ax: plt.Axes, df: pd.DataFrame, spec: VariantSpec, metric: str
         marker=spec.marker,
         linestyle=spec.linestyle,
         linewidth=spec.linewidth,
-        markersize=4,
+        markersize=5,
     )
 
 
