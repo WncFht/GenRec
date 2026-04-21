@@ -1,6 +1,6 @@
 # GenRec 进度维护
 
-- 最后更新：2026-04-20
+- 最后更新：2026-04-21
 - 维护目的：用一个稳定文件追踪当前各数据集的实验阶段、已经跑过的线、试过的 idea，以及下一步。
 
 ## 1. 更新规则
@@ -106,7 +106,7 @@
 - `hintce-2` 的训练日志拆分已经补过一轮：
   当前 `weighted_hint_ce_loss` 大体稳定在 `~1e-3`，前期相对 `RL base` 略重，但主 spike 仍然主要由 `KL` 驱动，而不是 CE 本身。
 - 仓库现在已经支持一条 dual-task filtered setting：
-  `task1_sid_sft + task5_title_desc2sid` 参与 train，`task4_hisTitle2sid` 被移除，eval 仍只看 `task1_sid_sft`；dynamic / fixed 两个 launcher 都已落地，其中 `dynamic dual-task` 现在已经同步到 `10` 个 checkpoint（`checkpoint-302` 到 `checkpoint-3012`），而 `fixed dual-task` 也已经开始同步到 `checkpoint-302/604/906`。
+  `task1_sid_sft + task5_title_desc2sid` 参与 train，`task4_hisTitle2sid` 被移除，eval 仍只看 `task1_sid_sft`；dynamic / fixed 两个 launcher 都已落地，而且现在两条线都已经同步到 `10` 个 checkpoint（`checkpoint-302` 到 `checkpoint-3012`）。
 - mixed-task `single-hint` setting 已经补到中后段 checkpoint：
   训练仍保留三任务，但只对 `task1_sid_sft` 注入 fixed hint，`task4/task5` 强制 zero-hint；
   当前本地已同步到完整 `checkpoint-3326`，best readout 保持在
@@ -116,19 +116,19 @@
 - `dynamic dual-task` 现在更像一条“已经可比较、但还没赢 baseline”的完整首轮轨迹：
   raw full-trace best 点仍是 `checkpoint-1510 / epoch≈1.003 / NDCG@10=0.0930 / HR@50=0.1885`；
   最新同步到 `checkpoint-3012` 也还没有把它抬回 best window。
-- `fixed dual-task` 当前只是 first-look：
-  `checkpoint-302/604/906` 已同步，best 点是
-  `checkpoint-906 / NDCG@10=0.0910 / HR@50=0.1795`；
-  同一 aligned slot 下它的 top-10 略高于 dynamic dual-task 的 `checkpoint-906`，但 coverage 仍明显更弱。
-- `hintce-3` 当前只同步了 `checkpoint-333/666` 两个 early readout：
-  `checkpoint-666 / NDCG@10=0.0898 / HR@50=0.1924`；
-  目前还没看到能替代 `hintce-2` 的证据，更像一个需要继续补长的倍率试探。
+- `fixed dual-task` 现在已经从 first-look 变成完整轨迹：
+  best 点在 `checkpoint-2718 / NDCG@10=0.0939 / HR@50=0.1897`，而尾点 `checkpoint-3012` 把 `HR@50` 推到 `0.1905`；
+  它现在已经整体强于 `dynamic dual-task`，但离 clean fixed 主线仍有明显差距。
+- `hintce-3` 现在已经不再是 early readout：
+  当前 best 点在 `checkpoint-1665 / NDCG@10=0.0945 / HR@50=0.1985`；
+  它已经明显压过 `hintce-2` 和 plain `fixed taskfix`，因此从“倍率试探”升级成了需要认真对待的新主候选。
 
 ### 当前最值得继续做的事
 
 - 把 `UFT-style hint curriculum` 落到 corrected `fixed taskfix sid-only` 上。
 - 对 `hintce-2` 做更细的 task-level 和训练日志分析，确认为什么 balanced 优势出现在中后段而不是最终点。
-- 把 `fixed dual-task` 和 `hintce-3` 继续补到更多 checkpoints，再判断它们到底是 early noise 还是有稳定信号。
+- 优先补 `hintce-3` 的最后一个 checkpoint，并确认它在完整尾段能否维持当前 `0.0945 / 0.1985` 级别的优势。
+- 继续观察 `fixed dual-task` 在 `3012` 之后是否还有新的 terminal readout，并判断当前 `2718/3012` 的平台是不是它的稳态上限。
 - 继续观察 `dynamic dual-task` 能否从当前 `1510` 左右的 best 点往上推，还是 `3012` 之后仍然维持“中段最佳、尾段回落”的形态。
 - 解释 `single-hint mixed` 为什么在完整 `2.0` epoch 尾段维持高位平台，但没有超过 `checkpoint-2664` 的 top-10 峰值。
 - 对 `max1` 补回 train-time 日志和 diagnostics，尤其是 `selected_hint_depth_mean`、`selected_depth_1_frac`、`mean_length`。

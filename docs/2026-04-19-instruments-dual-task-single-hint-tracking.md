@@ -1,9 +1,9 @@
 # 2026-04-19 Instruments 双任务过滤 / 单任务 Hint 训练跟踪
 
 - 记录日期：2026-04-19
-- 最后更新：2026-04-20
+- 最后更新：2026-04-21
 - 目标：把这轮 `Instruments-grec` 新开的两种训练 setting 记成一份可持续续写的 tracking note，并对齐当前本地 `results/` 同步状态。
-- 当前状态：`bash scripts/sync_results_from_remote.sh unpack` 已在本地完成；当前本地 `results/` 快照里，`single-hint mixed` 已同步到完整 `checkpoint-3326`，`dynamic dual-task` 已同步到 `10` 个 checkpoint（`checkpoint-302` 到 `checkpoint-3012`），`fixed dual-task` 已同步到 `checkpoint-302/604/906`，新增 `hintce-3` 已同步到 `checkpoint-333/666`。
+- 当前状态：`bash scripts/sync_results_from_remote.sh unpack` 已在本地完成；当前本地 `results/` 快照里，`single-hint mixed` 已同步到完整 `checkpoint-3326`，`dynamic dual-task` 已同步到完整 `10` 个 checkpoint（`checkpoint-302` 到 `checkpoint-3012`），`fixed dual-task` 也已同步到完整 `10` 个 checkpoint（`checkpoint-302` 到 `checkpoint-3012`），`hintce-3` 已同步到 `checkpoint-333` 到 `checkpoint-2997` 的 `9` 个 checkpoint。
 
 ## 1. 这次在跟踪哪两种 setting
 
@@ -142,8 +142,8 @@
 
 - `dynamic dual-task` 已有 `checkpoint-302/604/906/1208/1510/1812/2114/2416/2718/3012` 这 `10` 个 checkpoint
 - `dynamic dual-task` 的 raw full-trace 口径现在按当前同步到的 `3012 step = 2 epoch` 去算，所以它的 `epoch_progress` 是 `0.201 -> 2.000`；best 点仍在 `checkpoint-1510 / epoch≈1.003 / NDCG@10=0.0930 / HR@50=0.1885`
-- `fixed dual-task` 现在已经开始同步到 `checkpoint-302/604/906`；资产脚本里用当前 dual-task family 的共享步数口径去算，它对应 `epoch≈0.201/0.401/0.602`
-- 如果要做共同 generated-slot 对比，则看 `late_epoch_aligned_*` 和新增的 dual-task aligned 图：当前按 `dynamic dual-task` 的 `10` 个已生成 slot 对齐到 `aligned_epoch=1.75 -> 1.975`，checkpoint 不要求对齐
+- `fixed dual-task` 现在也已经补成完整 `10` 个 checkpoint；raw full-trace best 在 `checkpoint-2718 / epoch≈1.805 / NDCG@10=0.0939 / HR@50=0.1897`，而 peak coverage 在 `checkpoint-3012 / epoch=2.0 / HR@50=0.1905`
+- 如果要做共同 generated-slot 对比，则看 `late_epoch_aligned_*` 和新增的 dual-task aligned 图：现在按 `dynamic dual-task` 的完整 `10` 个 slot 直接对齐到 `aligned_epoch=1.75 -> 2.0`，checkpoint 不要求对齐
 - 后续仍然可以把两条线并列跟踪，不用再改主 note 结构
 
 ### 3.3 Derived comparison assets
@@ -226,14 +226,14 @@
 
 - 把 `dynamic dual-task` 现有 `10` 个 checkpoint 当作锚点数。
 - 各条线都只取与这 `10` 个已生成 slot 对应的前缀点；如果最后一个 terminal slot 还没生成，就不把它硬塞进来。
-- 再把这 `10` 个点统一映射到 `aligned_epoch=1.75 -> 1.975`。
-- 所以这里是 epoch 对齐，但 checkpoint 不要求对齐；同时不会把一个还没生成的最后点硬映成 `2.0`。
+- 再把这 `10` 个点统一映射到 `aligned_epoch=1.75 -> 2.0`。
+- 所以这里是 epoch 对齐，但 checkpoint 不要求对齐；这一轮因为 reference 线已经补齐，所以不再保留 pending final slot。
 
 按这套 aligned 资产去读：
 
-- `dynamic dual-task` 在共同 aligned 轴上的 best 点仍是 `checkpoint-1510 @ aligned_epoch=1.85`。
-- `single-hint mixed` 在这套轴上的 best 点是 `checkpoint-2664 @ aligned_epoch=1.925`；当前 aligned 资产现在已经可以合法吃到 `checkpoint-3326`，它对应 `aligned_epoch=1.975`。
-- 这样看最大的好处是：`dynamic dual-task` 不会再因为别的 run 的总 ckpt 更长，而在 late-window 视角里被直接裁掉；同时也不会把“还没生成的最后一个点”假装成已经对齐好的 `2.0`。
+- `dynamic dual-task` 在共同 aligned 轴上的 best 点仍是 `checkpoint-1510 @ aligned_epoch=1.8611`。
+- `single-hint mixed` 在这套轴上的 best 点是 `checkpoint-2664 @ aligned_epoch=1.9444`；完整尾点 `checkpoint-3326` 现在对应 `aligned_epoch=2.0`。
+- 这样看最大的好处是：`dynamic dual-task`、`fixed dual-task` 和 `single-hint mixed` 现在都能在完整 late window 上直接同轴比较，不需要再人为留一个末端空位。
 
 ### 4.4 Fixed Family
 
@@ -264,20 +264,19 @@
 
 ![HintCE scaling curves](assets/2026-04-19-instruments-dual-task-single-hint-tracking/hintce_scaling_epoch_curves.png)
 
-当前这条线还只有两个 early checkpoints：
+当前这条线已经从 early 两点补成了中后段轨迹：
 
 | Variant | Synced checkpoints | Best checkpoint | Best epoch | NDCG@10 | HR@50 |
 | --- | --- | --- | ---: | ---: | ---: |
 | `fixed taskfix` | `333..3326` | `checkpoint-2997` | `1.802` | `0.0931` | `0.1941` |
 | `hintce-2` | `333..3326` | `checkpoint-2664` | `1.602` | `0.0931` | `0.1951` |
-| `hintce-3` | `333, 666` | `checkpoint-666` | `0.400` | `0.0898` | `0.1924` |
+| `hintce-3` | `333..2997` | `checkpoint-1665` | `1.001` | `0.0945` | `0.1985` |
 
 这张图现在最有用的读法是：
 
-- `hintce-3` 在 `checkpoint-333` 的 coverage 起点不差，`HR@50=0.1870`，高于 `fixed taskfix` 的 `0.1855`，也略高于 `hintce-2` 的 `0.1862`。
-- 到 `checkpoint-666`，`hintce-3` 的 `NDCG@10=0.0898`，比 `hintce-2` 的 `0.0901` 还低 `0.0003`；`HR@50=0.1924` 虽然高于 `hintce-2` 的 `0.1917`，但仍低于 plain `fixed taskfix` 在同点的 `0.1962`。
-- 所以当前更合理的说法不是“`0.005` 的倍率已经赢了”，而是：
-  它现在还只是一个 early readout，暂时没看到能替代 `hintce-2` 的证据。
+- `hintce-3` 现在已经不是“只有两个 early readout”的状态；它在 `checkpoint-999` 就把 `HR@50` 推到 `0.1979`，到 `checkpoint-1665` 拿到 `NDCG@10=0.0945 / HR@50=0.1985`。
+- 这意味着它已经明显强过 `hintce-2` 和 plain `fixed taskfix`：相对 `hintce-2` 的当前 best 点，多 `+0.0014` `NDCG@10`、多 `+0.0034` `HR@50`；相对 plain `fixed taskfix` 的 best 点，多 `+0.0014` `NDCG@10`、多 `+0.0044` `HR@50`。
+- 但它的现象更像“中段强峰值”而不是完整尾段定型：到 `checkpoint-2997` 时仍有 `NDCG@10=0.0943 / HR@50=0.1961`，说明这条线现在至少已经进入主候选，但还需要最后一段 checkpoint 才能判断是不是稳态新上界。
 
 #### B. `fixed dual-task`：fixed hint 下只保留 `task1 + task5`
 
@@ -285,27 +284,27 @@
 
 ![Dual-task family aligned curves](assets/2026-04-19-instruments-dual-task-single-hint-tracking/dual_task_family_late_epoch_aligned_curves.png)
 
-当前 first-look 先按 generated-slot aligned 口径来读：
+当前已经不再是 very-early first look，而是可以按完整 aligned slot 去读：
 
 | Variant | Synced checkpoints | Best checkpoint | Aligned epoch | NDCG@10 | HR@50 |
 | --- | --- | --- | ---: | ---: | ---: |
-| `dynamic dual-task` | `302..3012` | `checkpoint-1510` | `1.850` | `0.0930` | `0.1885` |
-| `fixed dual-task` | `302, 604, 906` | `checkpoint-906` | `1.800` | `0.0910` | `0.1795` |
+| `dynamic dual-task` | `302..3012` | `checkpoint-1510` | `1.861` | `0.0930` | `0.1885` |
+| `fixed dual-task` | `302..3012` | `checkpoint-2718` | `1.972` | `0.0939` | `0.1897` |
 
 这张图当前最关键的读法是：
 
-- `fixed dual-task` 现在已经不再是“目录还没出现”的状态，而是已经有了前三个点，可以正式纳入跟踪。
-- 但它目前还只是 very-early first look：best 点在 `checkpoint-906 / aligned_epoch=1.800 / NDCG@10=0.0910 / HR@50=0.1795`。
-- 如果只看同一 aligned slot `checkpoint-906`，`fixed dual-task` 的 top-10 已经略高于 `dynamic dual-task` 同 slot 的 `0.0900`，但 coverage 明显更差：`HR@50 0.1795 vs 0.1875`。
-- 因此当前更合理的判断不是“fixed dual-task 已经定型”，而是：
-  它现在刚进入可比较状态，但还远没到可以和 `single-hint mixed` 或 clean fixed 主线抢结论的时候。
+- `fixed dual-task` 现在已经从“前三个点的 early look”变成一条完整可比轨迹：后半段持续爬升，到 `checkpoint-2718` 把 `NDCG@10` 推到 `0.0939`，尾点 `checkpoint-3012` 则把 `HR@50` 推到 `0.1905`。
+- 相对 `dynamic dual-task`，它现在已经不是简单的 top-10 / coverage 交换，而是整体略占优：best top-10 多 `+0.0009`，而尾段 peak coverage 也多 `+0.0020`。
+- 但它和 clean fixed 主线相比仍然还有明显差距：离 corrected `fixed taskfix sid-only` 还有 `~0.0006` `NDCG@10` 和 `~0.0030` `HR@50`，离 `single-hint mixed` 的 gap 更大。
+- 因此当前更合理的判断是：
+  `fixed dual-task` 已经可以视为“比 dynamic dual-task 更强的 dual-task 版本”，但还没有进入当前 fixed family 的最前排。
 
 ## 5. 下一步怎么续写
 
-- 下一次同步 result bundle 时，优先继续补 `fixed dual-task` 和 `hintce-3` 的后续 checkpoints，而不是只看当前 `302/604/906` 和 `333/666` 这几个早期点。
+- 下一次同步 result bundle 时，优先继续补 `hintce-3` 的最后一个 checkpoint，并确认 `fixed dual-task` 在 `3012` 之后是否还有新的 terminal readout。
 - 继续观察 `dynamic dual-task` 在 `checkpoint-3012` 之后是否还能把 best 点从 `1510` 左右重新往后推。
 - `single-hint mixed` 已经补到完整 `checkpoint-3326`；下一步不是继续等点，而是解释为什么它在 `2664 -> 3326` 之间维持高位平台但没有继续抬高 top-10。
-- 一旦 dual-task 线有结果，优先把它们和下面两条 reference 放在一起做 first-look：
+- dual-task 线现在已经进入可比阶段，后续优先把它们和下面两条 reference 持续并排看：
   - `dynamic gather-fix`
   - corrected `fixed taskfix sid-only`
 - 这条实验线后续继续写这篇文档，不再新建近重复 top-level note。

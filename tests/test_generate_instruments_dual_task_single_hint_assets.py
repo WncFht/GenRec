@@ -101,7 +101,7 @@ class GenerateInstrumentsDualTaskSingleHintAssetsTests(unittest.TestCase):
             self.assertEqual(fixed_dual_last["max_step"], 906)
             self.assertAlmostEqual(fixed_dual_last["epoch_progress"], 604 / 906 * 2.0, places=6)
 
-    def test_late_alignment_uses_generated_prefix_and_keeps_final_slot_pending(self):
+    def test_late_alignment_uses_generated_prefix_and_keeps_final_slot_pending_when_reference_is_shorter(self):
         module = _load_module()
 
         rows = []
@@ -161,6 +161,7 @@ class GenerateInstrumentsDualTaskSingleHintAssetsTests(unittest.TestCase):
         self.assertEqual(dynamic_dual_df["step"].tolist(), [302, 604, 906, 1208, 1510, 1812, 2114, 2416, 2718])
         self.assertAlmostEqual(dynamic_dual_df.iloc[0]["aligned_epoch"], 1.75, places=6)
         self.assertAlmostEqual(dynamic_dual_df.iloc[-1]["aligned_epoch"], 1.9722222222222223, places=6)
+        self.assertTrue(dynamic_dual_df["aligned_pending_final_slot"].all())
 
         single_hint_df = aligned_df[aligned_df["variant_key"] == "single_hint_mixed"].sort_values("aligned_epoch")
         self.assertEqual(len(single_hint_df), 9)
@@ -173,6 +174,44 @@ class GenerateInstrumentsDualTaskSingleHintAssetsTests(unittest.TestCase):
         self.assertEqual(fixed_dual_df["step"].tolist(), [302, 604, 906])
         self.assertAlmostEqual(fixed_dual_df.iloc[0]["aligned_epoch"], 1.75, places=6)
         self.assertAlmostEqual(fixed_dual_df.iloc[-1]["aligned_epoch"], 1.8055555555555556, places=6)
+
+    def test_late_alignment_reaches_two_when_reference_matches_full_point_count(self):
+        module = _load_module()
+
+        rows = []
+
+        def add_variant_rows(variant_key: str, steps: list[int], max_step: int) -> None:
+            for step in steps:
+                rows.append(
+                    {
+                        "variant_key": variant_key,
+                        "variant_label": variant_key,
+                        "model_dir": variant_key,
+                        "checkpoint": f"checkpoint-{step}",
+                        "step": step,
+                        "max_step": max_step,
+                        "observed_max_step": max_step,
+                        "epoch_progress": step / max_step * 2.0,
+                        "color": "#000000",
+                        "NDCG@10": 0.09,
+                        "HR@10": 0.11,
+                        "NDCG@50": 0.107,
+                        "HR@50": 0.19,
+                        "NDCG@5": 0.084,
+                        "HR@5": 0.096,
+                    }
+                )
+
+        full_steps = [302, 604, 906, 1208, 1510, 1812, 2114, 2416, 2718, 3012]
+        add_variant_rows("dynamic_dual_task", full_steps, 3012)
+        add_variant_rows("fixed_dual_task", full_steps, 3012)
+
+        aligned_df = module.build_late_aligned_dataframe(pd.DataFrame(rows))
+        dynamic_dual_df = aligned_df[aligned_df["variant_key"] == "dynamic_dual_task"].sort_values("aligned_epoch")
+
+        self.assertFalse(dynamic_dual_df["aligned_pending_final_slot"].any())
+        self.assertAlmostEqual(dynamic_dual_df.iloc[0]["aligned_epoch"], 1.75, places=6)
+        self.assertAlmostEqual(dynamic_dual_df.iloc[-1]["aligned_epoch"], 2.0, places=6)
 
     def test_family_variant_groups_match_expected(self):
         module = _load_module()

@@ -104,7 +104,6 @@ DUAL_TASK_ALIGNED_KEYS = ["dynamic_dual_task", "fixed_dual_task", "dynamic_gathe
 LATE_ALIGNMENT_REFERENCE_KEY = "dynamic_dual_task"
 LATE_ALIGNMENT_EPOCH_START = 1.75
 LATE_ALIGNMENT_EPOCH_END = 2.0
-LATE_ALIGNMENT_PENDING_FINAL_SLOT = True
 
 
 def _variant_map() -> dict[str, dict[str, object]]:
@@ -205,7 +204,9 @@ def build_late_aligned_dataframe(
         raise ValueError(f"Missing reference variant for late alignment: {reference_key}")
 
     point_count = len(reference_df)
-    alignment_slot_count = point_count + 1 if LATE_ALIGNMENT_PENDING_FINAL_SLOT else point_count
+    max_point_count = int(df.groupby("variant_key").size().max())
+    pending_final_slot = point_count < max_point_count
+    alignment_slot_count = point_count + 1 if pending_final_slot else point_count
     aligned_epochs = _build_epoch_grid(alignment_slot_count, epoch_start, epoch_end)[:point_count]
     rows: list[dict[str, object]] = []
 
@@ -221,6 +222,7 @@ def build_late_aligned_dataframe(
             out_row["aligned_tail_index"] = idx
             out_row["aligned_tail_point_count"] = len(variant_df)
             out_row["aligned_reference_key"] = reference_key
+            out_row["aligned_pending_final_slot"] = pending_final_slot
             rows.append(out_row)
 
     return pd.DataFrame(rows)
