@@ -1,6 +1,6 @@
 # Instruments Plot Style Options
 
-- Generated at: `2026-04-22T00:59:46+08:00`
+- Generated at: `2026-04-22T01:08:33+08:00`
 - Preview image: [`assets/instruments-report/style_option_preview.png`](assets/instruments-report/style_option_preview.png)
 - Active selection: `tableau-10` + `CE-A`
 

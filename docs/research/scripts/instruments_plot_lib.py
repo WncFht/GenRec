@@ -183,3 +183,55 @@ def plot_metric_grid(
     fig.savefig(out_path, dpi=dpi)
     plt.close(fig)
     return out_path
+
+
+def plot_best_scatter(
+    best_df: pd.DataFrame,
+    specs: list[VariantSpec],
+    variant_keys: list[str],
+    title: str,
+    out_path: Path,
+    *,
+    x_metric: str = "NDCG@10",
+    y_metric: str = "HR@50",
+    x_label: str = "Best NDCG@10",
+    y_label: str = "HR@50 at Best NDCG@10 Checkpoint",
+    figsize: tuple[float, float] = (7.8, 5.4),
+    dpi: int = 180,
+    text_dx: float = 0.00015,
+    text_dy: float = 0.0005,
+) -> Path:
+    spec_map = _variant_map(specs)
+    fig, ax = plt.subplots(figsize=figsize)
+
+    for key in variant_keys:
+        row = best_df[best_df["variant_key"] == key].iloc[0]
+        spec = spec_map[key]
+        ax.scatter(
+            float(row[x_metric]),
+            float(row[y_metric]),
+            s=135,
+            color=spec.color,
+            marker=spec.marker,
+            edgecolors="white",
+            linewidths=0.8,
+            label=spec.label,
+        )
+        ax.text(
+            float(row[x_metric]) + text_dx,
+            float(row[y_metric]) + text_dy,
+            str(row["checkpoint"]),
+            fontsize=9,
+        )
+
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    ax.set_title(title)
+    ax.grid(alpha=0.22)
+    ax.margins(x=0.08, y=0.08)
+    ax.legend(frameon=False)
+    fig.subplots_adjust(left=0.13, right=0.97, bottom=0.13, top=0.90)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=dpi)
+    plt.close(fig)
+    return out_path
