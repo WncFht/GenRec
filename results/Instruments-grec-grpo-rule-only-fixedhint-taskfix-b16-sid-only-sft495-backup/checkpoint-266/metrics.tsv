@@ -1,0 +1,2 @@
+path	HR@1	HR@3	HR@5	HR@10	HR@20	HR@50	NDCG@1	NDCG@3	NDCG@5	NDCG@10	NDCG@20	NDCG@50
+Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495-backup/checkpoint-266	0.0682	0.085	0.094	0.1121	0.1362	0.1834	0.0682	0.0781	0.0818	0.0877	0.0937	0.103

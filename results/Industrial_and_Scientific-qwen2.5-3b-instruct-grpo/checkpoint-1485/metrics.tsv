@@ -1,0 +1,2 @@
+path	HR@1	HR@3	HR@5	HR@10	HR@20	HR@50	NDCG@1	NDCG@3	NDCG@5	NDCG@10	NDCG@20	NDCG@50
+Industrial_and_Scientific-qwen2.5-3b-instruct-grpo/checkpoint-1485	0.075	0.1015	0.1156	0.1381	0.1663	0.2191	0.075	0.0904	0.0962	0.1035	0.1106	0.1211

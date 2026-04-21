@@ -1,0 +1,2 @@
+path	HR@1	HR@3	HR@5	HR@10	HR@20	HR@50	NDCG@1	NDCG@3	NDCG@5	NDCG@10	NDCG@20	NDCG@50
+Instruments-grec-grpo-rule-only-dynamic-hint-sid-only-qwen2.5-3b-qwen4B-4-256-from-sft495/checkpoint-266	0.0597	0.0801	0.0896	0.1077	0.1303	0.1749	0.0597	0.0717	0.0756	0.0815	0.0871	0.0959

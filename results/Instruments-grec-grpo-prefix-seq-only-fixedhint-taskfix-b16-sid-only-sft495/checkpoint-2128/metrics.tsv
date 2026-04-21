@@ -1,0 +1,2 @@
+path	HR@1	HR@3	HR@5	HR@10	HR@20	HR@50	NDCG@1	NDCG@3	NDCG@5	NDCG@10	NDCG@20	NDCG@50
+Instruments-grec-grpo-prefix-seq-only-fixedhint-taskfix-b16-sid-only-sft495/checkpoint-2128	0.066	0.0842	0.0941	0.1097	0.1324	0.1778	0.066	0.0767	0.0808	0.0858	0.0914	0.1004

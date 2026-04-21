@@ -1,0 +1,2 @@
+path	HR@1	HR@3	HR@5	HR@10	HR@20	HR@50	NDCG@1	NDCG@3	NDCG@5	NDCG@10	NDCG@20	NDCG@50
+Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft896/checkpoint-8752	0.0206	0.0399	0.0544	0.0825	0.1186	0.1815	0.0206	0.0317	0.0377	0.0467	0.0558	0.0683

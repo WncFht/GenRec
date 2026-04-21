@@ -1,0 +1,2 @@
+path	HR@1	HR@3	HR@5	HR@10	HR@20	HR@50	NDCG@1	NDCG@3	NDCG@5	NDCG@10	NDCG@20	NDCG@50
+Instruments-grec-grpo-prefix-tokenadv-totalnorm-ndcg-rule0-qwen2.5-3b-qwen4B-4-256-from-sft495/checkpoint-1998	0.0722	0.0844	0.0932	0.1106	0.1334	0.176	0.0722	0.0793	0.0829	0.0885	0.0942	0.1026

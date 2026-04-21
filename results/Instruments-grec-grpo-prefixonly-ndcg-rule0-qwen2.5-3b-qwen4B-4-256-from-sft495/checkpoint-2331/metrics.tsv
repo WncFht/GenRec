@@ -1,0 +1,2 @@
+path	HR@1	HR@3	HR@5	HR@10	HR@20	HR@50	NDCG@1	NDCG@3	NDCG@5	NDCG@10	NDCG@20	NDCG@50
+Instruments-grec-grpo-prefixonly-ndcg-rule0-qwen2.5-3b-qwen4B-4-256-from-sft495/checkpoint-2331	0.0699	0.0851	0.0916	0.1024	0.1207	0.1537	0.0699	0.0788	0.0815	0.0849	0.0895	0.0961

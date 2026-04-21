@@ -1,0 +1,2 @@
+path	HR@1	HR@3	HR@5	HR@10	HR@20	HR@50	NDCG@1	NDCG@3	NDCG@5	NDCG@10	NDCG@20	NDCG@50
+Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495/checkpoint-666	0.0782	0.0898	0.0969	0.1125	0.1333	0.1736	0.0782	0.0848	0.0878	0.0927	0.098	0.106

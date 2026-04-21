@@ -1,0 +1,2 @@
+path	HR@1	HR@3	HR@5	HR@10	HR@20	HR@50	NDCG@1	NDCG@3	NDCG@5	NDCG@10	NDCG@20	NDCG@50
+Games-grec-grpo-rule-only-fixedhint-taskfix-b16-sft896/checkpoint-2628	0.0194	0.0385	0.054	0.0833	0.1253	0.2001	0.0194	0.0303	0.0367	0.0461	0.0566	0.0714

@@ -1,0 +1,2 @@
+path	HR@1	HR@3	HR@5	HR@10	HR@20	HR@50	NDCG@1	NDCG@3	NDCG@5	NDCG@10	NDCG@20	NDCG@50
+Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495/checkpoint-1998	0.0754	0.0895	0.0981	0.1154	0.1391	0.1857	0.0754	0.0837	0.0872	0.0928	0.0987	0.1079

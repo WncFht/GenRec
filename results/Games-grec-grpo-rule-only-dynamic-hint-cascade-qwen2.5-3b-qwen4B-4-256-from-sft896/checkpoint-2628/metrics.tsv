@@ -1,0 +1,2 @@
+path	HR@1	HR@3	HR@5	HR@10	HR@20	HR@50	NDCG@1	NDCG@3	NDCG@5	NDCG@10	NDCG@20	NDCG@50
+Games-grec-grpo-rule-only-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft896/checkpoint-2628	0.0191	0.0387	0.0533	0.0808	0.1227	0.1976	0.0191	0.0303	0.0363	0.0452	0.0557	0.0705
