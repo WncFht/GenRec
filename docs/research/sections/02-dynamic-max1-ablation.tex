@@ -1,0 +1,96 @@
+\section{Dynamic-Hint Max1 消融}
+
+\subsection{实验问题}
+
+这一章对应 2026-04-16 的 focused ablation。它只回答一个具体问题：
+
+\begin{quote}
+如果把 dynamic hint 的 online budget 从 \texttt{dynamic\_hint\_max\_depth=3} 收紧到 \texttt{1}，而不改 trainer 逻辑、不丢 no-hit 样本，最后的 eval trade-off 会落在什么位置。
+\end{quote}
+
+\subsection{改动范围}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{l l l Y}
+\toprule
+维度 & baseline & max1 实验 & 备注 \\
+\midrule
+reward mode & rule-only & rule-only & 不变 \\
+num beams & 16 & 16 & 不变 \\
+dataset variant & Instruments-grec 主线数据 & 相同 & 不变 \\
+trainer 收口逻辑 & 当前 dynamic trainer & 相同 & 不变 \\
+样本筛除 & 不丢 no-hit 样本 & 不丢 & 不变 \\
+hint budget & max depth 3 & max depth 1 & 唯一改动 \\
+\bottomrule
+\end{tabularx}
+\caption{max1 消融的唯一改动是 online hint budget。}
+\end{table}
+
+\subsection{关键指标}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{l l c c c c c Y}
+\toprule
+Variant & Best ckpt & Epoch & NDCG@10 & HR@10 & NDCG@50 & HR@50 & 读法 \\
+\midrule
+rule-only rerun & checkpoint-2997 & 1.802 & 0.0960 & 0.1179 & 0.1070 & 0.1681 & top-10 最强，但 coverage 最低 \\
+dynamic hint sid-only & checkpoint-2394 & 1.805 & 0.0921 & 0.1155 & 0.1065 & 0.1830 & 早期有 gain，后面偏平 \\
+dynamic hint gather-fix & checkpoint-2997 & 1.802 & 0.0936 & 0.1169 & 0.1083 & 0.1855 & 当前长跑 dynamic baseline \\
+dynamic hint max1 & checkpoint-1332 & 0.801 & 0.0934 & 0.1158 & 0.1095 & 0.1905 & best 点停在中前段 \\
+corrected fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1205 & 0.1103 & 0.1935 & clean fixed 上界参考 \\
+\bottomrule
+\end{tabularx}
+\caption{max1 与主要 baseline 的 best-point 对照。}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{l l c c c Y}
+\toprule
+Variant & Peak ckpt & Epoch & Peak HR@50 & NDCG@10 at peak & 读法 \\
+\midrule
+rule-only rerun & checkpoint-999 & 0.601 & 0.1768 & 0.0936 & coverage 峰值低，而且很早就掉下去 \\
+dynamic hint sid-only & checkpoint-532 & 0.401 & 0.1868 & 0.0881 & 典型 early spike \\
+dynamic hint gather-fix & checkpoint-1332 & 0.801 & 0.1931 & 0.0926 & 当前长跑 dynamic 的 coverage 峰值 \\
+dynamic hint max1 & checkpoint-999 & 0.601 & 0.1907 & 0.0925 & 比 sid-only 和 rule-only 都高 \\
+corrected fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.1935 & 0.0945 & 仍然更稳 \\
+\bottomrule
+\end{tabularx}
+\caption{max1 的 coverage 峰值仍低于 gather-fix 与 clean fixed。}
+\end{table}
+
+\subsection{图表阅读}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{max1-ablation-epoch-curves.png}
+\caption{max1 ablation epoch curves。}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{max1-vs-fixed-epoch-curves.png}
+\caption{max1 与 dynamic/fixed 参考线的 focused four-way comparison。}
+\end{figure}
+
+把图和表放在一起看，现象其实很一致：
+
+\begin{enumerate}
+\item \texttt{max1} 不是简单退化成 \texttt{rule-only}。它在很多 checkpoint 上保住了更高的 coverage，说明浅 budget 不是直接把 hint 机制废掉。
+\item \texttt{max1} 也不是被 \texttt{gather-fix} 完全支配。它在早中段几个关键点上能给出更高的 \texttt{NDCG@10}，而且 coverage 并没有同步塌掉。
+\item 但完整轨迹现在已经表明，\texttt{max1} 的优势主要停在前中段。跑到 \texttt{checkpoint-3326} 以后，它没有把优势延续到尾段，反而逐步回落。
+\item 因此它更像一个值得 early-stop 的 dynamic candidate，而不是新的 long-run default。
+\end{enumerate}
+
+\subsection{本章小结}
+
+\begin{itemize}
+\item 如果后续 dynamic family 只保留一个长期默认线，当前仍然应优先保留 \texttt{gather-fix}。
+\item 如果后续研究 early-stop 或 shallow-budget trade-off，\texttt{max1} 仍然非常值得继续跟。
+\item 真正缺的不是更多 eval 点，而是 train-time diagnostics。没有日志，当前对机制的解释仍然只能停留在假说层。
+\end{itemize}

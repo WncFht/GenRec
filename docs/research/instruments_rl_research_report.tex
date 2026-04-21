@@ -1,0 +1,76 @@
+\documentclass[11pt,a4paper]{ctexart}
+
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{xcolor}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!45!black,
+  urlcolor=blue!55!black
+}
+
+\graphicspath{
+  {../assets/2026-04-11-genrec-instruments-rl-variant-comparison/}
+  {../assets/2026-04-16-instruments-dynamic-hint-max1-ablation/}
+  {../assets/2026-04-19-instruments-dual-task-single-hint-tracking/}
+}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+
+\title{GenRec Instruments-grec RL 研究合并稿}
+\author{基于 2026-04-11 / 2026-04-16 / 2026-04-19 三篇实验 note 整理}
+\date{2026-04-21}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+这是一份面向持续迭代的 LaTeX 研究稿初版，先把 \texttt{Instruments-grec} 上三篇核心实验 note 合并到同一份文档里。当前重点不是一次性写成终稿，而是先建立一个可长期续写的结构：总览、七线主比较、dynamic max1 消融、dual-task 与 single-hint tracking，以及统一的结论与后续动作。
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\input{sections/00-overview}
+\input{sections/01-rl-variant-comparison}
+\input{sections/02-dynamic-max1-ablation}
+\input{sections/03-dual-task-single-hint}
+
+\section{统一结论与后续整理建议}
+
+\subsection{目前最稳的主故事}
+
+\begin{enumerate}
+\item plain \texttt{rule-only} 仍然是当前 top-10 最强的无 hint baseline，但 coverage 损失很明确，因此不适合直接当 balanced 主线。
+\item clean fixed-hint family 仍然是当前最稳定的主候选。即使不再把带 legacy caveat 的 old fixed 当作方法定义，它也没有改变这一点。
+\item dynamic family 不是没有价值，但目前更像是提供局部 trade-off 改善，而不是整体打穿 fixed family。 \texttt{gather-fix} 仍是长跑默认 dynamic baseline，\texttt{max1} 更像 early-stop candidate。
+\item 2026-04-19 之后，single-hint mixed 已经从“旁支尝试”进入 fixed family 前沿区域；dual-task fixed 也已经从 very-early look 进入完整可比轨迹。
+\end{enumerate}
+
+\subsection{这份 LaTeX 稿下一步可以怎么扩}
+
+\begin{itemize}
+\item 继续沿用“一个实验组一个子文件”的方式扩写，而不是回到单篇超长 Markdown。
+\item 把公共元信息继续上收，例如统一的 baseline 表、结果同步状态、图表风格、W\&B 链接和脚本路径。
+\item 后续如果要写成更正式的研究报告，可以把本稿继续拆成：
+  \begin{itemize}
+  \item 主比较正文
+  \item dynamic family 专章
+  \item fixed family 与 CE 专章
+  \item 双任务/单任务 hint 新探索专章
+  \end{itemize}
+\item 图表层后续最好再统一成一套可复用脚本和样式文件，这样 LaTeX 侧就只负责排版，不再手工对每篇实验单独适配。
+\end{itemize}
+
+\end{document}

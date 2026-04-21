@@ -1,0 +1,102 @@
+\section{七线主比较与 Fixed-Hint CE 补充}
+
+\subsection{本章目的}
+
+这一章对应 2026-04-11 的主比较 note，作用是把当前最常被一起讨论的几条 \texttt{Instruments-grec} RL 线放到同一个框架里，优先回答两个问题：
+
+\begin{enumerate}
+\item 如果只按 top-10 排，谁最强。
+\item 如果同时看 top-10 和 coverage，哪条线最平衡。
+\end{enumerate}
+
+\subsection{统一比较口径}
+
+\begin{itemize}
+\item SFT 参考点：\texttt{checkpoint-495}
+\item 主表选点：按 best \texttt{NDCG@10} 选 checkpoint
+\item 覆盖峰值：另外记录 peak \texttt{HR@50}，用于识别 early spike
+\item 横轴：统一成 epoch；其中 \texttt{sid-only} family 按各自完整训练长度 \texttt{2652 step = 2 epoch} 归一化，其余主线按 \texttt{3326 step = 2 epoch} 归一化
+\end{itemize}
+
+\subsection{主表：按 best NDCG@10 选点}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{l l c c c c c Y}
+\toprule
+Variant & Best ckpt & Epoch & NDCG@10 & HR@10 & NDCG@50 & HR@50 & 读法 \\
+\midrule
+SFT495 reference & checkpoint-495 & -- & 0.0823 & 0.1094 & 0.0985 & 0.1844 & RL 对照基线 \\
+rule-only rerun & checkpoint-2997 & 1.802 & 0.0960 & 0.1179 & 0.1070 & 0.1681 & top-10 全场最好，但 coverage 最弱 \\
+dynamic hint sid-only & checkpoint-2394 & 1.805 & 0.0921 & 0.1155 & 0.1065 & 0.1830 & 比 plain rule-only 更平衡，但还不够强 \\
+dynamic hint gather-fix & checkpoint-2997 & 1.802 & 0.0936 & 0.1169 & 0.1083 & 0.1855 & 当前 dynamic family 默认基线 \\
+ranking dynamic cascade & checkpoint-1665 & 1.001 & 0.0911 & 0.1138 & 0.1058 & 0.1822 & 中期见顶，后期回落明显 \\
+old fixed hint mixed-single & checkpoint-3326 & 2.000 & 0.0953 & 0.1193 & 0.1114 & 0.1938 & 历史上界参考，带 legacy caveat \\
+corrected fixed taskfix & checkpoint-2997 & 1.802 & 0.0931 & 0.1189 & 0.1094 & 0.1941 & corrected 线里 coverage 很强 \\
+corrected fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1205 & 0.1103 & 0.1935 & 当前最干净的 fixed 参考线 \\
+\bottomrule
+\end{tabularx}
+\caption{七线主比较。}
+\end{table}
+
+\subsection{主图与主判断}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{rl-seven-way-main-curves.png}
+\caption{七线主比较曲线。}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{rl-best-ndcg10-vs-hr50-scatter.png}
+\caption{best NDCG@10 对应的 top-10 / coverage trade-off。}
+\end{figure}
+
+这一组图压缩出来的结论很清楚：
+
+\begin{enumerate}
+\item \texttt{rule-only rerun} 仍然是当前最强的 top-10 极值线，但 coverage 明显差，不能直接当 balanced 主线。
+\item dynamic family 里，\texttt{gather-fix} 仍然是唯一长期表现稳定、并且 best 点还能把 \texttt{HR@50} 拉到 SFT 水平之上的 run。
+\item fixed family 整体仍然占据图里的右上区域。即使把 old fixed 当作带 caveat 的历史参考，clean fixed 线仍然明显强于 dynamic family。
+\end{enumerate}
+
+\subsection{Fixed-Hint CE 变体}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{l l c c c c c c Y}
+\toprule
+Variant & Best ckpt & Epoch & NDCG@10 & HR@10 & NDCG@50 & HR@50 & Peak HR@50 & 读法 \\
+\midrule
+fixed taskfix & checkpoint-2997 & 1.802 & 0.0931 & 0.1189 & 0.1094 & 0.1941 & 0.1962 & top-10 最强，但 early spike 很大 \\
+fixed taskfix + CE & checkpoint-2664 & 1.602 & 0.0915 & 0.1180 & 0.1081 & 0.1944 & 0.1947 & 更像把 coverage 拉成晚期平台 \\
+fixed taskfix + CE (hintce-2) & checkpoint-2664 & 1.602 & 0.0931 & 0.1168 & 0.1102 & 0.1951 & 0.1954 & 当前最强 CE 变体 \\
+\bottomrule
+\end{tabularx}
+\caption{fixed taskfix 的 CE variants vs non-CE。}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{rl-fixed-taskfix-ce-vs-nonce-curves.png}
+\caption{fixed taskfix 的 CE variants vs non-CE 曲线。}
+\end{figure}
+
+这一块最重要的不是“CE 一定更好”，而是：
+
+\begin{itemize}
+\item full \texttt{+CE} 更像正则项，能把轨迹变平，但 headline top-10 仍然不够强。
+\item \texttt{hintce-2} 已经不再只是 early-window readout，而是一个完整轨迹上更有前景的 CE 候选。
+\item 即便如此，fixed family 的主问题仍然没有变成“再堆 CE 系数”，而是如何在不损失平衡性的前提下把 clean fixed 主线继续抬高。
+\end{itemize}
+
+\subsection{本章小结}
+
+\begin{enumerate}
+\item 当前主比较应该继续保留四类 reference：plain rule-only、dynamic gather-fix、clean fixed sid-only、historical old fixed。
+\item 如果目标是 coverage，不应该只看最终 checkpoint；fixed taskfix 的 early coverage spike 仍然值得单独跟。
+\item 如果继续追 CE，最值得追的是 \texttt{hintce-2} 一类“中后段 balanced 优势更强”的变体，而不是简单继续堆更多命名。
+\end{enumerate}

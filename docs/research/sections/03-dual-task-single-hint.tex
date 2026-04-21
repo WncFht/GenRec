@@ -1,0 +1,132 @@
+\section{Dual-Task 过滤与 Single-Hint Mixed 跟踪}
+
+\subsection{本章研究问题}
+
+这一章对应 2026-04-19 的 tracking note。它实际上覆盖两类新问题：
+
+\begin{enumerate}
+\item 只训练两个任务：从 mixed RL 三任务里移除 \texttt{task4}，只保留 \texttt{task1 + task5}。
+\item 只 hint 一个任务：训练仍保留 mixed task，但 fixed hint 只注入 \texttt{task1}。
+\end{enumerate}
+
+这轮虽然有三个 launcher，但研究问题只有两类，因此这一章按研究问题分组，而不按 launcher 分组。
+
+\subsection{新 setting 一览}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{l l l Y}
+\toprule
+Setting & 训练任务 & hint 机制 & 说明 \\
+\midrule
+dynamic dual-task & \texttt{task1 + task5} & dynamic hint & 只训练两个任务，eval 仍看 task1 \\
+fixed dual-task & \texttt{task1 + task5} & fixed hint & beam hint export 也只针对 dual-task 子集 \\
+single-hint mixed & mixed 三任务 & fixed hint 仅给 task1 & task4/task5 继续训练，但按 zero-hint 路径走 \\
+\bottomrule
+\end{tabularx}
+\caption{2026-04-19 tracking note 中最重要的三个新 setting。}
+\end{table}
+
+\subsection{single-hint mixed：已经进入 fixed family 前沿}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{l l c c c c c}
+\toprule
+Variant & Best ckpt & Epoch & NDCG@10 & HR@10 & NDCG@50 & HR@50 \\
+\midrule
+dynamic gather-fix & checkpoint-2997 & 1.802 & 0.0936 & 0.1169 & 0.1083 & 0.1855 \\
+dynamic dual-task & checkpoint-1510 & 1.003 & 0.0930 & -- & -- & 0.1885 \\
+fixed old & checkpoint-3326 & 2.000 & 0.0953 & -- & -- & 0.1938 \\
+fixed taskfix & checkpoint-2997 & 1.802 & 0.0931 & -- & -- & 0.1941 \\
+fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & -- & -- & 0.1935 \\
+single-hint mixed & checkpoint-2664 & 1.602 & 0.0948 & 0.1180 & 0.1116 & 0.1958 \\
+\bottomrule
+\end{tabularx}
+\caption{single-hint mixed 已经可以放进主 baseline 族里一起比较。}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{single_hint_vs_baselines_epoch_curves.png}
+\caption{single-hint mixed vs baselines。}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{single_hint_vs_fixed_family_epoch_curves.png}
+\caption{single-hint mixed vs fixed family。}
+\end{figure}
+
+这部分当前最重要的判断是：
+
+\begin{enumerate}
+\item \texttt{single-hint mixed} 已经不只是一个有信号的新 launcher，而是开始站到 fixed family 的前沿区域。
+\item 它当前 full-trace best 点 \texttt{0.0948 / 0.1958} 已经同时超过 corrected \texttt{fixed taskfix sid-only} 的 \texttt{0.0945 / 0.1935}。
+\item 它对 old fixed 仍然略差一点 top-10，但 coverage 已经更高，因此后续真正值得解释的是：为什么它能在完整尾段维持住这个高位平台。
+\end{enumerate}
+
+\subsection{dual-task family：fixed 已经整体强于 dynamic}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{l l c c c Y}
+\toprule
+Variant & Best ckpt & Aligned epoch & NDCG@10 & HR@50 & 读法 \\
+\midrule
+dynamic dual-task & checkpoint-1510 & 1.861 & 0.0930 & 0.1885 & 完整轨迹已可比，但 best 仍停在中段 \\
+fixed dual-task & checkpoint-2718 & 1.972 & 0.0939 & 0.1897 & 后半段持续抬升，整体略强于 dynamic dual-task \\
+\bottomrule
+\end{tabularx}
+\caption{dual-task family 的 aligned comparison。}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{dual_task_family_late_epoch_aligned_curves.png}
+\caption{dual-task family aligned curves。}
+\end{figure}
+
+现在这条线已经可以明确写成：
+
+\begin{itemize}
+\item fixed dual-task 不再只是 early look，而是一条完整可比轨迹。
+\item 相比 dynamic dual-task，它不再只是交换 top-10 与 coverage，而是整体略占优。
+\item 但它离 clean fixed 主线仍然有明显差距，所以更准确的定位是“dual-task 版本里 fixed 比 dynamic 更强”，而不是“dual-task 已经进入 fixed 主线最前排”。
+\end{itemize}
+
+\subsection{新增同步：hintce-3}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{l l l c c c}
+\toprule
+Variant & Synced ckpts & Best ckpt & Epoch & NDCG@10 & HR@50 \\
+\midrule
+fixed taskfix & 333..3326 & checkpoint-2997 & 1.802 & 0.0931 & 0.1941 \\
+hintce-2 & 333..3326 & checkpoint-2664 & 1.602 & 0.0931 & 0.1951 \\
+hintce-3 & 333..2997 & checkpoint-1665 & 1.001 & 0.0945 & 0.1985 \\
+\bottomrule
+\end{tabularx}
+\caption{hintce-3 已从 early readout 变成中后段强候选。}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{hintce_scaling_epoch_curves.png}
+\caption{hintce scaling curves。}
+\end{figure}
+
+截至当前同步状态，\texttt{hintce-3} 的含义已经变了：它不再只是一个“只有两个 early 点”的暂存结果，而是一条已经足够进入主候选讨论范围的轨迹。只是它是否能成为稳态新上界，仍然要看最后一段 checkpoint。
+
+\subsection{本章小结}
+
+\begin{enumerate}
+\item \texttt{single-hint mixed} 是这一轮最值得继续追的主候选之一，因为它已经在完整尾段维持住了 fixed family 前沿水平。
+\item fixed dual-task 已经可以当作“比 dynamic dual-task 更强”的 clean 结论，但它还没有打入当前 fixed 主线最前排。
+\item \texttt{hintce-3} 已经从 early readout 升级成中段强峰值候选，后续只差最后一段 terminal readout 来判断它是不是稳态新上界。
+\end{enumerate}
