@@ -4,6 +4,19 @@
 
 这一组实验只保留 \texttt{task1 + task5}，因此要同时看 dynamic 与 fixed 两条 dual-task 线，并把它们放回 canonical dynamic 与 clean fixed reference 的上下文里读。
 
+\subsection{对应脚本与 W\&B}
+
+{\footnotesize
+\begin{itemize}
+\item 画图脚本：\path{docs/research/scripts/build_instruments_report_figures.py}
+\item 脚本目录：\path{hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/}
+\item dynamic dual-task：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-title-desc.sh}
+\item fixed dual-task：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-title-desc.sh}
+\item dynamic dual-task eval W\&B：\href{https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-9fb0f41fb7b32e800633}{eval-9fb0f41fb7b32e800633}
+\item fixed dual-task eval W\&B：\href{https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-30dc74ff412f180d5fa6}{eval-30dc74ff412f180d5fa6}
+\end{itemize}
+}
+
 \subsection{关键指标}
 
 \begin{table}[H]
@@ -27,8 +40,8 @@ fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1935 \\
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.96\textwidth]{dual_task_family_late_epoch_aligned_curves.png}
-\caption{dual-task family aligned curves。}
+\includegraphics[width=0.96\textwidth]{dual_task_vs_references_curves.png}
+\caption{dual-task family 与 canonical dynamic / clean fixed reference。}
 \end{figure}
 
 \subsection{结论}

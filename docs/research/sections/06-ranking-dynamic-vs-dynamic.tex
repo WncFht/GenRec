@@ -1,5 +1,29 @@
 \section{Ranking Dynamic vs Canonical Dynamic}
 
+\subsection{区别是什么}
+
+这两条线的核心差异不是 hint 机制，而是 reward：
+
+\begin{itemize}
+\item canonical dynamic 用的是 \texttt{reward\_mode=rule\_only}。
+\item ranking dynamic 用的是 \texttt{reward\_mode=ranking}。
+\end{itemize}
+
+除此之外，它们默认共享相同的数据变体、相同的 dynamic hint 深度上限和相同的训练大框架。因此这一节更像是在问：把 dynamic hint 套在 ranking reward 上，到底有没有比 canonical rule-only dynamic 更强。
+
+\subsection{对应脚本与 W\&B}
+
+{\footnotesize
+\begin{itemize}
+\item 画图脚本：\path{docs/research/scripts/build_instruments_report_figures.py}
+\item 脚本目录：\path{hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/}
+\item ranking dynamic：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-ranking-dynamic-hint.sh}
+\item canonical dynamic：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint.sh}
+\item ranking dynamic eval W\&B：\href{https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-2795a2428f74dfae9a95}{eval-2795a2428f74dfae9a95}
+\item canonical dynamic eval W\&B：\href{https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-1be485be1692156ede91}{eval-1be485be1692156ede91}
+\end{itemize}
+}
+
 \subsection{关键指标}
 
 \begin{table}[H]
@@ -21,8 +45,8 @@ dynamic gather-fix & checkpoint-2997 & 1.802 & 0.0936 & 0.1169 & 0.1083 & 0.1855
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.96\textwidth]{rl-dynamic-family-curves.png}
-\caption{dynamic family 曲线；ranking dynamic 在同一家族里没有显示出优势。}
+\includegraphics[width=0.96\textwidth]{ranking_dynamic_vs_canonical_dynamic_curves.png}
+\caption{ranking dynamic vs canonical dynamic gather-fix。}
 \end{figure}
 
 \subsection{结论}

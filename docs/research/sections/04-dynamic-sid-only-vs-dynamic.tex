@@ -1,5 +1,35 @@
 \section{Dynamic Sid-Only vs Dynamic Gather-Fix}
 
+\subsection{区别是什么}
+
+这两条线都属于 dynamic hint family，默认都用：
+
+\begin{itemize}
+\item \texttt{reward\_mode=rule\_only}
+\item \texttt{dynamic\_hint\_max\_depth=3}
+\item 不在 eval 侧继续应用 dynamic hint
+\end{itemize}
+
+真正的差异主要有两点：
+
+\begin{itemize}
+\item \texttt{dynamic sid-only} 不是在 mixed RL 数据上只改一个 flag，而是直接切到了专门的 sid-only RL 数据变体：\path{Instruments_grec_rlsidonly_index_emb-...}。
+\item \texttt{dynamic gather-fix} 则继续跑默认 mixed RL 数据变体：\path{Instruments_grec_index_emb-...}；在本文里，它也被视为当前 canonical dynamic 实现。
+\end{itemize}
+
+\subsection{对应脚本与 W\&B}
+
+{\footnotesize
+\begin{itemize}
+\item 画图脚本：\path{docs/research/scripts/build_instruments_report_figures.py}
+\item 脚本目录：\path{hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/}
+\item canonical dynamic：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint.sh}
+\item dynamic sid-only：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-only.sh}
+\item canonical dynamic eval W\&B：\href{https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-1be485be1692156ede91}{eval-1be485be1692156ede91}
+\item dynamic sid-only eval W\&B：\href{https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-ee6decc7ea1d8610d799}{eval-ee6decc7ea1d8610d799}
+\end{itemize}
+}
+
 \subsection{关键指标}
 
 \begin{table}[H]
@@ -21,8 +51,8 @@ dynamic gather-fix & checkpoint-2997 & 1.802 & 0.0936 & 0.1169 & 0.1083 & 0.1855
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.96\textwidth]{rl-dynamic-family-curves.png}
-\caption{dynamic family 曲线。}
+\includegraphics[width=0.96\textwidth]{dynamic_sid_only_vs_dynamic_gather_fix_curves.png}
+\caption{dynamic sid-only vs canonical dynamic gather-fix。}
 \end{figure}
 
 \subsection{结论}

@@ -1,5 +1,28 @@
 \section{错版 Fixed vs Corrected Fixed}
 
+\subsection{对应脚本与 W\&B}
+
+{\footnotesize
+\begin{itemize}
+\item 画图脚本：\path{docs/research/scripts/build_instruments_report_figures.py}
+\item 脚本目录：\path{hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/}
+\item corrected fixed：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint.sh}
+\item corrected fixed sid-only：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-only.sh}
+\item old fixed：当前 \path{hope/} 树里没有独立 launcher 保留，因此这里只能附历史结果与 eval W\&B。
+\item old fixed eval W\&B：\href{https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-8a063892d734ccf33470}{eval-8a063892d734ccf33470}
+\item corrected fixed eval W\&B：\href{https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-7496742c37888e35b425}{eval-7496742c37888e35b425}
+\item corrected fixed sid-only eval W\&B：\href{https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-244685544728aa7e29a6}{eval-244685544728aa7e29a6}
+\end{itemize}
+}
+
+\subsection{对应曲线图}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{old_fixed_vs_corrected_fixed_curves.png}
+\caption{old fixed vs corrected fixed family。}
+\end{figure}
+
 \subsection{Bug 图}
 
 \begin{figure}[H]
