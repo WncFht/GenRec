@@ -128,7 +128,7 @@
 - 把 `UFT-style hint curriculum` 落到 corrected `fixed taskfix sid-only` 上。
 - 对 `hintce-2` 做更细的 task-level 和训练日志分析，确认为什么 balanced 优势出现在中后段而不是最终点。
 - 优先补 `hintce-3` 的最后一个 checkpoint，并确认它在完整尾段能否维持当前 `0.0945 / 0.1985` 级别的优势。
-- 继续观察 `fixed dual-task` 在 `3012` 之后是否还有新的 terminal readout，并判断当前 `2718/3012` 的平台是不是它的稳态上限。
+- 继续观察 `fixed dual-task` 的 `2718/3012` 平台是不是它的稳态上限，还是后面还会继续被新的同步改写。
 - 继续观察 `dynamic dual-task` 能否从当前 `1510` 左右的 best 点往上推，还是 `3012` 之后仍然维持“中段最佳、尾段回落”的形态。
 - 解释 `single-hint mixed` 为什么在完整 `2.0` epoch 尾段维持高位平台，但没有超过 `checkpoint-2664` 的 top-10 峰值。
 - 对 `max1` 补回 train-time 日志和 diagnostics，尤其是 `selected_hint_depth_mean`、`selected_depth_1_frac`、`mean_length`。
