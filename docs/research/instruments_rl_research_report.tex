@@ -19,22 +19,23 @@
 
 \graphicspath{
   {assets/instruments-report/}
+  {assets/games-report/}
 }
 
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 \setlength{\LTleft}{0pt}
 \setlength{\LTright}{0pt}
 
-\title{GenRec Instruments 数据集 RL 实验整理}
+\title{GenRec RL 实验整理：Instruments 主报告与 Games 附录}
 \author{按实验主题重构的 LaTeX 研究稿}
-\date{2026-04-21}
+\date{2026-04-22}
 
 \begin{document}
 
 \maketitle
 
 \begin{abstract}
-本文把 \texttt{Instruments-grec} 上已经跑出来的主要 RL 实验按“baseline、canonical hint family、家族内部对照、专项消融”四层结构重排。默认将 \texttt{dynamic gather-fix} 视为正确的 canonical dynamic 实现，将 old fixed-hint 明确标成带 bug caveat 的历史参考，并把 \texttt{max1}、CE scaling、single-hint mixed 与 dual-task 这些后续探索拆成单独 section。
+本文把 \texttt{Instruments-grec} 上已经跑出来的主要 RL 实验按“baseline、canonical hint family、家族内部对照、专项消融”四层结构重排。正文仍以 Instruments 为主，默认将 \texttt{dynamic gather-fix} 视为正确的 canonical dynamic 实现，将 old fixed-hint 明确标成带 bug caveat 的历史参考，并把 \texttt{max1}、CE scaling、single-hint mixed 与 dual-task 这些后续探索拆成单独 section。附录则补入 \texttt{Games-grec} 的全流程摘要与 RL 结果，作为第二数据集上的交叉验证。
 \end{abstract}
 
 \tableofcontents
@@ -70,5 +71,17 @@
 \item 继续跟 \texttt{dynamic dual-task} 与 \texttt{fixed dual-task} 的终段 readout，确认 dual-task family 的稳定排序。
 \item 如果后面要把这份稿件扩成更正式的研究报告，建议继续沿用“一个实验主题一个子文件”的结构，而不是回到按日期拼接的 note 模式。
 \end{itemize}
+
+\subsection{Games 当前定位}
+
+\begin{itemize}
+\item Games 现在已经足够作为正式附录收录，因为它不再只是一套脚本和早期 readout，而是完整覆盖了 \texttt{index -> preprocess -> SFT -> RL}。
+\item 在第二个数据集上，\texttt{fixed-hint} 继续是当前最强、最平衡的主候选，而 \texttt{rule-only} 继续体现 top-10 与 coverage 的交换。
+\item 这意味着 Instruments 上的主结论目前并不是单数据集偶然，但 Games 还需要 task-level readout 才能继续往机制解释推进。
+\end{itemize}
+
+\appendix
+\input{sections/10-games-pipeline-and-sft}
+\input{sections/11-games-rl-results}
 
 \end{document}

@@ -1,63 +1,66 @@
-# GenRec Research Report Workflow
+# GenRec Research 报告维护说明
 
-This directory currently hosts the consolidated `Instruments-grec` RL report and
-its local figure pipeline. The goal is that the LaTeX document, section files,
-plot scripts, and rendered assets are all maintained here rather than relying
-on scattered dated-note artifacts.
+这个目录现在承载两类内容：
 
-## Scope
+- 一份以 `Instruments-grec` 为主体、并附带 `Games-grec` 附录的 LaTeX 研究稿
+- 与这份研究稿强绑定的本地图表生成脚本和本地资产目录
 
-- Main report: `instruments_rl_research_report.tex`
-- Section files: `sections/*.tex`
-- Local figure outputs: `assets/instruments-report/`
-- Figure builders: `scripts/`
-- Style reference: `instruments_style_options.md`
+目标是把研究稿的 `.tex`、section、脚本和最终 PNG/PDF 都收敛到
+`docs/research/` 内部维护，而不是继续长期依赖 scattered dated note
+下面的静态图片。
 
-The current report is intentionally local-first:
+## 1. 当前范围
 
-- All figures used by `instruments_rl_research_report.tex` should be available
-  under `assets/instruments-report/`.
-- Do not introduce new `\includegraphics{...}` dependencies on old
-  `docs/assets/YYYY-MM-DD-.../` directories unless there is no local source yet.
-- If an old dated note already has a useful figure, port its generation logic
-  into `docs/research/scripts/` instead of keeping the report tied to the old
-  PNG forever.
+- 主文件：`instruments_rl_research_report.tex`
+- section 目录：`sections/`
+- Instruments 本地图表目录：`assets/instruments-report/`
+- Games 本地图表目录：`assets/games-report/`
+- 画图脚本目录：`scripts/`
+- 样式挑选文档：`instruments_style_options.md`
 
-## Environment
+当前总文档的边界是：
+
+- 正文仍然以 `Instruments-grec` 为主
+- `Games-grec` 作为附录收录
+- 报告里实际引用到的图，原则上都应该能在 `docs/research/assets/` 下本地重建
+
+## 2. 环境
 
 ### Python
 
-Use the repo virtual environment:
+统一使用仓库虚拟环境：
 
 ```bash
 source /Users/fanghaotian/Desktop/src/GenRec/.venv/bin/activate
 ```
 
-The report builders currently rely on:
+当前报告脚本依赖：
 
 - `matplotlib`
 - `pandas`
 
 ### LaTeX
 
-The report is compiled with `xelatex` on this machine.
-
-Known working command:
+当前这台机器上稳定可用的是 `xelatex`：
 
 ```bash
 /Library/TeX/texbin/xelatex -interaction=nonstopmode -halt-on-error instruments_rl_research_report.tex
 ```
 
-`latexmk` is not required. Running `xelatex` twice is enough for the table of
-contents and cross-reference state used here.
+这里不要求 `latexmk`。当前目录只需要连续跑两次 `xelatex`，就足够更新目录与交叉引用。
 
-### Fonts / language split
+### 文本与图表语言
 
-- Plot titles, axis labels, and legend text should stay in English.
-- Body prose inside `.tex` sections can be Chinese.
-- This avoids the common CJK warnings and keeps matplotlib output stable.
+- matplotlib 图里的标题、坐标轴、图例文本保持英文
+- `.tex` 正文说明保持中文
 
-## Directory layout
+这样做的原因是：
+
+- 避免 matplotlib 的 CJK 字体渲染告警
+- 保持图表风格统一
+- LaTeX 正文仍然可以用中文完整表达实验结论
+
+## 3. 目录结构
 
 ```text
 docs/research/
@@ -66,28 +69,33 @@ docs/research/
 ├── instruments_rl_research_report.pdf
 ├── instruments_style_options.md
 ├── assets/
-│   └── instruments-report/
+│   ├── instruments-report/
+│   └── games-report/
 ├── scripts/
 │   ├── build_instruments_report_figures.py
+│   ├── build_games_report_figures.py
 │   ├── build_instruments_style_options.py
 │   └── instruments_plot_lib.py
 └── sections/
     ├── 00-overview.tex
     ├── 01-rl-variant-comparison.tex
-    └── ...
+    ├── ...
+    ├── 10-games-pipeline-and-sft.tex
+    └── 11-games-rl-results.tex
 ```
 
-## Build commands
+## 4. 当前编译命令
 
-### Rebuild all report figures
+### 4.1 重建全部图表
 
 ```bash
 source /Users/fanghaotian/Desktop/src/GenRec/.venv/bin/activate
 python /Users/fanghaotian/Desktop/src/GenRec/docs/research/scripts/build_instruments_report_figures.py
+python /Users/fanghaotian/Desktop/src/GenRec/docs/research/scripts/build_games_report_figures.py
 python /Users/fanghaotian/Desktop/src/GenRec/docs/research/scripts/build_instruments_style_options.py
 ```
 
-### Rebuild the PDF
+### 4.2 重建 PDF
 
 ```bash
 cd /Users/fanghaotian/Desktop/src/GenRec/docs/research
@@ -95,35 +103,36 @@ cd /Users/fanghaotian/Desktop/src/GenRec/docs/research
 /Library/TeX/texbin/xelatex -interaction=nonstopmode -halt-on-error instruments_rl_research_report.tex
 ```
 
-## Current plotting policy
+## 5. 当前样式规范
 
-- Active palette: `tableau-10`
-- Active CE profile: `CE-A`
-- Source of truth for variant style assignment:
+- Active palette：`tableau-10`
+- Active CE profile：`CE-A`
+- Instruments 样式主入口：
   `scripts/build_instruments_report_figures.py`
-- Shared plotting helpers:
+- Games 样式主入口：
+  `scripts/build_games_report_figures.py`
+- 通用 helper：
   `scripts/instruments_plot_lib.py`
 
-Current conventions:
+当前默认约定：
 
-- Canonical SFT reference line uses a neutral gray dashed line.
-- Each tracked variant has a fixed color + marker assignment.
-- CE sub-variants must differ by both color and line style; do not rely on hue
-  alone.
-- Report curves default to epoch on the x-axis.
-- Default point size in report line plots is `5`.
+- SFT 参考线使用中性灰色虚线
+- 每条核心变体都有固定的颜色 + marker
+- CE 子变体必须同时靠颜色和线型区分，不能只靠相近色相
+- 曲线图默认优先使用 epoch 作为横轴
+- 当前 report line plot 的默认点大小是 `5`
 
-If you need to inspect or revise the palette, update:
+如果要调整配色或 marker：
 
-- `scripts/build_instruments_report_figures.py`
-- `scripts/build_instruments_style_options.py`
-- `instruments_style_options.md`
+1. 先改相应的 `build_*_report_figures.py`
+2. 再改 `build_instruments_style_options.py`
+3. 重新生成 style 文档和预览图
 
-Then regenerate figures and the style preview.
+## 6. 当前图表清单
 
-## Current figure inventory
+### 6.1 Instruments 图
 
-These report figures are rebuilt by `build_instruments_report_figures.py`:
+由 `build_instruments_report_figures.py` 统一生成：
 
 - `rl-seven-way-main-curves.png`
 - `rl-best-ndcg10-vs-hr50-scatter.png`
@@ -139,118 +148,144 @@ These report figures are rebuilt by `build_instruments_report_figures.py`:
 - `single_hint_mixed_vs_baselines_compact_curves.png`
 - `dual_task_vs_references_curves.png`
 
-Supporting structured outputs also live beside them:
+配套结构化输出：
 
 - `all_variant_checkpoint_metrics.csv`
 - `all_variant_best_summary.csv`
 - `instrument_variants_metadata.json`
 
-## Data sources
+### 6.2 Games 图
 
-Most report figures read from local synced checkpoint metrics:
+由 `build_games_report_figures.py` 统一生成：
+
+- `games_sft_checkpoint_curves.png`
+- `games_rl_epoch_curves.png`
+- `games_best_ndcg10_vs_hr50_scatter.png`
+
+配套结构化输出：
+
+- `games_sft_checkpoint_metrics.csv`
+- `games_sft_best_summary.csv`
+- `games_rl_checkpoint_metrics.csv`
+- `games_rl_best_summary.csv`
+- `games_rl_variants_metadata.json`
+
+## 7. 数据来源
+
+### 7.1 Instruments
+
+大多数 Instruments 图都直接读取本地同步回来的 checkpoint 指标：
 
 - `results/<model_dir>/checkpoint-*/metrics.json`
 - `results/Instruments-grec-sft-qwen4B-4-256-dsz0/checkpoint-495/metrics.json`
 
-The fixed-hint bug distribution figure is the only current exception. It reads
-from deepresearch CSV exports:
+当前唯一特殊项是 old fixed bug 的 depth distribution 图，它读取：
 
 - `docs/deepresearch/genrec_rl_study_2026-03-28/data/fixed_hint_bug_depth_distribution.csv`
 - `docs/deepresearch/genrec_rl_study_2026-03-28/data/fixed_hint_bug_task_summary.csv`
 
-If those CSVs are replaced upstream, regenerate the report figure after
-verifying the column names still match.
+### 7.2 Games
 
-## How to add a new section
+Games 图也统一读取本地 `results/`：
 
-### 1. Create a new section file
+- `results/Games-grec-sft-qwen4B-4-256-dsz0/checkpoint-*/metrics.json`
+- `results/Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft896/checkpoint-*/metrics.json`
+- `results/Games-grec-grpo-rule-only-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft896/checkpoint-*/metrics.json`
+- `results/Games-grec-grpo-rule-only-fixedhint-taskfix-b16-sft896/checkpoint-*/metrics.json`
 
-Use the existing numbering pattern:
+Games 这一侧目前不再依赖 W\&B 截图作为正式报告图源。
+
+## 8. 以后新增 section 怎么写
+
+### 8.1 建 section 文件
+
+沿用当前编号规则，例如：
 
 ```text
-sections/10-your-topic.tex
+sections/12-your-topic.tex
 ```
 
-Guidelines:
+建议：
 
-- One section file should correspond to one experimental question or one clean
-  comparison unit.
-- Keep the prose in Chinese if that reads better for the report narrative.
-- Keep figure captions concise.
+- 一个 section 文件只讲一个清晰的问题
+- 不要把多个几乎独立的实验线强塞到同一节
+- 能放表和图说明清楚的，就不要再把 dated note 大段原文搬进来
 
-### 2. Add it to the main LaTeX file
+### 8.2 接进主文
 
-Update `instruments_rl_research_report.tex` and insert:
+在 `instruments_rl_research_report.tex` 里加：
 
 ```tex
-\input{sections/10-your-topic}
+\input{sections/12-your-topic}
 ```
 
-Put it where it belongs in the reading order. Do not append blindly at the end
-if the section is conceptually part of an earlier family.
+如果它更适合作为附录，就放在 `\appendix` 之后。
 
-### 3. Generate figures locally
+### 8.3 图表优先放本地资产
 
-If the section needs plots:
+在 `.tex` 里只写文件名，例如：
 
-- Prefer extending `scripts/build_instruments_report_figures.py`.
-- Reuse `VariantSpec` entries that already exist.
-- Reuse `plot_metric_grid()` or `plot_best_scatter()` before writing a custom
-  plotting block.
-- Only add a new custom plotting function when the chart type is genuinely
-  different, like the fixed-hint bug stacked distribution figure.
+```tex
+\includegraphics{games_rl_epoch_curves.png}
+```
 
-### 4. Keep figure references local
+不要再把总文档绑回老的 `docs/assets/YYYY-MM-DD-.../` 目录，除非你还没有把对应脚本迁进 `docs/research/scripts/`。
 
-Inside the `.tex` file:
+### 8.4 优先复用现有脚本
 
-- Reference only filenames, for example
-  `\includegraphics{dual_task_vs_references_curves.png}`.
-- The main report already points `\graphicspath` to
-  `assets/instruments-report/`.
+如果新增 section 需要图：
 
-### 5. Rebuild and verify
+- Instruments 相关，优先扩 `build_instruments_report_figures.py`
+- Games 相关，优先扩 `build_games_report_figures.py`
+- 通用散点图 / metric grid / best-point scatter，优先扩 `instruments_plot_lib.py`
 
-After editing:
+只有在图类型完全不同、而且之后很可能复用时，才值得继续加新的 helper。
 
-1. Rebuild figures.
-2. Recompile the PDF twice.
-3. Check the rendered PDF rather than trusting the `.tex` source.
+## 9. 什么时候该扩画图脚本
 
-## When to extend the plot builder
+### 9.1 扩 `build_instruments_report_figures.py`
 
-Extend `build_instruments_report_figures.py` when:
+适用于：
 
-- a new section needs a curve/scatter/bar figure for the main report
-- a legacy dated-note plot should be pulled into the local report asset set
-- a new tracked variant needs a stable style entry
+- Instruments 主报告新增 figure
+- 老的 Instruments dated note 图需要迁进 research 本地资产目录
+- 新增 Instruments 变体，需要稳定样式分配
 
-Extend `instruments_plot_lib.py` when:
+### 9.2 扩 `build_games_report_figures.py`
 
-- the helper is reusable across multiple report figures
-- the new plot type is generic enough to avoid duplicated matplotlib code
+适用于：
 
-Avoid adding extra helper files unless the logic is reused by multiple figure
-families.
+- Games 附录新增 figure
+- Games SFT / RL 又同步到了新的 checkpoint
+- 需要把 Games 的 task-level 结果也纳入同一份 research 报告
 
-## Common maintenance rules
+### 9.3 扩 `instruments_plot_lib.py`
 
-- Do not hardcode W&B links in this report stack.
-- Do not add external URLs into figure metadata unless the report explicitly
-  needs them.
-- Prefer modifying the existing `SPECS` list over inventing a parallel variant
-  registry.
-- If a figure is updated, regenerate the PDF in the same task so the rendered
-  output stays in sync.
+适用于：
 
-## Known compile state
+- 新 helper 足够通用
+- 同一类 matplotlib 代码已经在多个脚本里重复
 
-The report currently compiles successfully with `xelatex`, but it still emits
-some `Overfull \hbox` / `Underfull \hbox` warnings caused mainly by:
+## 10. 常见维护规则
 
-- long `\path{...}` launcher paths
-- long checkpoint strings in narrow table columns
+- 不要在这套 research stack 里硬编码 W\&B 链接
+- 不要把外部平台 URL 再塞回 metadata，除非报告明确需要
+- Instruments 变体优先维护现有 `SPECS`
+- 图一旦更新，同一轮任务里要重新编译 PDF，避免 `.tex` 和渲染产物不同步
+- 新图能本地重建，就不要继续长期依赖 dated-note 里的静态 PNG
 
-Those warnings are currently tolerated because they do not block PDF generation.
-If the report gets cleaned up later, fix them by shortening displayed path text
-or widening the relevant table columns, not by changing the underlying paths.
+## 11. 当前已知 LaTeX 状态
+
+当前总文档已经可以稳定用 `xelatex` 编译通过，但仍保留若干
+`Overfull \hbox` / `Underfull \hbox` 警告，主要来自：
+
+- 很长的 `\path{...}` launcher 路径
+- 较窄表格列里放了长 checkpoint 字符串
+
+这些警告目前不阻塞 PDF 产出，因此暂时容忍。后面如果要做排版清理，优先用这些方法处理：
+
+- 缩短正文里展示的路径文本
+- 调整表格列宽
+- 减少不必要的长 inline literal
+
+不要为了消除 warning 去改实验目录本身的真实名字。

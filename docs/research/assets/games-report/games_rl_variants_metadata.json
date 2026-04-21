@@ -1,0 +1,38 @@
+[
+  {
+    "key": "rule_only",
+    "label": "RL rule-only",
+    "model_dir": "Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft896",
+    "color": "#9C755F",
+    "launcher_path": null,
+    "marker": "o",
+    "linestyle": "-",
+    "linewidth": 2.2,
+    "epoch_max_step": null,
+    "epoch_max_step_ref_key": null
+  },
+  {
+    "key": "dynamic_hint",
+    "label": "RL dynamic-hint",
+    "model_dir": "Games-grec-grpo-rule-only-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft896",
+    "color": "#4E79A7",
+    "launcher_path": null,
+    "marker": "s",
+    "linestyle": "-",
+    "linewidth": 2.2,
+    "epoch_max_step": null,
+    "epoch_max_step_ref_key": null
+  },
+  {
+    "key": "fixed_hint",
+    "label": "RL fixed-hint",
+    "model_dir": "Games-grec-grpo-rule-only-fixedhint-taskfix-b16-sft896",
+    "color": "#F28E2B",
+    "launcher_path": null,
+    "marker": "D",
+    "linestyle": "-",
+    "linewidth": 2.2,
+    "epoch_max_step": null,
+    "epoch_max_step_ref_key": null
+  }
+]

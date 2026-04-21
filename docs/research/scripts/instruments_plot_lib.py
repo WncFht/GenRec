@@ -151,6 +151,7 @@ def plot_metric_grid(
     x_column: str = "epoch_progress",
     x_label: str = "Epoch",
     legend_cols: int = 3,
+    reference_label: str = "SFT495",
     figsize: tuple[float, float] = (11, 8),
     dpi: int = 180,
 ) -> Path:
@@ -161,7 +162,7 @@ def plot_metric_grid(
     for ax, (metric, metric_title) in zip(axes.flat, metrics, strict=True):
         for key in variant_keys:
             _plot_variant(ax, df, spec_map[key], metric, x_column)
-        ax.axhline(float(sft_reference[metric]), linestyle="--", linewidth=1.4, color="#6b7280", label="SFT495")
+        ax.axhline(float(sft_reference[metric]), linestyle="--", linewidth=1.4, color="#6b7280", label=reference_label)
         ax.set_title(metric_title)
         ax.set_xlabel(x_label)
         ax.set_ylabel(metric)
@@ -200,6 +201,8 @@ def plot_best_scatter(
     dpi: int = 180,
     text_dx: float = 0.00015,
     text_dy: float = 0.0005,
+    x_margin: float = 0.08,
+    y_margin: float = 0.08,
 ) -> Path:
     spec_map = _variant_map(specs)
     fig, ax = plt.subplots(figsize=figsize)
@@ -228,7 +231,7 @@ def plot_best_scatter(
     ax.set_ylabel(y_label)
     ax.set_title(title)
     ax.grid(alpha=0.22)
-    ax.margins(x=0.08, y=0.08)
+    ax.margins(x=x_margin, y=y_margin)
     ax.legend(frameon=False)
     fig.subplots_adjust(left=0.13, right=0.97, bottom=0.13, top=0.90)
     out_path.parent.mkdir(parents=True, exist_ok=True)

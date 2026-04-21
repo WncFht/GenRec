@@ -1,0 +1,2 @@
+variant_key,variant_label,model_dir,checkpoint,step,NDCG@10,HR@10,NDCG@50,HR@50,NDCG@5,HR@5
+sft_best,SFT best,Games-grec-sft-qwen4B-4-256-dsz0,checkpoint-768,768,0.043300000000000005,0.0804,0.06910000000000001,0.1998,0.033600000000000005,0.050300000000000004

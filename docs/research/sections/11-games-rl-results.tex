@@ -1,0 +1,100 @@
+\section{Games-grec RL 结果}
+
+\subsection{对应 launcher}
+
+{\footnotesize
+\begin{itemize}
+\item launcher 目录：\path{hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-Games-grec/}
+\item rule-only：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-Games-grec-rl-rule-only.sh}
+\item dynamic-hint：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-Games-grec-rl-rule-only-dynamic-hint.sh}
+\item fixed-hint：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-Games-grec-rl-rule-only-fixed-hint.sh}
+\item 本地出图脚本：\path{docs/research/scripts/build_games_report_figures.py}
+\end{itemize}
+}
+
+\subsection{最好点与 coverage 峰值}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{2.7cm} p{2.4cm} c c c c}
+\toprule
+Variant & Best ckpt & NDCG@10 & HR@10 & NDCG@50 & HR@50 \\
+\midrule
+SFT best & \texttt{checkpoint-768} & 0.0433 & 0.0804 & 0.0691 & 0.1998 \\
+RL rule-only & \texttt{checkpoint-8752} & 0.0467 & 0.0825 & 0.0683 & 0.1815 \\
+RL dynamic-hint & \texttt{checkpoint-4380} & 0.0464 & 0.0823 & 0.0716 & 0.1980 \\
+RL fixed-hint & \texttt{checkpoint-8752} & 0.0480 & 0.0857 & 0.0723 & 0.1972 \\
+\bottomrule
+\end{tabular}
+\caption{Games-grec 上 SFT 与三条 RL 主线的最好点。}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{2.7cm} p{2.4cm} c c}
+\toprule
+Variant & Peak \texttt{HR@50} ckpt & Peak \texttt{HR@50} & 同点 \texttt{NDCG@10} \\
+\midrule
+RL rule-only & \texttt{checkpoint-4380} & 0.1851 & 0.0463 \\
+RL dynamic-hint & \texttt{checkpoint-3504} & 0.1981 & 0.0461 \\
+RL fixed-hint & \texttt{checkpoint-3504} & 0.2024 & 0.0478 \\
+\bottomrule
+\end{tabular}
+\caption{Games RL 三条线的 coverage 峰值。}
+\end{table}
+
+从这两张表可以直接读出当前阶段性排序：
+
+\begin{itemize}
+\item 按 best \texttt{NDCG@10} 看，Games 当前已经形成 $\texttt{fixed-hint} > \texttt{rule-only} \gtrsim \texttt{dynamic-hint} > \texttt{SFT}$。
+\item plain \texttt{rule-only} 继续体现出和 Instruments 相同的模式：top-10 变强，但 \texttt{HR@50} 掉得最明显。
+\item \texttt{dynamic-hint} 仍然是很有竞争力的第二梯队；它在自己 best top-10 点上的 \texttt{HR@50} 仍略高于 late-stage \texttt{fixed-hint}。
+\item 如果改按 coverage 峰值而不是 best \texttt{NDCG@10} checkpoint 读，\texttt{fixed-hint} 的 \texttt{checkpoint-3504 / HR@50=0.2024} 仍然是全场最强点。
+\end{itemize}
+
+\subsection{RL 曲线图}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{games_rl_epoch_curves.png}
+\caption{Games RL metric curves；灰虚线是 SFT best \texttt{checkpoint-768} 的水平参考线。}
+\end{figure}
+
+这张图更适合用来解释“最佳点为什么不在同一时刻”：
+
+\begin{itemize}
+\item \texttt{rule-only} 在 \texttt{NDCG@10} 上还能慢慢涨到尾点，但 \texttt{HR@50} 很早就进入平台区，后面也没有明显恢复。
+\item \texttt{dynamic-hint} 的最佳窗口集中在 \texttt{epoch}$\approx$\texttt{1.0} 左右；同步到完整 \texttt{2 epoch} 之后，它并没有继续把 top-10 往上抬。
+\item \texttt{fixed-hint} 呈现很典型的“两段式最优”：中前段先拿到全场最强 coverage，训练末端再把 \texttt{NDCG@10 / HR@10} 推到新的最高点。
+\end{itemize}
+
+\subsection{最好点 trade-off}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.80\textwidth]{games_best_ndcg10_vs_hr50_scatter.png}
+\caption{Games best \texttt{NDCG@10} vs \texttt{HR@50} scatter。}
+\end{figure}
+
+如果把每条线都压成一个 best 点，这张散点图最值得记住三件事：
+
+\begin{itemize}
+\item 最靠右的是 \texttt{fixed-hint}，说明它当前已经拿到了 Games 上最强的 top-10 点。
+\item \texttt{dynamic-hint} 虽然右移不如 \texttt{fixed-hint}，但它在自己 best 点上的 \texttt{HR@50} 仍然处在高位，因此它不是失败 run，而是“coverage 更稳、top-10 略弱”的第二梯队。
+\item \texttt{rule-only} 则明显更靠下，说明它在 Games 上也复现了“top-10 强、coverage 弱”的交换。
+\end{itemize}
+
+\subsection{当前读法}
+
+把 Games 这条线纳入附录之后，当前最稳妥的总结是：
+
+\begin{enumerate}
+\item \texttt{Games-grec} 已经不再只是辅助数据集，而是完成了一条可复用的单数据集全流程。
+\item 在第二个数据集上，\texttt{fixed-hint} 仍然是当前最平衡的主线，说明 Instruments 上的主故事并不是单点偶然。
+\item \texttt{dynamic-hint} 仍然有明确价值，但它现在更像“覆盖率更稳的次优 family”，而不是已经改写主线排序的方案。
+\item 如果后面继续扩 Games，最值得补的是 task-level readout，以及 \texttt{fixed-hint} 的 best-top10 点和 best-coverage 点之间到底该如何汇报。
+\end{enumerate}

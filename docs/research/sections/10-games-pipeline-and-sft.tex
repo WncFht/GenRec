@@ -1,0 +1,101 @@
+\section{Games-grec 全流程摘要}
+
+\subsection{为什么把 Games 放进附录}
+
+当前这份研究稿主体仍然围绕 \texttt{Instruments-grec} 展开，因为那条线的变体更完整、家族内部对照也更多。相比之下，\texttt{Games-grec} 已经足够形成一条可复用的“单数据集 index $\rightarrow$ preprocess $\rightarrow$ SFT $\rightarrow$ RL”流水线，但更适合作为附录收录：
+
+\begin{itemize}
+\item 它已经能独立支撑一条完整的结果线，而不再只是实验脚手架。
+\item 它当前最重要的价值，是验证 \texttt{fixed-hint > dynamic-hint > SFT} 这条大故事在另一个数据集上是否继续成立。
+\item 它还没有像 Instruments 那样展开大量 family-internal ablation，因此不适合和正文混在同一层级叙述。
+\end{itemize}
+
+\subsection{Index 与下游数据}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{4.0cm} p{8.2cm}}
+\toprule
+项目 & 当前记录 \\
+\midrule
+Dataset & \texttt{Games} \\
+Embedding model & \texttt{qwen3-embedding-4B} \\
+Index config & \texttt{rq4(cb256-256-256-256)} \\
+Final collision rate & \texttt{0.0075873} \\
+Max conflict count & \texttt{5} \\
+Layer utilization & 第 0 层 \texttt{47/256}；第 1/2/3 层 \texttt{256/256} \\
+稳定 alias & \texttt{Games.index\_emb-qwen3-embedding-4B\_... \_dsGames.json} \\
+\bottomrule
+\end{tabular}
+\caption{Games semantic index 的当前关键配置与结果。}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{3.2cm} c c}
+\toprule
+导出集合 & 规模 & 备注 \\
+\midrule
+SFT train & \texttt{520761} & 含 Task1/2/3 组合后的最终导出 \\
+SFT valid & \texttt{42259} & 与 test 同量级 \\
+SFT test & \texttt{42259} & 当前统一评测入口使用 \\
+RL train & \texttt{280110} & 含 Task1/4/5 \\
+RL valid & \texttt{42259} & 当前主要用于统一评测 \\
+RL test & \texttt{42259} & 与 SFT test 对齐 \\
+\bottomrule
+\end{tabular}
+\caption{Games-grec 下游数据导出规模。}
+\end{table}
+
+这里最重要的读法只有两点：
+
+\begin{itemize}
+\item 这个 \texttt{Games} index 的碰撞率已经低到足以进入下游 SFT/RL；后续重点不再是“能不能用”，而是“第 0 层 codebook 为什么利用率这么低”。
+\item \texttt{Games\_grec} 已经不是只做了基础 preprocess 的半成品，而是完整支持统一 SFT / RL / evaluate 的正式变体。
+\end{itemize}
+
+\subsection{SFT checkpoint 选择}
+
+\paragraph{对应入口}
+{\footnotesize
+\begin{itemize}
+\item SFT YAML：\path{examples/train_full/Games/games_rec_full_sft_3b_dsz0_qwen4b_4_256_grec.yaml}
+\item RL 默认初始化点：\texttt{Games-grec-sft-qwen4B-4-256-dsz0/checkpoint-896}
+\item 本地出图脚本：\path{docs/research/scripts/build_games_report_figures.py}
+\end{itemize}
+}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{2.3cm} c c c c}
+\toprule
+Checkpoint & NDCG@10 & HR@10 & NDCG@50 & HR@50 \\
+\midrule
+\texttt{checkpoint-640} & 0.0426 & 0.0788 & 0.0680 & 0.1958 \\
+\texttt{checkpoint-768} & 0.0433 & 0.0804 & 0.0691 & 0.1998 \\
+\texttt{checkpoint-896} & 0.0430 & 0.0790 & 0.0687 & 0.1970 \\
+\texttt{checkpoint-1024} & 0.0374 & 0.0692 & 0.0597 & 0.1729 \\
+\bottomrule
+\end{tabular}
+\caption{Games SFT 后段 checkpoint 选择。}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{games_sft_checkpoint_curves.png}
+\caption{Games SFT checkpoint selection；虚线标出 best \texttt{NDCG@10} 的 \texttt{checkpoint-768}，点线标出 RL 默认初始化点 \texttt{checkpoint-896}。}
+\end{figure}
+
+这一段 SFT 的结论很清楚：
+
+\begin{itemize}
+\item 如果只按 best \texttt{NDCG@10} 选点，当前最强 SFT checkpoint 是 \texttt{768}。
+\item 如果目的是继续接 RL，\texttt{896} 仍然是更稳妥的初始化点，因为它仍处在后段高性能平台里，但还没掉到 \texttt{1024} 那种明显回落区间。
+\item 因此后文里的 Games RL，默认都把 \texttt{checkpoint-896} 当作统一起点。
+\end{itemize}
