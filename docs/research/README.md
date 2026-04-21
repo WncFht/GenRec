@@ -9,7 +9,8 @@
 
 ```bash
 cd /Users/fanghaotian/Desktop/src/GenRec/docs/research
-latexmk -xelatex instruments_rl_research_report.tex
+xelatex -interaction=nonstopmode instruments_rl_research_report.tex
+xelatex -interaction=nonstopmode instruments_rl_research_report.tex
 ```
 
 当前稿件把这三篇 note 合并进同一个 LaTeX 文档：
