@@ -1,119 +1,70 @@
-\section{Hint 家族内部对照}
+\section{Max1 消融}
 
-\subsection{dynamic sid-only vs canonical dynamic gather-fix}
+\subsection{实验问题}
+
+这一组实验只改一件事：把 dynamic hint 的 online budget 从 \texttt{dynamic\_hint\_max\_depth=3} 收紧到 \texttt{1}。因此它回答的问题也很集中：
+
+\begin{quote}
+如果只允许 dynamic hint 最多暴露 1 个 oracle token，而不改 trainer 逻辑、不丢 no-hit 样本，最终的 eval trade-off 会落在什么位置。
+\end{quote}
+
+\subsection{改动范围}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{l l l Y}
+\toprule
+维度 & baseline & max1 实验 & 备注 \\
+\midrule
+reward mode & rule-only & rule-only & 不变 \\
+num beams & 16 & 16 & 不变 \\
+dataset variant & Instruments-grec 主线数据 & 相同 & 不变 \\
+trainer 收口逻辑 & 当前 dynamic trainer & 相同 & 不变 \\
+样本筛除 & 不丢 no-hit 样本 & 不丢 & 不变 \\
+hint budget & max depth 3 & max depth 1 & 唯一改动 \\
+\bottomrule
+\end{tabularx}
+\caption{max1 消融的唯一改动是 online hint budget。}
+\end{table}
+
+\subsection{关键指标}
 
 \begin{table}[H]
 \centering
 \small
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{p{4.0cm} p{2.5cm} c c c c c}
+\begin{tabular}{p{3.8cm} p{2.4cm} c c c}
 \toprule
-Variant & Best ckpt & Epoch & NDCG@10 & HR@10 & NDCG@50 & HR@50 \\
+Variant & Best ckpt & Epoch & NDCG@10 & HR@50 \\
 \midrule
-dynamic sid-only & checkpoint-2394 & 1.805 & 0.0921 & 0.1155 & 0.1065 & 0.1830 \\
-dynamic gather-fix & checkpoint-2997 & 1.802 & 0.0936 & 0.1169 & 0.1083 & 0.1855 \\
+rule-only rerun & checkpoint-2997 & 1.802 & 0.0960 & 0.1681 \\
+dynamic gather-fix & checkpoint-2997 & 1.802 & 0.0936 & 0.1855 \\
+dynamic max1 & checkpoint-1332 & 0.801 & 0.0934 & 0.1905 \\
+fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1935 \\
 \bottomrule
 \end{tabular}
-\caption{dynamic sid-only 与 canonical dynamic gather-fix。}
+\caption{max1 的位置：更像 early-stop dynamic candidate，而不是新的默认线。}
 \end{table}
+
+\subsection{图表}
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.96\textwidth]{rl-dynamic-family-curves.png}
-\caption{dynamic family 曲线，后文也用这张图讨论 ranking dynamic。}
+\includegraphics[width=0.96\textwidth]{max1-ablation-epoch-curves.png}
+\caption{max1 ablation 曲线。}
 \end{figure}
-
-这里最重要的不是 “sid-only 有没有收益”，而是：
-
-\begin{itemize}
-\item \texttt{dynamic sid-only} 并不是完全失败，但它的 peak 来得太早，后面没有继续抬高。
-\item \texttt{dynamic gather-fix} 四个主指标同时更强，因此应该被视为当前默认的 dynamic 实现。
-\end{itemize}
-
-\subsection{fixed sid-only vs fixed taskfix}
-
-\begin{table}[H]
-\centering
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{p{4.0cm} p{2.5cm} c c c c c}
-\toprule
-Variant & Best ckpt & Epoch & NDCG@10 & HR@10 & NDCG@50 & HR@50 \\
-\midrule
-fixed taskfix & checkpoint-2997 & 1.802 & 0.0931 & 0.1189 & 0.1094 & 0.1941 \\
-fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1205 & 0.1103 & 0.1935 \\
-old fixed mixed-single & checkpoint-3326 & 2.000 & 0.0953 & 0.1193 & 0.1114 & 0.1938 \\
-\bottomrule
-\end{tabular}
-\caption{fixed taskfix、fixed taskfix sid-only 与 old fixed 的位置。}
-\end{table}
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.96\textwidth]{fixed-hint-taskfix-sid-only-epoch-curves.png}
-\caption{fixed sid-only 与 fixed taskfix 的对照图。}
+\includegraphics[width=0.96\textwidth]{max1-vs-fixed-epoch-curves.png}
+\caption{max1 与 dynamic/fixed 参考线的 four-way comparison。}
 \end{figure}
 
-这组图和表对应的主结论是：
+\subsection{结论}
 
 \begin{itemize}
-\item \texttt{fixed taskfix sid-only} 主要把 top-10 hit 又往上推了一步，因此它是更合适的 clean fixed reference。
-\item \texttt{fixed taskfix} 本身已经明显强于 plain \texttt{rule-only}，说明 task-aware 修复本身就在生效。
-\item old fixed 仍然可以当历史上界参考，但不应该继续当方法定义。
-\end{itemize}
-
-\subsection{ranking dynamic vs canonical dynamic}
-
-\begin{table}[H]
-\centering
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{p{4.0cm} p{2.5cm} c c c c c}
-\toprule
-Variant & Best ckpt & Epoch & NDCG@10 & HR@10 & NDCG@50 & HR@50 \\
-\midrule
-ranking dynamic & checkpoint-1665 & 1.001 & 0.0911 & 0.1138 & 0.1058 & 0.1822 \\
-dynamic gather-fix & checkpoint-2997 & 1.802 & 0.0936 & 0.1169 & 0.1083 & 0.1855 \\
-\bottomrule
-\end{tabular}
-\caption{ranking dynamic 与 canonical dynamic gather-fix。}
-\end{table}
-
-在动态家族里，\texttt{ranking dynamic} 当前没有显示出独立价值：
-
-\begin{itemize}
-\item 按 best \texttt{NDCG@10} 点比较，它四指标同时落后于 \texttt{dynamic gather-fix}。
-\item 图上也能直接看到它更像 “中期见顶，后期失速” 的 run，而不是新的主线实现。
-\end{itemize}
-
-\subsection{错版 fixed vs corrected fixed：old fixed 为什么不能直接拿来当方法}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.92\textwidth]{fixed-hint-bug-task-depth-distribution.png}
-\caption{old fixed 的 bug 会把不同任务的 hint depth 分布系统性压歪。}
-\end{figure}
-
-\begin{table}[H]
-\centering
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{p{3.2cm} c c c p{4.1cm}}
-\toprule
-Task & Changed rate & Avg depth correct & Avg depth buggy & 主效应 \\
-\midrule
-\texttt{task1\_sid\_sft} & 7.64\% & 1.048 & 0.938 & 只被轻微压浅 \\
-\texttt{task4\_hisTitle2sid} & 82.35\% & 1.533 & 0.188 & hardest task 几乎被压成 depth-0 \\
-\texttt{task5\_title\_desc2sid} & 19.41\% & 0.519 & 0.245 & 一部分 depth-2 被压回 0/1 \\
-\bottomrule
-\end{tabular}
-\caption{old fixed 的 bug 不是“hint 更准”，而是把任务分布系统性压浅。}
-\end{table}
-
-这部分的重点不是再证明 old fixed 数值不错，而是解释为什么它不能直接拿来当方法结论：
-
-\begin{itemize}
-\item old fixed 的表面优势，不是来自更正确的 hint map，而是因为 hardest task 被系统性少给 hint。
-\item 因此它更像一个带偏置的历史现象学上界，而不是应该继续复用的方法定义。
-\item 这也是为什么本文后文在需要 fixed reference 时，默认优先引用 corrected \texttt{fixed taskfix sid-only}。
+\item \texttt{max1} 不是退化成 \texttt{rule-only}，因为它保住了明显更高的 coverage。
+\item 它也不是被 \texttt{gather-fix} 全程支配，因为早中段确实能给出更好的 trade-off。
+\item 但完整轨迹已经说明它的优势主要停在前中段，因此更准确的定位仍然是 early-stop 候选，而不是新的 long-run default。
 \end{itemize}

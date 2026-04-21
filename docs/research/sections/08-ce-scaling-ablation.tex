@@ -1,0 +1,35 @@
+\section{CE Scaling 消融}
+
+\subsection{关键指标}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{4.0cm} p{2.4cm} c c c c}
+\toprule
+Variant & Best ckpt & Epoch & NDCG@10 & HR@50 & 备注 \\
+\midrule
+fixed taskfix & checkpoint-2997 & 1.802 & 0.0931 & 0.1941 & non-CE 参考线 \\
+hintce-2 & checkpoint-2664 & 1.602 & 0.0931 & 0.1951 & 当前更稳的 CE 候选 \\
+hintce-3 & checkpoint-1665 & 1.001 & 0.0945 & 0.1985 & CE 相对倍率 0.005，当前最强中段峰值 \\
+\bottomrule
+\end{tabular}
+\caption{CE scaling 消融。}
+\end{table}
+
+\subsection{图表}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{hintce_scaling_epoch_curves.png}
+\caption{CE scaling 曲线，包含 \texttt{hintce-3}。}
+\end{figure}
+
+\subsection{结论}
+
+\begin{itemize}
+\item full non-CE 仍然是当前 fixed family 的干净参考线。
+\item \texttt{hintce-2} 把 CE 从 early readout 拉成了一个完整轨迹上的更稳候选。
+\item \texttt{hintce-3} 对应更高的 CE 相对倍率 0.005，并且已经把中段 best 点推到 \texttt{0.0945 / 0.1985}；真正还缺的是最后一段 terminal readout。
+\end{itemize}

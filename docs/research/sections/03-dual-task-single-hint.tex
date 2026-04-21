@@ -1,67 +1,10 @@
-\section{专项消融与新探索}
+\section{Single-Hint Mixed 消融}
 
-\subsection{max1：dynamic budget 收紧到 depth=1 的消融}
+\subsection{实验定义}
 
-\begin{table}[H]
-\centering
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{p{3.8cm} p{2.4cm} c c c}
-\toprule
-Variant & Best ckpt & Epoch & NDCG@10 & HR@50 \\
-\midrule
-rule-only rerun & checkpoint-2997 & 1.802 & 0.0960 & 0.1681 \\
-dynamic gather-fix & checkpoint-2997 & 1.802 & 0.0936 & 0.1855 \\
-dynamic max1 & checkpoint-1332 & 0.801 & 0.0934 & 0.1905 \\
-fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1935 \\
-\bottomrule
-\end{tabular}
-\caption{max1 的位置：更像 early-stop dynamic candidate，而不是新的默认线。}
-\end{table}
+这条线不是“只训练 \texttt{task1}”，而是 mixed 三任务仍然一起训练，只是 fixed hint 只注入到 \texttt{task1\_sid\_sft}，其余任务继续按 zero-hint 路径走。
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.96\textwidth]{max1-ablation-epoch-curves.png}
-\caption{max1 ablation 曲线。}
-\end{figure}
-
-\begin{itemize}
-\item \texttt{max1} 不是退化成 \texttt{rule-only}，因为它保住了明显更高的 coverage。
-\item 它也不是被 \texttt{gather-fix} 全程支配，因为早中段确实能给出更好的 trade-off。
-\item 但完整轨迹已经说明它的优势主要停在前中段，因此更准确的定位仍然是 early-stop 候选。
-\end{itemize}
-
-\subsection{CE scaling：hintce-2 与 hintce-3}
-
-\begin{table}[H]
-\centering
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{p{4.0cm} p{2.4cm} c c c c}
-\toprule
-Variant & Best ckpt & Epoch & NDCG@10 & HR@50 & 备注 \\
-\midrule
-fixed taskfix & checkpoint-2997 & 1.802 & 0.0931 & 0.1941 & non-CE 参考线 \\
-hintce-2 & checkpoint-2664 & 1.602 & 0.0931 & 0.1951 & 当前更稳的 CE 候选 \\
-hintce-3 & checkpoint-1665 & 1.001 & 0.0945 & 0.1985 & CE 相对倍率 0.005，当前最强中段峰值 \\
-\bottomrule
-\end{tabular}
-\caption{CE scaling 消融。}
-\end{table}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.96\textwidth]{hintce_scaling_epoch_curves.png}
-\caption{CE scaling 曲线，包含 \texttt{hintce-3}。}
-\end{figure}
-
-\begin{itemize}
-\item full non-CE 仍然是当前 fixed family 的干净参考线。
-\item \texttt{hintce-2} 把 CE 从 early readout 拉成了一个完整轨迹上的更稳候选。
-\item \texttt{hintce-3} 当前最需要记住的是：它对应更高的 CE 相对倍率 0.005，并且已经把中段 best 点推到 \texttt{0.0945 / 0.1985}；真正还缺的是最后一段 terminal readout。
-\end{itemize}
-
-\subsection{Single-hint mixed：只对 sid 任务注入 fixed hint}
+\subsection{关键指标}
 
 \begin{table}[H]
 \centering
@@ -80,45 +23,24 @@ single-hint mixed & checkpoint-2664 & 1.602 & 0.0948 & 0.1958 \\
 \caption{single-hint mixed 是当前最强的 partial-hint 候选。}
 \end{table}
 
+\subsection{图表}
+
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.96\textwidth]{single_hint_vs_fixed_family_epoch_curves.png}
 \caption{single-hint mixed vs fixed family。}
 \end{figure}
 
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{single_hint_vs_baselines_epoch_curves.png}
+\caption{single-hint mixed vs baselines。}
+\end{figure}
+
+\subsection{结论}
+
 \begin{itemize}
 \item 这条线不是“只训练 task1”，而是 mixed 三任务仍然训练，只是 fixed hint 只注入到 \texttt{task1\_sid\_sft}。
 \item 它当前 best 点已经同时超过 corrected \texttt{fixed taskfix sid-only} 的 \texttt{NDCG@10} 和 \texttt{HR@50}。
 \item 因此后续更值得解释的问题不是“它有没有信号”，而是它为什么能在完整尾段维持住 fixed family 前沿水平。
-\end{itemize}
-
-\subsection{Dual-task：dynamic 与 fixed 都要看}
-
-\begin{table}[H]
-\centering
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{p{4.0cm} p{2.4cm} c c c}
-\toprule
-Variant & Best ckpt & Epoch / aligned epoch & NDCG@10 & HR@50 \\
-\midrule
-dynamic gather-fix & checkpoint-2997 & 1.802 & 0.0936 & 0.1855 \\
-dynamic dual-task & checkpoint-1510 & 1.003 / 1.861 & 0.0930 & 0.1885 \\
-fixed dual-task & checkpoint-2718 & 1.805 / 1.972 & 0.0939 & 0.1897 \\
-fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1935 \\
-\bottomrule
-\end{tabular}
-\caption{dual-task family 与 canonical dynamic / clean fixed reference 的位置。}
-\end{table}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.96\textwidth]{dual_task_family_late_epoch_aligned_curves.png}
-\caption{dual-task family aligned curves。}
-\end{figure}
-
-\begin{itemize}
-\item \texttt{dynamic dual-task} 已经进入可比较状态，但还没有超过 canonical \texttt{dynamic gather-fix}。
-\item \texttt{fixed dual-task} 已经整体强于 \texttt{dynamic dual-task}，因此 dual-task family 内部也复现了 “fixed 比 dynamic 更稳” 的方向。
-\item 但它离 clean fixed 主线仍然有明显差距，所以当前更准确的定位是：dual-task 是一条值得继续跟的 filtered setting，而不是已经改写主线排序。
 \end{itemize}

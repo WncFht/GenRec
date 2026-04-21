@@ -1,0 +1,33 @@
+\section{Dynamic Sid-Only vs Dynamic Gather-Fix}
+
+\subsection{关键指标}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{4.0cm} p{2.5cm} c c c c c}
+\toprule
+Variant & Best ckpt & Epoch & NDCG@10 & HR@10 & NDCG@50 & HR@50 \\
+\midrule
+dynamic sid-only & checkpoint-2394 & 1.805 & 0.0921 & 0.1155 & 0.1065 & 0.1830 \\
+dynamic gather-fix & checkpoint-2997 & 1.802 & 0.0936 & 0.1169 & 0.1083 & 0.1855 \\
+\bottomrule
+\end{tabular}
+\caption{dynamic sid-only 与 canonical dynamic gather-fix。}
+\end{table}
+
+\subsection{图表}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{rl-dynamic-family-curves.png}
+\caption{dynamic family 曲线。}
+\end{figure}
+
+\subsection{结论}
+
+\begin{itemize}
+\item \texttt{dynamic sid-only} 不是完全失败，但 peak 来得更早，后续没有继续抬高。
+\item \texttt{dynamic gather-fix} 四个主指标同时更强，因此应被视为当前默认的 dynamic 实现。
+\end{itemize}

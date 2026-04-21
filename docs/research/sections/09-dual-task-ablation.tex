@@ -1,0 +1,40 @@
+\section{Dual-Task 消融}
+
+\subsection{实验定义}
+
+这一组实验只保留 \texttt{task1 + task5}，因此要同时看 dynamic 与 fixed 两条 dual-task 线，并把它们放回 canonical dynamic 与 clean fixed reference 的上下文里读。
+
+\subsection{关键指标}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{4.0cm} p{2.4cm} c c c}
+\toprule
+Variant & Best ckpt & Epoch / aligned epoch & NDCG@10 & HR@50 \\
+\midrule
+dynamic gather-fix & checkpoint-2997 & 1.802 & 0.0936 & 0.1855 \\
+dynamic dual-task & checkpoint-1510 & 1.003 / 1.861 & 0.0930 & 0.1885 \\
+fixed dual-task & checkpoint-2718 & 1.805 / 1.972 & 0.0939 & 0.1897 \\
+fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1935 \\
+\bottomrule
+\end{tabular}
+\caption{dual-task family 与 canonical dynamic / clean fixed reference 的位置。}
+\end{table}
+
+\subsection{图表}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{dual_task_family_late_epoch_aligned_curves.png}
+\caption{dual-task family aligned curves。}
+\end{figure}
+
+\subsection{结论}
+
+\begin{itemize}
+\item \texttt{dynamic dual-task} 已经进入可比较状态，但还没有超过 canonical \texttt{dynamic gather-fix}。
+\item \texttt{fixed dual-task} 已经整体强于 \texttt{dynamic dual-task}，因此 dual-task family 内部也复现了 “fixed 比 dynamic 更稳” 的方向。
+\item 但它离 clean fixed 主线仍然有明显差距，所以当前更准确的定位是：dual-task 是一条值得继续跟的 filtered setting，而不是已经改写主线排序。
+\end{itemize}

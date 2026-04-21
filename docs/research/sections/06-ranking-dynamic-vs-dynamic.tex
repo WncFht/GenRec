@@ -1,0 +1,33 @@
+\section{Ranking Dynamic vs Canonical Dynamic}
+
+\subsection{关键指标}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{4.0cm} p{2.5cm} c c c c c}
+\toprule
+Variant & Best ckpt & Epoch & NDCG@10 & HR@10 & NDCG@50 & HR@50 \\
+\midrule
+ranking dynamic & checkpoint-1665 & 1.001 & 0.0911 & 0.1138 & 0.1058 & 0.1822 \\
+dynamic gather-fix & checkpoint-2997 & 1.802 & 0.0936 & 0.1169 & 0.1083 & 0.1855 \\
+\bottomrule
+\end{tabular}
+\caption{ranking dynamic 与 canonical dynamic gather-fix。}
+\end{table}
+
+\subsection{图表}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{rl-dynamic-family-curves.png}
+\caption{dynamic family 曲线；ranking dynamic 在同一家族里没有显示出优势。}
+\end{figure}
+
+\subsection{结论}
+
+\begin{itemize}
+\item 按 best \texttt{NDCG@10} 点比较，\texttt{ranking dynamic} 四指标同时落后于 \texttt{dynamic gather-fix}。
+\item 图上也能直接看到它更像 “中期见顶，后期失速” 的 run，而不是新的主线实现。
+\end{itemize}

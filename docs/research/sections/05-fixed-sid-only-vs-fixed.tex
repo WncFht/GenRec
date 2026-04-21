@@ -1,0 +1,35 @@
+\section{Fixed Sid-Only vs Fixed Taskfix}
+
+\subsection{关键指标}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{4.0cm} p{2.5cm} c c c c c}
+\toprule
+Variant & Best ckpt & Epoch & NDCG@10 & HR@10 & NDCG@50 & HR@50 \\
+\midrule
+fixed taskfix & checkpoint-2997 & 1.802 & 0.0931 & 0.1189 & 0.1094 & 0.1941 \\
+fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1205 & 0.1103 & 0.1935 \\
+old fixed mixed-single & checkpoint-3326 & 2.000 & 0.0953 & 0.1193 & 0.1114 & 0.1938 \\
+\bottomrule
+\end{tabular}
+\caption{fixed taskfix、fixed taskfix sid-only 与 old fixed 的位置。}
+\end{table}
+
+\subsection{图表}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{fixed-hint-taskfix-sid-only-epoch-curves.png}
+\caption{fixed sid-only 与 fixed taskfix 的对照图。}
+\end{figure}
+
+\subsection{结论}
+
+\begin{itemize}
+\item \texttt{fixed taskfix sid-only} 主要把 top-10 hit 又往上推了一步，因此它是更合适的 clean fixed reference。
+\item \texttt{fixed taskfix} 本身已经明显强于 plain \texttt{rule-only}，说明 task-aware 修复本身就在生效。
+\item old fixed 仍然可以当历史上界参考，但不应该继续当方法定义。
+\end{itemize}

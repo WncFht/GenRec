@@ -1,0 +1,35 @@
+\section{错版 Fixed vs Corrected Fixed}
+
+\subsection{Bug 图}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{fixed-hint-bug-task-depth-distribution.png}
+\caption{old fixed 的 bug 会把不同任务的 hint depth 分布系统性压歪。}
+\end{figure}
+
+\subsection{任务级摘要}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{3.2cm} c c c p{4.1cm}}
+\toprule
+Task & Changed rate & Avg depth correct & Avg depth buggy & 主效应 \\
+\midrule
+\texttt{task1\_sid\_sft} & 7.64\% & 1.048 & 0.938 & 只被轻微压浅 \\
+\texttt{task4\_hisTitle2sid} & 82.35\% & 1.533 & 0.188 & hardest task 几乎被压成 depth-0 \\
+\texttt{task5\_title\_desc2sid} & 19.41\% & 0.519 & 0.245 & 一部分 depth-2 被压回 0/1 \\
+\bottomrule
+\end{tabular}
+\caption{old fixed 的 bug 不是“hint 更准”，而是把任务分布系统性压浅。}
+\end{table}
+
+\subsection{结论}
+
+\begin{itemize}
+\item old fixed 的表面优势，不是来自更正确的 hint map，而是因为 hardest task 被系统性少给 hint。
+\item 因此它更像一个带偏置的历史现象学上界，而不是应该继续复用的方法定义。
+\item 这也是为什么本文后文在需要 fixed reference 时，默认优先引用 corrected \texttt{fixed taskfix sid-only}。
+\end{itemize}
