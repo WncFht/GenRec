@@ -8,7 +8,6 @@ from instruments_plot_lib import (
     build_best_summary,
     build_dataframe,
     export_metadata,
-    load_eval_wandb_urls,
     load_sft_reference,
     plot_metric_grid,
     save_csv,
@@ -138,8 +137,7 @@ SPECS = [
 
 def main() -> None:
     ASSET_DIR.mkdir(parents=True, exist_ok=True)
-    eval_urls = load_eval_wandb_urls()
-    export_metadata(ASSET_DIR / "instrument_variants_metadata.json", SPECS, eval_urls)
+    export_metadata(ASSET_DIR / "instrument_variants_metadata.json", SPECS)
 
     df = build_dataframe(SPECS)
     best_df = build_best_summary(df)

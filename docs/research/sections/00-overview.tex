@@ -21,9 +21,9 @@
 \item 进度轴：不同 run 的完整 step horizon 不总相同，因此图里统一转成 epoch 时，需要显式写清楚归一化口径
 \end{itemize}
 
-\subsection{关于 W\&B 链接的说明}
+\subsection{关于结果来源的说明}
 
-当前本地稳定可解析的是 eval W\&B：来源是 \path{results/.wandb_eval_manifest.json} 里的 run id，并按仓库现有 W\&B 约定拼到 \path{wncfht/MIMIGenRec-Eval} 项目下。训练 W\&B 的 run id 当前没有随着同步结果一起保留下来，因此后文如果写 “W\&B”，默认指的是 eval W\&B；如果训练 W\&B 无法从本地结果解析，我会显式写出来。
+本文主表和曲线统一读取本地同步回来的 checkpoint 指标文件：主要来源是各实验目录下的 \path{checkpoint-*/metrics.json}，以及 SFT 参考线对应的 \path{checkpoint-495/metrics.json}。报告里不再附外部平台链接，只保留 \path{model\_dir}、launcher 路径和本地导出的对比表。
 
 \subsection{本文的默认约定}
 

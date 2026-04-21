@@ -9,8 +9,7 @@
     "linestyle": "-",
     "linewidth": 2.2,
     "epoch_max_step": null,
-    "epoch_max_step_ref_key": null,
-    "eval_wandb_url": "https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-d44897564a97475a2454"
+    "epoch_max_step_ref_key": null
   },
   {
     "key": "dynamic_sid_only",
@@ -22,8 +21,7 @@
     "linestyle": "-",
     "linewidth": 2.2,
     "epoch_max_step": 2652,
-    "epoch_max_step_ref_key": null,
-    "eval_wandb_url": "https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-ee6decc7ea1d8610d799"
+    "epoch_max_step_ref_key": null
   },
   {
     "key": "dynamic_gather_fix",
@@ -35,8 +33,7 @@
     "linestyle": "-",
     "linewidth": 2.2,
     "epoch_max_step": null,
-    "epoch_max_step_ref_key": null,
-    "eval_wandb_url": "https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-1be485be1692156ede91"
+    "epoch_max_step_ref_key": null
   },
   {
     "key": "ranking_dynamic",
@@ -48,8 +45,7 @@
     "linestyle": "--",
     "linewidth": 2.2,
     "epoch_max_step": null,
-    "epoch_max_step_ref_key": null,
-    "eval_wandb_url": "https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-2795a2428f74dfae9a95"
+    "epoch_max_step_ref_key": null
   },
   {
     "key": "fixed_taskfix",
@@ -61,8 +57,7 @@
     "linestyle": "-",
     "linewidth": 2.2,
     "epoch_max_step": null,
-    "epoch_max_step_ref_key": null,
-    "eval_wandb_url": "https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-7496742c37888e35b425"
+    "epoch_max_step_ref_key": null
   },
   {
     "key": "fixed_taskfix_sid_only",
@@ -74,8 +69,7 @@
     "linestyle": "-",
     "linewidth": 2.2,
     "epoch_max_step": 2652,
-    "epoch_max_step_ref_key": null,
-    "eval_wandb_url": "https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-244685544728aa7e29a6"
+    "epoch_max_step_ref_key": null
   },
   {
     "key": "fixed_old",
@@ -87,8 +81,7 @@
     "linestyle": "-.",
     "linewidth": 2.2,
     "epoch_max_step": null,
-    "epoch_max_step_ref_key": null,
-    "eval_wandb_url": "https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-8a063892d734ccf33470"
+    "epoch_max_step_ref_key": null
   },
   {
     "key": "max1",
@@ -100,8 +93,7 @@
     "linestyle": "-",
     "linewidth": 2.2,
     "epoch_max_step": null,
-    "epoch_max_step_ref_key": null,
-    "eval_wandb_url": "https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-46df05b90f39b85beae7"
+    "epoch_max_step_ref_key": null
   },
   {
     "key": "hintce_batch_mean",
@@ -113,8 +105,7 @@
     "linestyle": "-",
     "linewidth": 2.2,
     "epoch_max_step": null,
-    "epoch_max_step_ref_key": null,
-    "eval_wandb_url": "https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-5bdb57d5173a1bed561a"
+    "epoch_max_step_ref_key": null
   },
   {
     "key": "hintce_token_mean",
@@ -126,8 +117,7 @@
     "linestyle": "-",
     "linewidth": 2.2,
     "epoch_max_step": null,
-    "epoch_max_step_ref_key": null,
-    "eval_wandb_url": "https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-366f2a675a6a5075f0fc"
+    "epoch_max_step_ref_key": null
   },
   {
     "key": "hintce_coef_005",
@@ -139,8 +129,7 @@
     "linestyle": "-",
     "linewidth": 2.2,
     "epoch_max_step": null,
-    "epoch_max_step_ref_key": null,
-    "eval_wandb_url": "https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-939b4ee731a63dd1cf20"
+    "epoch_max_step_ref_key": null
   },
   {
     "key": "single_hint_mixed",
@@ -152,8 +141,7 @@
     "linestyle": "-",
     "linewidth": 2.2,
     "epoch_max_step": null,
-    "epoch_max_step_ref_key": null,
-    "eval_wandb_url": "https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-339f5fd9f41bb0b97451"
+    "epoch_max_step_ref_key": null
   },
   {
     "key": "dynamic_dual_task",
@@ -165,8 +153,7 @@
     "linestyle": "-",
     "linewidth": 2.2,
     "epoch_max_step": null,
-    "epoch_max_step_ref_key": null,
-    "eval_wandb_url": "https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-9fb0f41fb7b32e800633"
+    "epoch_max_step_ref_key": null
   },
   {
     "key": "fixed_dual_task",
@@ -178,7 +165,6 @@
     "linestyle": "-",
     "linewidth": 2.2,
     "epoch_max_step": null,
-    "epoch_max_step_ref_key": "dynamic_dual_task",
-    "eval_wandb_url": "https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-30dc74ff412f180d5fa6"
+    "epoch_max_step_ref_key": "dynamic_dual_task"
   }
 ]

@@ -15,9 +15,6 @@ import pandas as pd
 REPO_ROOT = Path(__file__).resolve().parents[3]
 RESULTS_ROOT = REPO_ROOT / "results"
 SFT_METRICS_PATH = RESULTS_ROOT / "Instruments-grec-sft-qwen4B-4-256-dsz0" / "checkpoint-495" / "metrics.json"
-WANDB_MANIFEST_PATH = RESULTS_ROOT / ".wandb_eval_manifest.json"
-DEFAULT_EVAL_WANDB_ENTITY = "wncfht"
-DEFAULT_EVAL_WANDB_PROJECT = "MIMIGenRec-Eval"
 METRIC_COLUMNS = ["NDCG@10", "HR@10", "NDCG@50", "HR@50"]
 
 
@@ -119,29 +116,10 @@ def save_csv(path: Path, df: pd.DataFrame) -> None:
     df.to_csv(path, index=False)
 
 
-def load_eval_wandb_urls(
-    entity: str = DEFAULT_EVAL_WANDB_ENTITY,
-    project: str = DEFAULT_EVAL_WANDB_PROJECT,
-) -> dict[str, str]:
-    if not WANDB_MANIFEST_PATH.exists():
-        return {}
-    manifest = json.loads(WANDB_MANIFEST_PATH.read_text())
-    urls: dict[str, str] = {}
-    for model in manifest.get("models", []):
-        model_dir = model.get("model_dir")
-        run_id = model.get("wandb_run_id")
-        if not model_dir or not run_id:
-            continue
-        urls[str(model_dir)] = f"https://wandb.ai/{entity}/{project}/runs/{run_id}"
-    return urls
-
-
-def export_metadata(path: Path, specs: list[VariantSpec], eval_wandb_urls: dict[str, str]) -> None:
+def export_metadata(path: Path, specs: list[VariantSpec]) -> None:
     rows = []
     for spec in specs:
-        row = asdict(spec)
-        row["eval_wandb_url"] = eval_wandb_urls.get(spec.model_dir)
-        rows.append(row)
+        rows.append(asdict(spec))
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(rows, indent=2, ensure_ascii=False))
 

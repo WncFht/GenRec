@@ -4,14 +4,13 @@
 
 这条线不是“只训练 \texttt{task1}”，而是 mixed 三任务仍然一起训练，只是 fixed hint 只注入到 \texttt{task1\_sid\_sft}，其余任务继续按 zero-hint 路径走。
 
-\subsection{对应脚本与 W\&B}
+\subsection{对应脚本}
 
 {\footnotesize
 \begin{itemize}
 \item 画图脚本：\path{docs/research/scripts/build_instruments_report_figures.py}
 \item 脚本目录：\path{hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/}
 \item launcher：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-hint-only-mixed.sh}
-\item eval W\&B：\href{https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-339f5fd9f41bb0b97451}{eval-339f5fd9f41bb0b97451}
 \end{itemize}
 }
 

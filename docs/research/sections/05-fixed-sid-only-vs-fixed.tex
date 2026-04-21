@@ -9,7 +9,7 @@
 \item \texttt{fixed taskfix sid-only} 则切到了专门的 sid-only RL 数据变体，并额外走了一条 sid-only beam hint 分析 / 导出流程；脚本里能看到独立的 \path{ANALYSIS_RUN_NAME}、\path{ANALYZE_HINT_DEPTH=1} 和 sid-only 对应的 summary/details 路径。
 \end{itemize}
 
-\subsection{对应脚本与 W\&B}
+\subsection{对应脚本}
 
 {\footnotesize
 \begin{itemize}
@@ -18,9 +18,6 @@
 \item fixed taskfix：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint.sh}
 \item fixed sid-only：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-only.sh}
 \item old fixed：当前 \path{hope/} 树里没有单独保留 old mixed-single launcher；这里只把它当历史结果线看。
-\item fixed taskfix eval W\&B：\href{https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-7496742c37888e35b425}{eval-7496742c37888e35b425}
-\item fixed sid-only eval W\&B：\href{https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-244685544728aa7e29a6}{eval-244685544728aa7e29a6}
-\item old fixed eval W\&B：\href{https://wandb.ai/wncfht/MIMIGenRec-Eval/runs/eval-8a063892d734ccf33470}{eval-8a063892d734ccf33470}
 \end{itemize}
 }
 
