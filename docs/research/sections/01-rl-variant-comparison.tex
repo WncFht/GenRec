@@ -23,20 +23,21 @@
 \begin{table}[H]
 \centering
 \small
-\begin{tabularx}{\textwidth}{l l c c c c c Y}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{4.0cm} p{2.8cm} c c c c c}
 \toprule
-Variant & Best ckpt & Epoch & NDCG@10 & HR@10 & NDCG@50 & HR@50 & 读法 \\
+Variant & Best ckpt & Epoch & NDCG@10 & HR@10 & NDCG@50 & HR@50 \\
 \midrule
-SFT495 reference & checkpoint-495 & -- & 0.0823 & 0.1094 & 0.0985 & 0.1844 & RL 对照基线 \\
-rule-only rerun & checkpoint-2997 & 1.802 & 0.0960 & 0.1179 & 0.1070 & 0.1681 & top-10 全场最好，但 coverage 最弱 \\
-dynamic hint sid-only & checkpoint-2394 & 1.805 & 0.0921 & 0.1155 & 0.1065 & 0.1830 & 比 plain rule-only 更平衡，但还不够强 \\
-dynamic hint gather-fix & checkpoint-2997 & 1.802 & 0.0936 & 0.1169 & 0.1083 & 0.1855 & 当前 dynamic family 默认基线 \\
-ranking dynamic cascade & checkpoint-1665 & 1.001 & 0.0911 & 0.1138 & 0.1058 & 0.1822 & 中期见顶，后期回落明显 \\
-old fixed hint mixed-single & checkpoint-3326 & 2.000 & 0.0953 & 0.1193 & 0.1114 & 0.1938 & 历史上界参考，带 legacy caveat \\
-corrected fixed taskfix & checkpoint-2997 & 1.802 & 0.0931 & 0.1189 & 0.1094 & 0.1941 & corrected 线里 coverage 很强 \\
-corrected fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1205 & 0.1103 & 0.1935 & 当前最干净的 fixed 参考线 \\
+SFT495 reference & checkpoint-495 & -- & 0.0823 & 0.1094 & 0.0985 & 0.1844 \\
+rule-only rerun & checkpoint-2997 & 1.802 & 0.0960 & 0.1179 & 0.1070 & 0.1681 \\
+dynamic hint sid-only & checkpoint-2394 & 1.805 & 0.0921 & 0.1155 & 0.1065 & 0.1830 \\
+dynamic hint gather-fix & checkpoint-2997 & 1.802 & 0.0936 & 0.1169 & 0.1083 & 0.1855 \\
+ranking dynamic cascade & checkpoint-1665 & 1.001 & 0.0911 & 0.1138 & 0.1058 & 0.1822 \\
+old fixed hint mixed-single & checkpoint-3326 & 2.000 & 0.0953 & 0.1193 & 0.1114 & 0.1938 \\
+corrected fixed taskfix & checkpoint-2997 & 1.802 & 0.0931 & 0.1189 & 0.1094 & 0.1941 \\
+corrected fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1205 & 0.1103 & 0.1935 \\
 \bottomrule
-\end{tabularx}
+\end{tabular}
 \caption{七线主比较。}
 \end{table}
 
@@ -66,16 +67,17 @@ corrected fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1205 & 0
 
 \begin{table}[H]
 \centering
-\small
-\begin{tabularx}{\textwidth}{l l c c c c c c Y}
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{p{3.6cm} p{2.3cm} c c c c c c}
 \toprule
-Variant & Best ckpt & Epoch & NDCG@10 & HR@10 & NDCG@50 & HR@50 & Peak HR@50 & 读法 \\
+Variant & Best ckpt & Epoch & NDCG@10 & HR@10 & NDCG@50 & HR@50 & Peak HR@50 \\
 \midrule
-fixed taskfix & checkpoint-2997 & 1.802 & 0.0931 & 0.1189 & 0.1094 & 0.1941 & 0.1962 & top-10 最强，但 early spike 很大 \\
-fixed taskfix + CE & checkpoint-2664 & 1.602 & 0.0915 & 0.1180 & 0.1081 & 0.1944 & 0.1947 & 更像把 coverage 拉成晚期平台 \\
-fixed taskfix + CE (hintce-2) & checkpoint-2664 & 1.602 & 0.0931 & 0.1168 & 0.1102 & 0.1951 & 0.1954 & 当前最强 CE 变体 \\
+fixed taskfix & checkpoint-2997 & 1.802 & 0.0931 & 0.1189 & 0.1094 & 0.1941 & 0.1962 \\
+fixed taskfix + CE & checkpoint-2664 & 1.602 & 0.0915 & 0.1180 & 0.1081 & 0.1944 & 0.1947 \\
+fixed taskfix + CE (hintce-2) & checkpoint-2664 & 1.602 & 0.0931 & 0.1168 & 0.1102 & 0.1951 & 0.1954 \\
 \bottomrule
-\end{tabularx}
+\end{tabular}
 \caption{fixed taskfix 的 CE variants vs non-CE。}
 \end{table}
 

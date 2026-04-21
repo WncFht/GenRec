@@ -33,34 +33,36 @@ hint budget & max depth 3 & max depth 1 & 唯一改动 \\
 \begin{table}[H]
 \centering
 \small
-\begin{tabularx}{\textwidth}{l l c c c c c Y}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{4.0cm} p{2.8cm} c c c c c}
 \toprule
-Variant & Best ckpt & Epoch & NDCG@10 & HR@10 & NDCG@50 & HR@50 & 读法 \\
+Variant & Best ckpt & Epoch & NDCG@10 & HR@10 & NDCG@50 & HR@50 \\
 \midrule
-rule-only rerun & checkpoint-2997 & 1.802 & 0.0960 & 0.1179 & 0.1070 & 0.1681 & top-10 最强，但 coverage 最低 \\
-dynamic hint sid-only & checkpoint-2394 & 1.805 & 0.0921 & 0.1155 & 0.1065 & 0.1830 & 早期有 gain，后面偏平 \\
-dynamic hint gather-fix & checkpoint-2997 & 1.802 & 0.0936 & 0.1169 & 0.1083 & 0.1855 & 当前长跑 dynamic baseline \\
-dynamic hint max1 & checkpoint-1332 & 0.801 & 0.0934 & 0.1158 & 0.1095 & 0.1905 & best 点停在中前段 \\
-corrected fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1205 & 0.1103 & 0.1935 & clean fixed 上界参考 \\
+rule-only rerun & checkpoint-2997 & 1.802 & 0.0960 & 0.1179 & 0.1070 & 0.1681 \\
+dynamic hint sid-only & checkpoint-2394 & 1.805 & 0.0921 & 0.1155 & 0.1065 & 0.1830 \\
+dynamic hint gather-fix & checkpoint-2997 & 1.802 & 0.0936 & 0.1169 & 0.1083 & 0.1855 \\
+dynamic hint max1 & checkpoint-1332 & 0.801 & 0.0934 & 0.1158 & 0.1095 & 0.1905 \\
+corrected fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1205 & 0.1103 & 0.1935 \\
 \bottomrule
-\end{tabularx}
+\end{tabular}
 \caption{max1 与主要 baseline 的 best-point 对照。}
 \end{table}
 
 \begin{table}[H]
 \centering
 \small
-\begin{tabularx}{\textwidth}{l l c c c Y}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{4.0cm} p{2.8cm} c c c}
 \toprule
-Variant & Peak ckpt & Epoch & Peak HR@50 & NDCG@10 at peak & 读法 \\
+Variant & Peak ckpt & Epoch & Peak HR@50 & NDCG@10 at peak \\
 \midrule
-rule-only rerun & checkpoint-999 & 0.601 & 0.1768 & 0.0936 & coverage 峰值低，而且很早就掉下去 \\
-dynamic hint sid-only & checkpoint-532 & 0.401 & 0.1868 & 0.0881 & 典型 early spike \\
-dynamic hint gather-fix & checkpoint-1332 & 0.801 & 0.1931 & 0.0926 & 当前长跑 dynamic 的 coverage 峰值 \\
-dynamic hint max1 & checkpoint-999 & 0.601 & 0.1907 & 0.0925 & 比 sid-only 和 rule-only 都高 \\
-corrected fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.1935 & 0.0945 & 仍然更稳 \\
+rule-only rerun & checkpoint-999 & 0.601 & 0.1768 & 0.0936 \\
+dynamic hint sid-only & checkpoint-532 & 0.401 & 0.1868 & 0.0881 \\
+dynamic hint gather-fix & checkpoint-1332 & 0.801 & 0.1931 & 0.0926 \\
+dynamic hint max1 & checkpoint-999 & 0.601 & 0.1907 & 0.0925 \\
+corrected fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.1935 & 0.0945 \\
 \bottomrule
-\end{tabularx}
+\end{tabular}
 \caption{max1 的 coverage 峰值仍低于 gather-fix 与 clean fixed。}
 \end{table}
 

@@ -73,14 +73,15 @@ single-hint mixed & checkpoint-2664 & 1.602 & 0.0948 & 0.1180 & 0.1116 & 0.1958 
 \begin{table}[H]
 \centering
 \small
-\begin{tabularx}{\textwidth}{l l c c c Y}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{4.0cm} p{2.8cm} c c c}
 \toprule
-Variant & Best ckpt & Aligned epoch & NDCG@10 & HR@50 & 读法 \\
+Variant & Best ckpt & Aligned epoch & NDCG@10 & HR@50 \\
 \midrule
-dynamic dual-task & checkpoint-1510 & 1.861 & 0.0930 & 0.1885 & 完整轨迹已可比，但 best 仍停在中段 \\
-fixed dual-task & checkpoint-2718 & 1.972 & 0.0939 & 0.1897 & 后半段持续抬升，整体略强于 dynamic dual-task \\
+dynamic dual-task & checkpoint-1510 & 1.861 & 0.0930 & 0.1885 \\
+fixed dual-task & checkpoint-2718 & 1.972 & 0.0939 & 0.1897 \\
 \bottomrule
-\end{tabularx}
+\end{tabular}
 \caption{dual-task family 的 aligned comparison。}
 \end{table}
 
