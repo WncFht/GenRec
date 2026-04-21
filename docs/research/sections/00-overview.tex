@@ -1,58 +1,45 @@
-\section{文档总览}
+\section{Instruments 数据集实验范围}
 
-\subsection{合并范围}
+\subsection{本文只讨论什么}
 
-本稿当前先合并三篇和 \texttt{Instruments-grec} RL 主线最相关的实验 note：
+这份整理稿只讨论 \texttt{Instruments-grec} 数据集上的 RL 实验，不把 Games、跨数据集 sweep、reward form 的完整历史演化和更早期的 exploratory runs 一起混进来。当前主线关注的是：
 
 \begin{itemize}
-\item 2026-04-11：七线主比较 + fixed-hint CE 补充
-\item 2026-04-16：dynamic-hint max1 消融
-\item 2026-04-19：dual-task 过滤 / single-hint mixed tracking
+\item SFT 与 plain \texttt{rule-only} baseline 的位置
+\item canonical dynamic hint 与 fixed hint family 的相对位置
+\item dynamic / fixed 家族内部几个关键变体的对照
+\item 后续几条最值得继续追的消融与扩展：\texttt{max1}、CE scaling、single-hint mixed、dual-task
 \end{itemize}
 
-这三篇的关系并不是平行重复，而是三层递进：
-
-\begin{enumerate}
-\item 2026-04-11 给出当前最常用的主 baseline 版图，是总览层。
-\item 2026-04-16 专门回答 dynamic family 里的一个 focused ablation：把 online hint budget 从“最大深度为 3”收紧到“最大深度为 1”之后会发生什么。
-\item 2026-04-19 继续沿着“任务过滤 / hint 只施加到部分任务”这条线，记录 single-hint mixed、dynamic dual-task、fixed dual-task 和 hintce-3 的新进展。
-\end{enumerate}
-
-\subsection{共享背景}
-
-三篇 note 共享的研究背景基本一致：
+\subsection{共享实验背景}
 
 \begin{itemize}
-\item 数据集与任务：\texttt{Instruments-grec}
+\item 数据集：\texttt{Instruments-grec}
 \item RL 起点：\texttt{Instruments-grec-sft-qwen4B-4-256-dsz0/checkpoint-495}
-\item 常用对比维度：top-10 质量、top-50 coverage、是否依赖 hint scaffold、是否会出现 early coverage spike、是否能在完整 2 epoch 尾段维持优势
+\item 主读法：默认先看 best \texttt{NDCG@10}，再看对应的 \texttt{HR@50} 和必要时的 peak \texttt{HR@50}
+\item 进度轴：不同 run 的完整 step horizon 不总相同，因此图里统一转成 epoch 时，需要显式写清楚归一化口径
 \end{itemize}
 
-其中最重要的阅读原则有两个：
+\subsection{本文的默认约定}
 
 \begin{enumerate}
-\item 主表默认按 best \texttt{NDCG@10} 选点，但不能只看一个 best 点，还要同时记录 peak \texttt{HR@50} 和 final/latest readout。
-\item 不同 run 的完整训练 step horizon 不总是一样，因此横轴统一成 epoch 时，必须写清楚归一化口径。
+\item \texttt{dynamic gather-fix} 被视为当前正确的 canonical dynamic 实现；后文里如果直接写 “dynamic”，默认指它。
+\item old \texttt{fixed hint mixed-single} 只作为带 bug caveat 的历史参考线，不再把它当作方法定义本身。
+\item corrected \texttt{fixed taskfix sid-only} 被当作当前更干净的 fixed 参考线。
 \end{enumerate}
 
-\subsection{为什么现在先转成 LaTeX}
+\subsection{按什么顺序读}
 
-把三篇 note 合并成 LaTeX，当前主要是为了解决两个问题：
-
-\begin{itemize}
-\item 给后续持续更新留一个更稳定的结构，而不是每次新结果出来都重新发明一篇 Markdown。
-\item 让图表、表格、结论和后续动作开始形成可组合的“章”级结构，后面无论是继续扩写为长报告，还是拆成更细的实验小稿，都更容易维护。
-\end{itemize}
-
-\subsection{本稿当前结构}
-
-\begin{longtable}{p{3.8cm}p{3.3cm}p{6.1cm}}
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{4.0cm}p{3.0cm}p{5.5cm}}
 \toprule
 章节 & 作用 & 当前内容 \\
 \midrule
-\endhead
-七线主比较 & 建立 baseline 地图 & rule-only、dynamic、fixed、CE 变体的统一总览 \\
-dynamic max1 消融 & focused ablation & 回答浅 hint budget 是否能把 dynamic family 推向更好的 trade-off \\
-dual-task / single-hint tracking & 持续跟踪新探索 & 记录 dual-task filtered 与 single-hint mixed 两类新设定的完整轨迹 \\
+主表与 baseline & 建立全局地图 & Instruments 上的主表、SFT 与 rule-only baseline、canonical dynamic 与 fixed 的位置 \\
+Hint 家族内部对照 & 看清关键 family 差异 & dynamic sid-only、ranking dynamic、fixed sid-only，以及 old fixed bug 对 corrected fixed 的影响 \\
+专项消融与新探索 & 跟后续值得继续追的方向 & max1、CE scaling、single-hint mixed、dual-task \\
 \bottomrule
-\end{longtable}
+\end{tabular}
+\end{table}

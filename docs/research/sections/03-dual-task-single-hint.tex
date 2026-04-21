@@ -1,58 +1,84 @@
-\section{Dual-Task 过滤与 Single-Hint Mixed 跟踪}
+\section{专项消融与新探索}
 
-\subsection{本章研究问题}
-
-这一章对应 2026-04-19 的 tracking note。它实际上覆盖两类新问题：
-
-\begin{enumerate}
-\item 只训练两个任务：从 mixed RL 三任务里移除 \texttt{task4}，只保留 \texttt{task1 + task5}。
-\item 只 hint 一个任务：训练仍保留 mixed task，但 fixed hint 只注入 \texttt{task1}。
-\end{enumerate}
-
-这轮虽然有三个 launcher，但研究问题只有两类，因此这一章按研究问题分组，而不按 launcher 分组。
-
-\subsection{新 setting 一览}
+\subsection{max1：dynamic budget 收紧到 depth=1 的消融}
 
 \begin{table}[H]
 \centering
 \small
-\begin{tabularx}{\textwidth}{l l l Y}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{3.8cm} p{2.4cm} c c c}
 \toprule
-Setting & 训练任务 & hint 机制 & 说明 \\
+Variant & Best ckpt & Epoch & NDCG@10 & HR@50 \\
 \midrule
-dynamic dual-task & \texttt{task1 + task5} & dynamic hint & 只训练两个任务，eval 仍看 task1 \\
-fixed dual-task & \texttt{task1 + task5} & fixed hint & beam hint export 也只针对 dual-task 子集 \\
-single-hint mixed & mixed 三任务 & fixed hint 仅给 task1 & task4/task5 继续训练，但按 zero-hint 路径走 \\
+rule-only rerun & checkpoint-2997 & 1.802 & 0.0960 & 0.1681 \\
+dynamic gather-fix & checkpoint-2997 & 1.802 & 0.0936 & 0.1855 \\
+dynamic max1 & checkpoint-1332 & 0.801 & 0.0934 & 0.1905 \\
+fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1935 \\
 \bottomrule
-\end{tabularx}
-\caption{2026-04-19 tracking note 中最重要的三个新 setting。}
-\end{table}
-
-\subsection{single-hint mixed：已经进入 fixed family 前沿}
-
-\begin{table}[H]
-\centering
-\small
-\begin{tabularx}{\textwidth}{l l c c c c c}
-\toprule
-Variant & Best ckpt & Epoch & NDCG@10 & HR@10 & NDCG@50 & HR@50 \\
-\midrule
-dynamic gather-fix & checkpoint-2997 & 1.802 & 0.0936 & 0.1169 & 0.1083 & 0.1855 \\
-dynamic dual-task & checkpoint-1510 & 1.003 & 0.0930 & -- & -- & 0.1885 \\
-fixed old & checkpoint-3326 & 2.000 & 0.0953 & -- & -- & 0.1938 \\
-fixed taskfix & checkpoint-2997 & 1.802 & 0.0931 & -- & -- & 0.1941 \\
-fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & -- & -- & 0.1935 \\
-single-hint mixed & checkpoint-2664 & 1.602 & 0.0948 & 0.1180 & 0.1116 & 0.1958 \\
-\bottomrule
-\end{tabularx}
-\caption{single-hint mixed 已经可以放进主 baseline 族里一起比较。}
+\end{tabular}
+\caption{max1 的位置：更像 early-stop dynamic candidate，而不是新的默认线。}
 \end{table}
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.96\textwidth]{single_hint_vs_baselines_epoch_curves.png}
-\caption{single-hint mixed vs baselines。}
+\includegraphics[width=0.96\textwidth]{max1-ablation-epoch-curves.png}
+\caption{max1 ablation 曲线。}
 \end{figure}
+
+\begin{itemize}
+\item \texttt{max1} 不是退化成 \texttt{rule-only}，因为它保住了明显更高的 coverage。
+\item 它也不是被 \texttt{gather-fix} 全程支配，因为早中段确实能给出更好的 trade-off。
+\item 但完整轨迹已经说明它的优势主要停在前中段，因此更准确的定位仍然是 early-stop 候选。
+\end{itemize}
+
+\subsection{CE scaling：hintce-2 与 hintce-3}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{4.0cm} p{2.4cm} c c c c}
+\toprule
+Variant & Best ckpt & Epoch & NDCG@10 & HR@50 & 备注 \\
+\midrule
+fixed taskfix & checkpoint-2997 & 1.802 & 0.0931 & 0.1941 & non-CE 参考线 \\
+hintce-2 & checkpoint-2664 & 1.602 & 0.0931 & 0.1951 & 当前更稳的 CE 候选 \\
+hintce-3 & checkpoint-1665 & 1.001 & 0.0945 & 0.1985 & CE 相对倍率 0.005，当前最强中段峰值 \\
+\bottomrule
+\end{tabular}
+\caption{CE scaling 消融。}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{hintce_scaling_epoch_curves.png}
+\caption{CE scaling 曲线，包含 \texttt{hintce-3}。}
+\end{figure}
+
+\begin{itemize}
+\item full non-CE 仍然是当前 fixed family 的干净参考线。
+\item \texttt{hintce-2} 把 CE 从 early readout 拉成了一个完整轨迹上的更稳候选。
+\item \texttt{hintce-3} 当前最需要记住的是：它对应更高的 CE 相对倍率 0.005，并且已经把中段 best 点推到 \texttt{0.0945 / 0.1985}；真正还缺的是最后一段 terminal readout。
+\end{itemize}
+
+\subsection{Single-hint mixed：只对 sid 任务注入 fixed hint}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{4.0cm} p{2.4cm} c c c}
+\toprule
+Variant & Best ckpt & Epoch & NDCG@10 & HR@50 \\
+\midrule
+fixed taskfix & checkpoint-2997 & 1.802 & 0.0931 & 0.1941 \\
+fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1935 \\
+old fixed mixed-single & checkpoint-3326 & 2.000 & 0.0953 & 0.1938 \\
+single-hint mixed & checkpoint-2664 & 1.602 & 0.0948 & 0.1958 \\
+\bottomrule
+\end{tabular}
+\caption{single-hint mixed 是当前最强的 partial-hint 候选。}
+\end{table}
 
 \begin{figure}[H]
 \centering
@@ -60,29 +86,29 @@ single-hint mixed & checkpoint-2664 & 1.602 & 0.0948 & 0.1180 & 0.1116 & 0.1958 
 \caption{single-hint mixed vs fixed family。}
 \end{figure}
 
-这部分当前最重要的判断是：
+\begin{itemize}
+\item 这条线不是“只训练 task1”，而是 mixed 三任务仍然训练，只是 fixed hint 只注入到 \texttt{task1\_sid\_sft}。
+\item 它当前 best 点已经同时超过 corrected \texttt{fixed taskfix sid-only} 的 \texttt{NDCG@10} 和 \texttt{HR@50}。
+\item 因此后续更值得解释的问题不是“它有没有信号”，而是它为什么能在完整尾段维持住 fixed family 前沿水平。
+\end{itemize}
 
-\begin{enumerate}
-\item \texttt{single-hint mixed} 已经不只是一个有信号的新 launcher，而是开始站到 fixed family 的前沿区域。
-\item 它当前 full-trace best 点 \texttt{0.0948 / 0.1958} 已经同时超过 corrected \texttt{fixed taskfix sid-only} 的 \texttt{0.0945 / 0.1935}。
-\item 它对 old fixed 仍然略差一点 top-10，但 coverage 已经更高，因此后续真正值得解释的是：为什么它能在完整尾段维持住这个高位平台。
-\end{enumerate}
-
-\subsection{dual-task family：fixed 已经整体强于 dynamic}
+\subsection{Dual-task：dynamic 与 fixed 都要看}
 
 \begin{table}[H]
 \centering
 \small
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{p{4.0cm} p{2.8cm} c c c}
+\begin{tabular}{p{4.0cm} p{2.4cm} c c c}
 \toprule
-Variant & Best ckpt & Aligned epoch & NDCG@10 & HR@50 \\
+Variant & Best ckpt & Epoch / aligned epoch & NDCG@10 & HR@50 \\
 \midrule
-dynamic dual-task & checkpoint-1510 & 1.861 & 0.0930 & 0.1885 \\
-fixed dual-task & checkpoint-2718 & 1.972 & 0.0939 & 0.1897 \\
+dynamic gather-fix & checkpoint-2997 & 1.802 & 0.0936 & 0.1855 \\
+dynamic dual-task & checkpoint-1510 & 1.003 / 1.861 & 0.0930 & 0.1885 \\
+fixed dual-task & checkpoint-2718 & 1.805 / 1.972 & 0.0939 & 0.1897 \\
+fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1935 \\
 \bottomrule
 \end{tabular}
-\caption{dual-task family 的 aligned comparison。}
+\caption{dual-task family 与 canonical dynamic / clean fixed reference 的位置。}
 \end{table}
 
 \begin{figure}[H]
@@ -91,43 +117,8 @@ fixed dual-task & checkpoint-2718 & 1.972 & 0.0939 & 0.1897 \\
 \caption{dual-task family aligned curves。}
 \end{figure}
 
-现在这条线已经可以明确写成：
-
 \begin{itemize}
-\item fixed dual-task 不再只是 early look，而是一条完整可比轨迹。
-\item 相比 dynamic dual-task，它不再只是交换 top-10 与 coverage，而是整体略占优。
-\item 但它离 clean fixed 主线仍然有明显差距，所以更准确的定位是“dual-task 版本里 fixed 比 dynamic 更强”，而不是“dual-task 已经进入 fixed 主线最前排”。
+\item \texttt{dynamic dual-task} 已经进入可比较状态，但还没有超过 canonical \texttt{dynamic gather-fix}。
+\item \texttt{fixed dual-task} 已经整体强于 \texttt{dynamic dual-task}，因此 dual-task family 内部也复现了 “fixed 比 dynamic 更稳” 的方向。
+\item 但它离 clean fixed 主线仍然有明显差距，所以当前更准确的定位是：dual-task 是一条值得继续跟的 filtered setting，而不是已经改写主线排序。
 \end{itemize}
-
-\subsection{新增同步：hintce-3}
-
-\begin{table}[H]
-\centering
-\small
-\begin{tabularx}{\textwidth}{l l l c c c}
-\toprule
-Variant & Synced ckpts & Best ckpt & Epoch & NDCG@10 & HR@50 \\
-\midrule
-fixed taskfix & 333..3326 & checkpoint-2997 & 1.802 & 0.0931 & 0.1941 \\
-hintce-2 & 333..3326 & checkpoint-2664 & 1.602 & 0.0931 & 0.1951 \\
-hintce-3 & 333..2997 & checkpoint-1665 & 1.001 & 0.0945 & 0.1985 \\
-\bottomrule
-\end{tabularx}
-\caption{hintce-3 已从 early readout 变成中后段强候选。}
-\end{table}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.96\textwidth]{hintce_scaling_epoch_curves.png}
-\caption{hintce scaling curves。}
-\end{figure}
-
-截至当前同步状态，\texttt{hintce-3} 的含义已经变了：它不再只是一个“只有两个 early 点”的暂存结果，而是一条已经足够进入主候选讨论范围的轨迹。只是它是否能成为稳态新上界，仍然要看最后一段 checkpoint。
-
-\subsection{本章小结}
-
-\begin{enumerate}
-\item \texttt{single-hint mixed} 是这一轮最值得继续追的主候选之一，因为它已经在完整尾段维持住了 fixed family 前沿水平。
-\item fixed dual-task 已经可以当作“比 dynamic dual-task 更强”的 clean 结论，但它还没有打入当前 fixed 主线最前排。
-\item \texttt{hintce-3} 已经从 early readout 升级成中段强峰值候选，后续只差最后一段 terminal readout 来判断它是不是稳态新上界。
-\end{enumerate}

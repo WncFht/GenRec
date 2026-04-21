@@ -18,6 +18,7 @@
 }
 
 \graphicspath{
+  {../assets/2026-04-02-genrec-results-since-2026-03-19/}
   {../assets/2026-04-11-genrec-instruments-rl-variant-comparison/}
   {../assets/2026-04-16-instruments-dynamic-hint-max1-ablation/}
   {../assets/2026-04-19-instruments-dual-task-single-hint-tracking/}
@@ -27,8 +28,8 @@
 \setlength{\LTleft}{0pt}
 \setlength{\LTright}{0pt}
 
-\title{GenRec Instruments-grec RL 研究合并稿}
-\author{基于 2026-04-11 / 2026-04-16 / 2026-04-19 三篇实验 note 整理}
+\title{GenRec Instruments 数据集 RL 实验整理}
+\author{按实验主题重构的 LaTeX 研究稿}
 \date{2026-04-21}
 
 \begin{document}
@@ -36,7 +37,7 @@
 \maketitle
 
 \begin{abstract}
-这是一份面向持续迭代的 LaTeX 研究稿初版，先把 \texttt{Instruments-grec} 上三篇核心实验 note 合并到同一份文档里。当前重点不是一次性写成终稿，而是先建立一个可长期续写的结构：总览、七线主比较、dynamic max1 消融、dual-task 与 single-hint tracking，以及统一的结论与后续动作。
+本文把 \texttt{Instruments-grec} 上已经跑出来的主要 RL 实验按“baseline、canonical hint family、家族内部对照、专项消融”四层结构重排。默认将 \texttt{dynamic gather-fix} 视为正确的 canonical dynamic 实现，将 old fixed-hint 明确标成带 bug caveat 的历史参考，并把 \texttt{max1}、CE scaling、single-hint mixed 与 dual-task 这些后续探索拆成单独 section。
 \end{abstract}
 
 \tableofcontents
@@ -47,30 +48,24 @@
 \input{sections/02-dynamic-max1-ablation}
 \input{sections/03-dual-task-single-hint}
 
-\section{统一结论与后续整理建议}
+\section{结论与下一步}
 
-\subsection{目前最稳的主故事}
+\subsection{当前最稳的主故事}
 
 \begin{enumerate}
 \item plain \texttt{rule-only} 仍然是当前 top-10 最强的无 hint baseline，但 coverage 损失很明确，因此不适合直接当 balanced 主线。
-\item clean fixed-hint family 仍然是当前最稳定的主候选。即使不再把带 legacy caveat 的 old fixed 当作方法定义，它也没有改变这一点。
-\item dynamic family 不是没有价值，但目前更像是提供局部 trade-off 改善，而不是整体打穿 fixed family。 \texttt{gather-fix} 仍是长跑默认 dynamic baseline，\texttt{max1} 更像 early-stop candidate。
-\item 2026-04-19 之后，single-hint mixed 已经从“旁支尝试”进入 fixed family 前沿区域；dual-task fixed 也已经从 very-early look 进入完整可比轨迹。
+\item \texttt{dynamic gather-fix} 应被视为当前 canonical dynamic 实现；\texttt{dynamic sid-only} 和 \texttt{ranking dynamic} 都还没有超过它。
+\item clean fixed family 仍然是当前最强的 balanced 主候选；其中 corrected \texttt{fixed taskfix sid-only} 是更干净的 fixed 参考，而 old fixed 只能当 historical reference。
+\item 在后续探索里，\texttt{max1} 更像 early-stop dynamic candidate；\texttt{hintce-3}、\texttt{single-hint mixed} 和 \texttt{fixed dual-task} 则分别对应 CE scaling、partial-hint 和 task-filtered 三条新的探索方向。
 \end{enumerate}
 
-\subsection{这份 LaTeX 稿下一步可以怎么扩}
+\subsection{下一步最值得继续补的证据}
 
 \begin{itemize}
-\item 继续沿用“一个实验组一个子文件”的方式扩写，而不是回到单篇超长 Markdown。
-\item 把公共元信息继续上收，例如统一的 baseline 表、结果同步状态、图表风格、W\&B 链接和脚本路径。
-\item 后续如果要写成更正式的研究报告，可以把本稿继续拆成：
-  \begin{itemize}
-  \item 主比较正文
-  \item dynamic family 专章
-  \item fixed family 与 CE 专章
-  \item 双任务/单任务 hint 新探索专章
-  \end{itemize}
-\item 图表层后续最好再统一成一套可复用脚本和样式文件，这样 LaTeX 侧就只负责排版，不再手工对每篇实验单独适配。
+\item 补 \texttt{hintce-3} 的最后一段 terminal checkpoint，确认它是不是稳态新上界，而不只是中段强峰值。
+\item 继续跟 \texttt{single-hint mixed} 的尾段平台，并解释为什么它能在完整 2 epoch 维持住 fixed family 前沿。
+\item 继续跟 \texttt{dynamic dual-task} 与 \texttt{fixed dual-task} 的终段 readout，确认 dual-task family 的稳定排序。
+\item 如果后面要把这份稿件扩成更正式的研究报告，建议继续沿用“一个实验主题一个子文件”的结构，而不是回到按日期拼接的 note 模式。
 \end{itemize}
 
 \end{document}
