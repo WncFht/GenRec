@@ -17,6 +17,7 @@ from instruments_plot_lib import (
     load_sft_reference,
     plot_best_scatter,
     plot_metric_grid,
+    plot_single_metric,
     save_csv,
 )
 
@@ -58,6 +59,14 @@ SEVEN_WAY_MAIN_KEYS = [
 MAX1_ABLATION_KEYS = ["max1", "dynamic_gather_fix", "dynamic_sid_only", "rule_only", "fixed_taskfix_sid_only"]
 MAX1_FOCUS_KEYS = ["fixed_taskfix", "dynamic_gather_fix", "max1", "fixed_old"]
 SINGLE_HINT_FIXED_KEYS = ["fixed_old", "fixed_taskfix", "fixed_taskfix_sid_only", "single_hint_mixed"]
+PROMISING_CANDIDATE_KEYS = [
+    "rule_only",
+    "single_hint_mixed",
+    "fixed_old",
+    "fixed_taskfix_sid_only",
+    "fixed_taskfix",
+    "hintce_coef_005",
+]
 DEPTH_COLUMNS = [
     ("depth_0_ratio", "depth-0", TABLEAU_10["blue"]),
     ("depth_1_ratio", "depth-1", TABLEAU_10["green"]),
@@ -274,6 +283,14 @@ def main() -> None:
 
     save_csv(ASSET_DIR / "all_variant_checkpoint_metrics.csv", df)
     save_csv(ASSET_DIR / "all_variant_best_summary.csv", best_df)
+    save_csv(
+        ASSET_DIR / "promising_candidates_checkpoint_metrics.csv",
+        df[df["variant_key"].isin(PROMISING_CANDIDATE_KEYS)],
+    )
+    save_csv(
+        ASSET_DIR / "promising_candidates_best_summary.csv",
+        best_df[best_df["variant_key"].isin(PROMISING_CANDIDATE_KEYS)],
+    )
 
     plot_metric_grid(
         df,
@@ -378,6 +395,46 @@ def main() -> None:
         ["dynamic_dual_task", "fixed_dual_task", "dynamic_gather_fix", "fixed_taskfix_sid_only"],
         "Instruments Dual-Task Family vs References",
         ASSET_DIR / "dual_task_vs_references_curves.png",
+        sft,
+        legend_cols=4,
+    )
+    plot_single_metric(
+        df,
+        SPECS,
+        PROMISING_CANDIDATE_KEYS,
+        "NDCG@10",
+        "Instruments Promising Candidates: NDCG@10",
+        ASSET_DIR / "promising_candidates_ndcg10.png",
+        sft,
+        legend_cols=4,
+    )
+    plot_single_metric(
+        df,
+        SPECS,
+        PROMISING_CANDIDATE_KEYS,
+        "HR@10",
+        "Instruments Promising Candidates: HR@10",
+        ASSET_DIR / "promising_candidates_hr10.png",
+        sft,
+        legend_cols=4,
+    )
+    plot_single_metric(
+        df,
+        SPECS,
+        PROMISING_CANDIDATE_KEYS,
+        "NDCG@50",
+        "Instruments Promising Candidates: NDCG@50",
+        ASSET_DIR / "promising_candidates_ndcg50.png",
+        sft,
+        legend_cols=4,
+    )
+    plot_single_metric(
+        df,
+        SPECS,
+        PROMISING_CANDIDATE_KEYS,
+        "HR@50",
+        "Instruments Promising Candidates: HR@50",
+        ASSET_DIR / "promising_candidates_hr50.png",
         sft,
         legend_cols=4,
     )

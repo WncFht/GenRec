@@ -186,6 +186,52 @@ def plot_metric_grid(
     return out_path
 
 
+def plot_single_metric(
+    df: pd.DataFrame,
+    specs: list[VariantSpec],
+    variant_keys: list[str],
+    metric: str,
+    title: str,
+    out_path: Path,
+    sft_reference: dict[str, float | str],
+    *,
+    x_column: str = "epoch_progress",
+    x_label: str = "Epoch",
+    y_label: str | None = None,
+    legend_cols: int = 4,
+    reference_label: str = "SFT495",
+    figsize: tuple[float, float] = (9.8, 5.2),
+    dpi: int = 180,
+) -> Path:
+    spec_map = _variant_map(specs)
+    fig, ax = plt.subplots(figsize=figsize)
+
+    for key in variant_keys:
+        _plot_variant(ax, df, spec_map[key], metric, x_column)
+
+    ax.axhline(float(sft_reference[metric]), linestyle="--", linewidth=1.4, color="#6b7280", label=reference_label)
+    ax.set_title(title)
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label or metric)
+    ax.grid(alpha=0.22)
+
+    handles, labels = ax.get_legend_handles_labels()
+    unique = dict(zip(labels, handles, strict=False))
+    fig.legend(
+        unique.values(),
+        unique.keys(),
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.995),
+        ncol=legend_cols,
+        frameon=False,
+    )
+    fig.tight_layout(rect=(0, 0, 1, 0.84))
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=dpi)
+    plt.close(fig)
+    return out_path
+
+
 def plot_best_scatter(
     best_df: pd.DataFrame,
     specs: list[VariantSpec],
