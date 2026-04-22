@@ -122,12 +122,13 @@
 - `hintce-3` 现在已经不再是 early readout：
   当前 best 点在 `checkpoint-1665 / NDCG@10=0.0945 / HR@50=0.1985`；
   它已经明显压过 `hintce-2` 和 plain `fixed taskfix`，因此从“倍率试探”升级成了需要认真对待的新主候选。
+  现在本地也已经补到完整 `checkpoint-3326`，但 best 点仍然停在 `1665` 左右，尾段回落到 `NDCG@10=0.0943 / HR@50=0.1960` 附近，因此它更像“完整轨迹里确认过的中段强峰值”，而不是简单的缺尾点候选。
 
 ### 当前最值得继续做的事
 
 - 把 `UFT-style hint curriculum` 落到 corrected `fixed taskfix sid-only` 上。
 - 对 `hintce-2` 做更细的 task-level 和训练日志分析，确认为什么 balanced 优势出现在中后段而不是最终点。
-- 优先补 `hintce-3` 的最后一个 checkpoint，并确认它在完整尾段能否维持当前 `0.0945 / 0.1985` 级别的优势。
+- 解释 `hintce-3` 为什么在完整尾段没有维持 `checkpoint-1665` 的 `0.0945 / 0.1985` 峰值，并判断后续更该往 curriculum、loss weight 还是 early-stop 方向延伸。
 - 继续观察 `fixed dual-task` 的 `2718/3012` 平台是不是它的稳态上限，还是后面还会继续被新的同步改写。
 - 继续观察 `dynamic dual-task` 能否从当前 `1510` 左右的 best 点往上推，还是 `3012` 之后仍然维持“中段最佳、尾段回落”的形态。
 - 解释 `single-hint mixed` 为什么在完整 `2.0` epoch 尾段维持高位平台，但没有超过 `checkpoint-2664` 的 top-10 峰值。

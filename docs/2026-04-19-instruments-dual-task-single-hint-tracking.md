@@ -3,7 +3,7 @@
 - 记录日期：2026-04-19
 - 最后更新：2026-04-21
 - 目标：把这轮 `Instruments-grec` 新开的两种训练 setting 记成一份可持续续写的 tracking note，并对齐当前本地 `results/` 同步状态。
-- 当前状态：`bash scripts/sync_results_from_remote.sh unpack` 已在本地完成；当前本地 `results/` 快照里，`single-hint mixed` 已同步到完整 `checkpoint-3326`，`dynamic dual-task` 已同步到完整 `10` 个 checkpoint（`checkpoint-302` 到 `checkpoint-3012`），`fixed dual-task` 也已同步到完整 `10` 个 checkpoint（`checkpoint-302` 到 `checkpoint-3012`），`hintce-3` 已同步到 `checkpoint-333` 到 `checkpoint-2997` 的 `9` 个 checkpoint。
+- 当前状态：`bash scripts/sync_results_from_remote.sh unpack` 已在本地完成；当前本地 `results/` 快照里，`single-hint mixed` 已同步到完整 `checkpoint-3326`，`dynamic dual-task` 已同步到完整 `10` 个 checkpoint（`checkpoint-302` 到 `checkpoint-3012`），`fixed dual-task` 也已同步到完整 `10` 个 checkpoint（`checkpoint-302` 到 `checkpoint-3012`），`hintce-3` 现在也已同步到完整 `10` 个 checkpoint（`checkpoint-333` 到 `checkpoint-3326`）。
 
 ## 1. 这次在跟踪哪两种 setting
 
@@ -270,13 +270,13 @@
 | --- | --- | --- | ---: | ---: | ---: |
 | `fixed taskfix` | `333..3326` | `checkpoint-2997` | `1.802` | `0.0931` | `0.1941` |
 | `hintce-2` | `333..3326` | `checkpoint-2664` | `1.602` | `0.0931` | `0.1951` |
-| `hintce-3` | `333..2997` | `checkpoint-1665` | `1.001` | `0.0945` | `0.1985` |
+| `hintce-3` | `333..3326` | `checkpoint-1665` | `1.001` | `0.0945` | `0.1985` |
 
 这张图现在最有用的读法是：
 
 - `hintce-3` 现在已经不是“只有两个 early readout”的状态；它在 `checkpoint-999` 就把 `HR@50` 推到 `0.1979`，到 `checkpoint-1665` 拿到 `NDCG@10=0.0945 / HR@50=0.1985`。
 - 这意味着它已经明显强过 `hintce-2` 和 plain `fixed taskfix`：相对 `hintce-2` 的当前 best 点，多 `+0.0014` `NDCG@10`、多 `+0.0034` `HR@50`；相对 plain `fixed taskfix` 的 best 点，多 `+0.0014` `NDCG@10`、多 `+0.0044` `HR@50`。
-- 但它的现象更像“中段强峰值”而不是完整尾段定型：到 `checkpoint-2997` 时仍有 `NDCG@10=0.0943 / HR@50=0.1961`，说明这条线现在至少已经进入主候选，但还需要最后一段 checkpoint 才能判断是不是稳态新上界。
+- 但它的现象更像“中段强峰值”而不是完整尾段定型：现在连 `checkpoint-3326` 都已经补齐了，尾点仍只到 `NDCG@10=0.0943 / HR@50=0.1960`，说明这条线已经不再是“缺尾点”的未完成候选，而是完整轨迹里确认过的中段峰值候选。
 
 #### B. `fixed dual-task`：fixed hint 下只保留 `task1 + task5`
 
@@ -301,7 +301,7 @@
 
 ## 5. 下一步怎么续写
 
-- 下一次同步 result bundle 时，优先继续补 `hintce-3` 的最后一个 checkpoint，并确认 `fixed dual-task` 在 `3012` 之后是否还有新的 terminal readout。
+- 下一步优先解释 `hintce-3` 为什么完整尾段没有维持 `1665` 的峰值，并确认 `fixed dual-task` 在 `3012` 之后是否还有新的 terminal readout。
 - 继续观察 `dynamic dual-task` 在 `checkpoint-3012` 之后是否还能把 best 点从 `1510` 左右重新往后推。
 - `single-hint mixed` 已经补到完整 `checkpoint-3326`；下一步不是继续等点，而是解释为什么它在 `2664 -> 3326` 之间维持高位平台但没有继续抬高 top-10。
 - dual-task 线现在已经进入可比阶段，后续优先把它们和下面两条 reference 持续并排看：
