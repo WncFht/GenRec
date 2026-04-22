@@ -186,6 +186,15 @@ SPECS = [
         launcher_path="hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-ce.sh",
     ),
     VariantSpec(
+        key="hintce_coef_01",
+        label="RL fixed CE coef=0.01",
+        model_dir="Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-4-sft495",
+        color=TABLEAU_10["purple"],
+        marker="X",
+        epoch_max_step_ref_key="fixed_taskfix",
+        launcher_path="hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-ce.sh",
+    ),
+    VariantSpec(
         key="single_hint_mixed",
         label="RL single-hint mixed",
         model_dir="Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-hint-only-mixed-sft495",
@@ -365,11 +374,11 @@ def main() -> None:
     plot_metric_grid(
         df,
         SPECS,
-        ["fixed_taskfix", "hintce_batch_mean", "hintce_token_mean", "hintce_coef_005"],
+        ["fixed_taskfix", "hintce_batch_mean", "hintce_token_mean", "hintce_coef_005", "hintce_coef_01"],
         "Instruments Fixed Hint CE Scaling",
         ASSET_DIR / "ce_scaling_three_variants_curves.png",
         sft,
-        legend_cols=4,
+        legend_cols=3,
     )
     plot_metric_grid(
         df,

@@ -132,6 +132,18 @@
     "epoch_max_step_ref_key": null
   },
   {
+    "key": "hintce_coef_01",
+    "label": "RL fixed CE coef=0.01",
+    "model_dir": "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-4-sft495",
+    "color": "#B07AA1",
+    "launcher_path": "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-ce.sh",
+    "marker": "X",
+    "linestyle": "-",
+    "linewidth": 2.2,
+    "epoch_max_step": null,
+    "epoch_max_step_ref_key": "fixed_taskfix"
+  },
+  {
     "key": "single_hint_mixed",
     "label": "RL single-hint mixed",
     "model_dir": "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-hint-only-mixed-sft495",

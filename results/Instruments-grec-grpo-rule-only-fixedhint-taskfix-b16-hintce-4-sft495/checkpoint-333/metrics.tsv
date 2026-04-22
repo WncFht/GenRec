@@ -1,0 +1,2 @@
+path	HR@1	HR@3	HR@5	HR@10	HR@20	HR@50	NDCG@1	NDCG@3	NDCG@5	NDCG@10	NDCG@20	NDCG@50
+Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-4-sft495/checkpoint-333	0.0624	0.0813	0.09	0.1055	0.1298	0.18	0.0624	0.0735	0.077	0.0821	0.0882	0.098

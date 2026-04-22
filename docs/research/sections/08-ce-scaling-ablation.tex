@@ -1,6 +1,6 @@
 \section{CE Scaling 消融}
 
-\subsection{三条 CE 线各自是什么}
+\subsection{四条 CE 线各自是什么}
 
 本文按当前命名约定把 CE family 记成三条线：
 
@@ -8,6 +8,7 @@
 \item \texttt{hintce}：早期版本，这里记作 batch-mean CE。
 \item \texttt{hintce-2}：和当前公式说明里 strict DAPO CE 更一致的 token-mean 版本。
 \item \texttt{hintce-3}：在 \texttt{hintce-2} 的基础上，把 CE 相对倍率调到 \texttt{0.005}。
+\item \texttt{hintce-4}：把 CE 相对倍率继续抬到 \texttt{0.01} 的更激进版本。
 \end{itemize}
 
 \subsection{对应脚本}
@@ -34,6 +35,7 @@ fixed taskfix & checkpoint-2997 & 1.802 & 0.0931 & 0.1941 & non-CE 参考线 \\
 hintce & checkpoint-2664 & 1.602 & 0.0915 & 0.1944 & batch-mean CE \\
 hintce-2 & checkpoint-2664 & 1.602 & 0.0931 & 0.1951 & token-mean / 更符合 DAPO \\
 hintce-3 & checkpoint-1665 & 1.001 & 0.0945 & 0.1985 & 在 hintce-2 基础上把倍率调到 0.005 \\
+hintce-4 & checkpoint-666 & 0.400 & 0.0891 & 0.1873 & 0.01 倍率；当前只同步到 early-stage checkpoint \\
 \bottomrule
 \end{tabular}
 \caption{CE scaling 消融。}
@@ -44,13 +46,14 @@ hintce-3 & checkpoint-1665 & 1.001 & 0.0945 & 0.1985 & 在 hintce-2 基础上把
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.96\textwidth]{ce_scaling_three_variants_curves.png}
-\caption{三条 CE 线与 non-CE baseline 的对照。}
+\caption{四条 CE 线与 non-CE baseline 的对照。}
 \end{figure}
 
 \subsection{结论}
 
 \begin{itemize}
 \item full non-CE 仍然是当前 fixed family 的干净参考线。
-\item \texttt{hintce}、\texttt{hintce-2} 和 \texttt{hintce-3} 现在已经能放到同一张图里一起读，不再只讲某一条 early readout。
+\item \texttt{hintce}、\texttt{hintce-2}、\texttt{hintce-3} 和 \texttt{hintce-4} 现在已经能放到同一张图里一起读，不再只讲单条 CE 线。
 \item \texttt{hintce-2} 是当前更稳的 token-mean / DAPO-compatible CE 候选；\texttt{hintce-3} 则是在它基础上把倍率抬到 0.005 后得到的更激进版本。
+\item 当前 `0.01` 倍率的 \texttt{hintce-4} 只同步到了 `checkpoint-333/666`，而且这两个点明显弱于 \texttt{hintce-2/3} 和 plain fixed taskfix；至少按现在的 readout，它更像“过激倍率导致前期直接偏弱”，而不是新的前沿候选。
 \end{itemize}
