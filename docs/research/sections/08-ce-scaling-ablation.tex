@@ -2,7 +2,7 @@
 
 \subsection{四条 CE 线各自是什么}
 
-本文按当前命名约定把 CE family 记成三条线：
+本文按当前命名约定把 CE family 记成四条线：
 
 \begin{itemize}
 \item \texttt{hintce}：早期版本，这里记作 batch-mean CE。
@@ -35,7 +35,7 @@ fixed taskfix & checkpoint-2997 & 1.802 & 0.0931 & 0.1941 & non-CE 参考线 \\
 hintce & checkpoint-2664 & 1.602 & 0.0915 & 0.1944 & batch-mean CE \\
 hintce-2 & checkpoint-2664 & 1.602 & 0.0931 & 0.1951 & token-mean / 更符合 DAPO \\
 hintce-3 & checkpoint-1665 & 1.001 & 0.0945 & 0.1985 & 在 hintce-2 基础上把倍率调到 0.005 \\
-hintce-4 & checkpoint-666 & 0.400 & 0.0891 & 0.1873 & 0.01 倍率；当前只同步到 early-stage checkpoint \\
+hintce-4 & checkpoint-2331 & 1.402 & 0.0942 & 0.1930 & 0.01 倍率；当前已同步到中后段 checkpoint \\
 \bottomrule
 \end{tabular}
 \caption{CE scaling 消融。}
@@ -55,5 +55,6 @@ hintce-4 & checkpoint-666 & 0.400 & 0.0891 & 0.1873 & 0.01 倍率；当前只同
 \item full non-CE 仍然是当前 fixed family 的干净参考线。
 \item \texttt{hintce}、\texttt{hintce-2}、\texttt{hintce-3} 和 \texttt{hintce-4} 现在已经能放到同一张图里一起读，不再只讲单条 CE 线。
 \item \texttt{hintce-2} 是当前更稳的 token-mean / DAPO-compatible CE 候选；\texttt{hintce-3} 则是在它基础上把倍率抬到 0.005 后得到的更激进版本。
-\item 当前 `0.01` 倍率的 \texttt{hintce-4} 只同步到了 `checkpoint-333/666`，而且这两个点明显弱于 \texttt{hintce-2/3} 和 plain fixed taskfix；至少按现在的 readout，它更像“过激倍率导致前期直接偏弱”，而不是新的前沿候选。
+\item 当前 `0.01` 倍率的 \texttt{hintce-4} 已经不再只是 early readout：它在 `checkpoint-2331` 把 \texttt{NDCG@10} 抬到 `0.0942`，说明这条线并非彻底失败。
+\item 但按当前完整可见轨迹看，\texttt{hintce-4} 仍然没有超过 \texttt{hintce-3} 的 `0.0945 / 0.1985`；它更像“把 top-10 往上抬一点，但没有把 coverage 一起抬上去”的激进倍率，而不是新的最强 CE 候选。
 \end{itemize}

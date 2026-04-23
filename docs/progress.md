@@ -106,7 +106,7 @@
   但长跑到后段会回落，因此更像 early-stop 候选，不是新的默认长跑线。
 - `hintce-2` 的训练日志拆分已经补过一轮：
   当前 `weighted_hint_ce_loss` 大体稳定在 `~1e-3`，前期相对 `RL base` 略重，但主 spike 仍然主要由 `KL` 驱动，而不是 CE 本身。
-- `hintce-4` 当前只同步到 `checkpoint-666`，最好点只有 `NDCG@10=0.0891 / HR@50=0.1873`，明显弱于 `hintce-2/3` 和 plain `fixed taskfix`；按现在的 readout，`0.01` 倍率至少在早期就是偏激且不占优的。
+- `hintce-4` 现在已经同步到 `checkpoint-2331`，最好点来到 `NDCG@10=0.0942 / HR@50=0.1930`；它说明 `0.01` 倍率并非彻底失效，但当前仍然弱于 `hintce-3`，更像“top-10 略抬高、coverage 没跟上”的激进倍率版本。
 - 仓库现在已经支持一条 dual-task filtered setting：
   `task1_sid_sft + task5_title_desc2sid` 参与 train，`task4_hisTitle2sid` 被移除，eval 仍只看 `task1_sid_sft`；dynamic / fixed 两个 launcher 都已落地，而且现在两条线都已经同步到 `10` 个 checkpoint（`checkpoint-302` 到 `checkpoint-3012`）。
 - mixed-task `single-hint` setting 已经补到中后段 checkpoint：
