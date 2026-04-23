@@ -66,6 +66,7 @@ PROMISING_CANDIDATE_KEYS = [
     "fixed_taskfix_sid_only",
     "fixed_taskfix",
     "hintce_coef_005",
+    "hintce_coef_01",
 ]
 DEPTH_COLUMNS = [
     ("depth_0_ratio", "depth-0", TABLEAU_10["blue"]),

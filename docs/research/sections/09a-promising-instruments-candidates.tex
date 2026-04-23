@@ -12,6 +12,7 @@
 \item corrected \texttt{fixed taskfix sid-only}：当前最干净的 fixed reference。
 \item corrected \texttt{fixed taskfix}：coverage 很强的 clean fixed 变体。
 \item \texttt{hintce-3}：当前最值得继续追的 CE scaling 候选。
+\item \texttt{hintce-4}：当前把 top-10 继续往尾段抬高的 `0.01` 倍率 CE 候选。
 \end{itemize}
 
 这一节不再把四个指标塞进一张 \texttt{2x2} 大图，而是每个指标单独出一张图。这样做的目的很直接：这几条线已经非常接近，拆成单指标之后更容易看清谁在 top-10 上领先，谁在 coverage 上更稳。
@@ -33,6 +34,7 @@ old fixed mixed-single & \texttt{checkpoint-3326} & 0.0953 & 0.1193 & 0.1114 & 0
 fixed taskfix sid-only & \texttt{checkpoint-2652} & 0.0945 & 0.1205 & 0.1103 & 0.1935 \\
 fixed taskfix & \texttt{checkpoint-2997} & 0.0931 & 0.1189 & 0.1094 & 0.1941 \\
 fixed CE coef=0.005 & \texttt{checkpoint-1665} & 0.0945 & 0.1180 & 0.1118 & 0.1985 \\
+fixed CE coef=0.01 & \texttt{checkpoint-2997} & 0.0953 & 0.1204 & 0.1113 & 0.1943 \\
 \bottomrule
 \end{tabular}
 \caption{Instruments 当前最有潜力候选的最好点。}
@@ -42,8 +44,8 @@ fixed CE coef=0.005 & \texttt{checkpoint-1665} & 0.0945 & 0.1180 & 0.1118 & 0.19
 
 \begin{itemize}
 \item \texttt{rule-only} 仍然是 top-10 最强的极值线，但 \texttt{HR@50} 明显最差。
-\item \texttt{single-hint mixed}、old fixed、clean fixed family 和 \texttt{hintce-3} 已经整体挤进了更右上的一团，因此这几条线才是真正应该继续互相比的“前沿集合”。
-\item \texttt{hintce-3} 当前 best 点的 \texttt{HR@50=0.1985} 最强，但它的 best 点更靠中段；\texttt{single-hint mixed} 和 old fixed 则更像完整长跑后的高位平台。
+\item \texttt{single-hint mixed}、old fixed、clean fixed family、\texttt{hintce-3} 和 \texttt{hintce-4} 已经整体挤进了更右上的一团，因此这几条线才是真正应该继续互相比的“前沿集合”。
+\item \texttt{hintce-3} 当前 best 点的 \texttt{HR@50=0.1985} 最强，但它的 best 点更靠中段；\texttt{hintce-4} 则把 top-10 一路抬到了 \texttt{checkpoint-2997}，说明更高 CE 倍率可能在“长跑尾段 top-10”上提供不同形状的收益。
 \end{itemize}
 
 \subsection{NDCG@10}
@@ -83,7 +85,7 @@ fixed CE coef=0.005 & \texttt{checkpoint-1665} & 0.0945 & 0.1180 & 0.1118 & 0.19
 \begin{itemize}
 \item 如果你只关心 headline top-10，\texttt{rule-only} 仍然是最靠上的线，但它在 \texttt{HR@50} 图里会立刻暴露 coverage 损失。
 \item 如果你关心 clean fixed 主线，\texttt{fixed taskfix sid-only} 和 \texttt{fixed taskfix} 现在已经足够稳定，而且一个更偏 top-10，一个更偏 coverage。
-\item 如果你关心新的最强候选，当前真正需要继续盯的不是单条 fixed，而是 \texttt{single-hint mixed} 和 \texttt{hintce-3}：
-  前者更像完整长跑后的主候选，后者更像中段爆发出的高 coverage / 高 NDCG 新候选。
+\item 如果你关心新的最强候选，当前真正需要继续盯的不是单条 fixed，而是 \texttt{single-hint mixed}、\texttt{hintce-3} 和 \texttt{hintce-4}：
+  前者更像完整长跑后的主候选，\texttt{hintce-3} 更像中段爆发出的高 coverage / 高 NDCG 候选，\texttt{hintce-4} 则更像把 top-10 延续到后段的高倍率版本。
 \item old \texttt{fixed mixed-single} 仍然有必要保留在图里，因为它提供了历史上界；但它只能当 historical reference，不能再当 clean 方法定义。
 \end{itemize}
