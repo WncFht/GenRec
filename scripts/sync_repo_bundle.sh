@@ -23,7 +23,7 @@ usage() {
   cat <<'USAGE'
 Usage:
   bash scripts/sync_repo_bundle.sh pack [archive_path] <path> [<path> ...]
-  bash scripts/sync_repo_bundle.sh pack-jj [archive_path] [--from REV] [--to REV]
+  bash scripts/sync_repo_bundle.sh pack-git [archive_path] [--from REV] [--to REV]
   bash scripts/sync_repo_bundle.sh unpack [archive_path|archive.part.000] [dest_root]
   bash scripts/sync_repo_bundle.sh list [archive_path|archive.part.000]
 
@@ -35,8 +35,8 @@ Description:
   - unpack:
       Restore bundled paths into the destination GenRec root. Existing target
       files/directories for bundled paths are replaced.
-  - pack-jj:
-      Collect changed paths from a `jj diff --name-only` revision range under
+  - pack-git:
+      Collect changed paths from a `git diff --name-only` revision range under
       the source repo root, then pack the currently existing paths.
   - list:
       Print bundled relative paths without restoring them.
@@ -62,7 +62,7 @@ Examples:
 
   bash scripts/sync_repo_bundle.sh unpack results_sync.tar.gz
 
-  bash scripts/sync_repo_bundle.sh pack-jj --from @- --to @
+  bash scripts/sync_repo_bundle.sh pack-git --from HEAD~1 --to HEAD
 
   DEST_PROFILE=remote bash scripts/sync_repo_bundle.sh unpack results_sync.tar.gz.part.000
 USAGE
@@ -71,6 +71,13 @@ USAGE
 ensure_python() {
   if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
     echo "Error: PYTHON_BIN not found: $PYTHON_BIN" >&2
+    exit 1
+  fi
+}
+
+ensure_git() {
+  if ! command -v git >/dev/null 2>&1; then
+    echo "Error: git not found in PATH." >&2
     exit 1
   fi
 }
@@ -406,8 +413,9 @@ pack_bundle() {
   rm -rf "$stage_root"
 }
 
-pack_jj_bundle() {
+pack_git_bundle() {
   ensure_python
+  ensure_git
 
   local source_root
   source_root="$(resolve_source_root)"
@@ -417,8 +425,8 @@ pack_jj_bundle() {
   fi
 
   local archive_arg=""
-  local from_rev="@-"
-  local to_rev="@"
+  local from_rev="HEAD~1"
+  local to_rev="HEAD"
 
   if [[ $# -gt 0 && "${1:-}" != --* ]]; then
     archive_arg="$1"
@@ -438,12 +446,17 @@ pack_jj_bundle() {
         shift 2
         ;;
       *)
-        echo "Error: unknown pack-jj argument: $1" >&2
+        echo "Error: unknown pack-git argument: $1" >&2
         usage
         exit 1
         ;;
     esac
   done
+
+  if ! git -C "$source_root" rev-parse --show-toplevel >/dev/null 2>&1; then
+    echo "Error: source repo root is not inside a git repository: $source_root" >&2
+    exit 1
+  fi
 
   local archive_path
   archive_path="$(normalize_archive_path "$archive_arg")"
@@ -454,11 +467,11 @@ pack_jj_bundle() {
     [[ -n "$rel" ]] && changed_paths+=("$rel")
   done < <(
     cd "$source_root" &&
-      jj diff --name-only --from "$from_rev" --to "$to_rev"
+      git diff --name-only "$from_rev" "$to_rev"
   )
 
   if [[ ${#changed_paths[@]} -eq 0 ]]; then
-    echo "Error: no changed paths found for jj range --from $from_rev --to $to_rev" >&2
+    echo "Error: no changed paths found for git range --from $from_rev --to $to_rev" >&2
     exit 1
   fi
 
@@ -474,12 +487,12 @@ pack_jj_bundle() {
       existing_paths+=("$rel")
       copy_to_stage "$source_root" "$rel" "$payload_root"
     else
-      echo "[WARN] skip missing path from jj diff: $rel"
+      echo "[WARN] skip missing path from git diff: $rel"
     fi
   done
 
   if [[ ${#existing_paths[@]} -eq 0 ]]; then
-    echo "Error: jj diff only contained deleted paths; nothing to pack." >&2
+    echo "Error: git diff only contained deleted paths; nothing to pack." >&2
     rm -rf "$stage_root"
     exit 1
   fi
@@ -487,8 +500,8 @@ pack_jj_bundle() {
   manifest_write "$bundle_root/bundle_manifest.json" "$source_root" "${existing_paths[@]}"
   create_bundle_archive "$archive_path" "$stage_root" "$BUNDLE_NAME" "${existing_paths[@]}"
 
-  echo "Created repo bundle from jj range: $source_root"
-  echo "jj range: --from $from_rev --to $to_rev"
+  echo "Created repo bundle from git range: $source_root"
+  echo "git range: --from $from_rev --to $to_rev"
 
   rm -rf "$stage_root"
 }
@@ -664,9 +677,9 @@ main() {
       shift
       pack_bundle "$@"
       ;;
-    pack-jj)
+    pack-git)
       shift
-      pack_jj_bundle "$@"
+      pack_git_bundle "$@"
       ;;
     unpack)
       shift

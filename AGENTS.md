@@ -38,7 +38,7 @@
 ## 版本控制
 - 默认用 `git`。
 - 常规的 `status`、`log`、`diff`、`commit`、`push` 都用非交互式 `git`。
-- 只有当用户明确要求，或任务确实依赖 `jj` 特性时，才使用 `jj`。
+- 本仓库不再维护 `.jj/` colocated metadata、`refs/jj/*` 或 `jj`-specific workflow；除非用户明确要求做一次性兼容验证，否则不要重新引入 `jj`。
 - 如果在 detached HEAD，上来先切到分支，再继续 commit / push。
 
 ## 训练上下文

@@ -12,25 +12,31 @@ SYNC_REPO_BUNDLE_SCRIPT = REPO_ROOT / "scripts" / "sync_repo_bundle.sh"
 
 
 class SyncRepoBundleTests(unittest.TestCase):
-    def test_pack_jj_collects_changed_paths_from_revision_range(self):
+    def test_pack_git_collects_changed_paths_from_revision_range(self):
         with tempfile.TemporaryDirectory() as temp_root:
             temp_root_path = Path(temp_root)
             source_root = temp_root_path / "source_repo"
             dest_root = temp_root_path / "dest_repo"
-            archive_path = temp_root_path / "jj_bundle.tar.gz"
+            archive_path = temp_root_path / "git_bundle.tar.gz"
 
             source_root.mkdir(parents=True)
             subprocess.run(
-                ["jj", "git", "init", "--colocate"], cwd=source_root, check=True, capture_output=True, text=True
+                ["git", "init"], cwd=source_root, check=True, capture_output=True, text=True
+            )
+            subprocess.run(["git", "config", "user.name", "Test User"], cwd=source_root, check=True, capture_output=True)
+            subprocess.run(
+                ["git", "config", "user.email", "test@example.com"], cwd=source_root, check=True, capture_output=True
             )
             (source_root / "keep.txt").write_text("keep\n", encoding="utf-8")
             (source_root / "change.txt").write_text("base\n", encoding="utf-8")
-            subprocess.run(["jj", "desc", "-m", "base"], cwd=source_root, check=True, capture_output=True, text=True)
-            subprocess.run(["jj", "new", "-m", "work"], cwd=source_root, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "add", "keep.txt", "change.txt"], cwd=source_root, check=True, capture_output=True)
+            subprocess.run(["git", "commit", "-m", "base"], cwd=source_root, check=True, capture_output=True, text=True)
 
             (source_root / "change.txt").write_text("updated\n", encoding="utf-8")
             (source_root / "nested").mkdir(parents=True)
             (source_root / "nested" / "new.txt").write_text("new\n", encoding="utf-8")
+            subprocess.run(["git", "add", "change.txt", "nested/new.txt"], cwd=source_root, check=True, capture_output=True)
+            subprocess.run(["git", "commit", "-m", "work"], cwd=source_root, check=True, capture_output=True, text=True)
 
             env = dict(os.environ)
             env["SOURCE_REPO_ROOT"] = str(source_root)
@@ -38,12 +44,12 @@ class SyncRepoBundleTests(unittest.TestCase):
                 [
                     "bash",
                     str(SYNC_REPO_BUNDLE_SCRIPT),
-                    "pack-jj",
+                    "pack-git",
                     str(archive_path),
                     "--from",
-                    "@-",
+                    "HEAD~1",
                     "--to",
-                    "@",
+                    "HEAD",
                 ],
                 cwd=REPO_ROOT,
                 env=env,
@@ -52,7 +58,7 @@ class SyncRepoBundleTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(pack_result.returncode, 0, msg=pack_result.stderr or pack_result.stdout)
-            self.assertTrue(archive_path.is_file(), msg="Expected bundle archive from pack-jj")
+            self.assertTrue(archive_path.is_file(), msg="Expected bundle archive from pack-git")
 
             env["DEST_REPO_ROOT"] = str(dest_root)
             unpack_result = subprocess.run(
@@ -66,7 +72,7 @@ class SyncRepoBundleTests(unittest.TestCase):
             self.assertEqual(unpack_result.returncode, 0, msg=unpack_result.stderr or unpack_result.stdout)
             self.assertEqual((dest_root / "change.txt").read_text(encoding="utf-8"), "updated\n")
             self.assertEqual((dest_root / "nested" / "new.txt").read_text(encoding="utf-8"), "new\n")
-            self.assertFalse((dest_root / "keep.txt").exists(), msg="pack-jj should only include changed paths")
+            self.assertFalse((dest_root / "keep.txt").exists(), msg="pack-git should only include changed paths")
 
     def test_pack_script_disables_macos_metadata_in_tar_creation(self):
         script_text = SYNC_REPO_BUNDLE_SCRIPT.read_text(encoding="utf-8")
