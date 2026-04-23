@@ -467,6 +467,16 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
         if self.dynamic_hint_max_depth < 0:
             raise ValueError("dynamic_hint_max_depth must be >= 0.")
 
+    def _resolve_example_dynamic_hint_max_depth(
+        self,
+        example: dict[str, Union[torch.Tensor, Any]],
+        default_max_hint_depth: int,
+    ) -> int:
+        override = example.get("dynamic_hint_max_depth_override")
+        if override is None:
+            return int(default_max_hint_depth)
+        return max(min(int(override), int(default_max_hint_depth)), 0)
+
     def _build_runtime_hinted_example(
         self,
         example: dict[str, Union[torch.Tensor, Any]],
@@ -560,11 +570,16 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
         prompt_groups: list[dict[str, Any]] = []
         for group_index, start in enumerate(range(0, len(inputs), self.num_generations)):
             end = start + self.num_generations
+            group_inputs = inputs[start:end]
             prompt_groups.append(
                 {
                     "group_index": group_index,
-                    "inputs": inputs[start:end],
+                    "inputs": group_inputs,
                     "images": None if images is None else images[start:end],
+                    "max_hint_depth": max(
+                        self._resolve_example_dynamic_hint_max_depth(example, max_hint_depth)
+                        for example in group_inputs
+                    ),
                 }
             )
 
@@ -585,7 +600,8 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
 
             for group in stage_target_groups:
                 group_stage_inputs = [
-                    self._build_runtime_hinted_example(example, requested_hint_depth) for example in group["inputs"]
+                    self._build_runtime_hinted_example(example, min(requested_hint_depth, group["max_hint_depth"]))
+                    for example in group["inputs"]
                 ]
                 start = len(stage_inputs)
                 stage_inputs.extend(group_stage_inputs)
@@ -623,7 +639,7 @@ class DynamicHintRuleOnlyGRPOTrainer(FixedHintRuleOnlyGRPOTrainer):
                 group_rule_hit_any = any(reward > 0 for reward in stage_rule_rewards[start:end])
                 if group_rule_hit_any:
                     stage_rule_hit_group_count += 1
-                if group_rule_hit_any or requested_hint_depth == max_hint_depth:
+                if group_rule_hit_any or requested_hint_depth == group["max_hint_depth"]:
                     selected_group_outputs[group["group_index"]] = {
                         "inputs": stage_inputs[start:end],
                         "prompt_texts": stage_prompts_text[start:end],

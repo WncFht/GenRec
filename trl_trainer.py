@@ -43,6 +43,13 @@ def _build_zero_hint_example(example: dict) -> dict:
     }
 
 
+def _attach_dynamic_hint_max_depth_override(example: dict, max_hint_depth_override: int) -> dict:
+    return {
+        **example,
+        "dynamic_hint_max_depth_override": int(max_hint_depth_override),
+    }
+
+
 def _filter_dataset_by_task_names(dataset, split_name: str, raw_task_names: Optional[str]):
     requested_task_names = _parse_task_names(raw_task_names)
     if not requested_task_names:
@@ -144,6 +151,7 @@ def main(
     hint_ce_loss_coef: float = 0.0,
     dynamic_hint_max_depth: Optional[int] = None,
     dynamic_hint_apply_to_eval: bool = False,
+    dynamic_hint_task_names: Optional[str] = None,
     train_task_names: Optional[str] = None,
     eval_task_names: Optional[str] = None,
     bf16: bool = True,
@@ -285,9 +293,49 @@ def main(
         print_main_process(f"[INFO] fixed_hint_task_names={resolved_fixed_hint_task_names}")
         print_main_process(f"[INFO] train_oracle_hint_depth_hist={hint_depth_hist}")
     elif dynamic_hint_enabled:
+        resolved_dynamic_hint_task_names = _parse_task_names(dynamic_hint_task_names)
+        if resolved_dynamic_hint_task_names is not None:
+            unknown_dynamic_hint_task_names = sorted(
+                set(resolved_dynamic_hint_task_names) - set(train_available_task_names)
+            )
+            if unknown_dynamic_hint_task_names:
+                raise ValueError(
+                    "unknown dynamic-hint task names: "
+                    f"{unknown_dynamic_hint_task_names}; available tasks: {train_available_task_names}"
+                )
+            dynamic_hint_task_name_set = set(resolved_dynamic_hint_task_names)
+
+            def _attach_dynamic_hint_metadata(example):
+                extra_info = example.get("extra_info")
+                if not isinstance(extra_info, dict):
+                    raise ValueError("Missing extra_info.task while applying dynamic-hint task filter.")
+                task_name = str(extra_info.get("task", "")).strip()
+                if not task_name:
+                    raise ValueError("Missing extra_info.task while applying dynamic-hint task filter.")
+                if task_name in dynamic_hint_task_name_set:
+                    return _attach_dynamic_hint_max_depth_override(example, dynamic_hint_max_depth)
+                return _attach_dynamic_hint_max_depth_override(example, 0)
+
+            train_dataset = train_dataset.map(
+                _attach_dynamic_hint_metadata,
+                desc="Attach dynamic hint task metadata to train dataset",
+            )
+            eval_dataset = eval_dataset.map(
+                _attach_dynamic_hint_metadata,
+                desc="Attach dynamic hint task metadata to eval dataset",
+            )
+            train_dynamic_hint_caps = train_dataset["dynamic_hint_max_depth_override"]
+            dynamic_hint_cap_hist = {
+                depth: train_dynamic_hint_caps.count(depth) for depth in sorted(set(train_dynamic_hint_caps))
+            }
+        else:
+            dynamic_hint_cap_hist = None
         print_main_process("[INFO] dynamic_hint_generation_mode=cascade")
         print_main_process(f"[INFO] dynamic_hint_max_depth={dynamic_hint_max_depth}")
         print_main_process(f"[INFO] dynamic_hint_apply_to_eval={dynamic_hint_apply_to_eval}")
+        print_main_process(f"[INFO] dynamic_hint_task_names={resolved_dynamic_hint_task_names}")
+        if dynamic_hint_cap_hist is not None:
+            print_main_process(f"[INFO] train_dynamic_hint_max_depth_override_hist={dynamic_hint_cap_hist}")
 
     reward_funcs, reward_weights = build_reward_setup(
         reward_mode=reward_mode,

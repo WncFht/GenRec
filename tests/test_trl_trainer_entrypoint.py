@@ -45,6 +45,12 @@ DYNAMIC_HINT_SID_TITLE_DESC_SCRIPT = (
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-title-desc.sh"
 )
+DYNAMIC_HINT_SID_HINT_ONLY_MIXED_SCRIPT = (
+    REPO_ROOT
+    / "hope"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-hint-only-mixed.sh"
+)
 DYNAMIC_HINT_RANKING_SCRIPT = (
     REPO_ROOT
     / "hope"
@@ -919,6 +925,106 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
                 fixed_hint_task_names="missing_task",
             )
 
+    def test_dynamic_hint_task_names_only_apply_hints_to_selected_tasks(self):
+        grpo_kwargs = {}
+        trainer_kwargs = {}
+        dataset_payload = {
+            "train": [
+                {
+                    "prompt": "train-1",
+                    "reward_model": {"ground_truth": "<a_1>"},
+                    "extra_info": {"task": "task1_sid_sft"},
+                },
+                {
+                    "prompt": "train-2",
+                    "reward_model": {"ground_truth": "<a_2>"},
+                    "extra_info": {"task": "task4_hisTitle2sid"},
+                },
+                {
+                    "prompt": "train-3",
+                    "reward_model": {"ground_truth": "<a_3>"},
+                    "extra_info": {"task": "task5_title_desc2sid"},
+                },
+            ],
+            "valid": [
+                {
+                    "prompt": "valid-1",
+                    "reward_model": {"ground_truth": "<a_1>"},
+                    "extra_info": {"task": "task1_sid_sft"},
+                },
+                {
+                    "prompt": "valid-2",
+                    "reward_model": {"ground_truth": "<a_2>"},
+                    "extra_info": {"task": "task4_hisTitle2sid"},
+                },
+            ],
+            "test": [],
+        }
+        module = _load_trl_trainer_module(
+            grpo_kwargs,
+            trainer_kwargs_sink=trainer_kwargs,
+            dataset_payload=dataset_payload,
+        )
+
+        with self.assertRaises(StopAfterTrainerInit):
+            module.main(
+                model="dummy-model",
+                data_dir="dummy-data",
+                index_path="dummy-index",
+                output_dir="dummy-output",
+                report_to="wandb",
+                run_name="dynamic-sid-hint-only-mixed-test-run",
+                token_level_prefix_advantage=False,
+                reward_mode="rule_only",
+                num_beams=4,
+                dynamic_hint_max_depth=3,
+                dynamic_hint_task_names="task1_sid_sft",
+            )
+
+        train_rows = list(trainer_kwargs["train_dataset"])
+        eval_rows = list(trainer_kwargs["eval_dataset"])
+        self.assertEqual(train_rows[0]["dynamic_hint_max_depth_override"], 3)
+        self.assertEqual(train_rows[1]["dynamic_hint_max_depth_override"], 0)
+        self.assertEqual(train_rows[2]["dynamic_hint_max_depth_override"], 0)
+        self.assertEqual(eval_rows[0]["dynamic_hint_max_depth_override"], 3)
+        self.assertEqual(eval_rows[1]["dynamic_hint_max_depth_override"], 0)
+
+    def test_dynamic_hint_task_names_reject_unknown_task(self):
+        grpo_kwargs = {}
+        dataset_payload = {
+            "train": [
+                {
+                    "prompt": "train-1",
+                    "reward_model": {"ground_truth": "<a_1>"},
+                    "extra_info": {"task": "task1_sid_sft"},
+                }
+            ],
+            "valid": [
+                {
+                    "prompt": "valid-1",
+                    "reward_model": {"ground_truth": "<a_1>"},
+                    "extra_info": {"task": "task1_sid_sft"},
+                }
+            ],
+            "test": [],
+        }
+        module = _load_trl_trainer_module(grpo_kwargs, dataset_payload=dataset_payload)
+
+        with self.assertRaisesRegex(ValueError, "unknown dynamic-hint task names"):
+            module.main(
+                model="dummy-model",
+                data_dir="dummy-data",
+                index_path="dummy-index",
+                output_dir="dummy-output",
+                report_to="wandb",
+                run_name="dynamic-sid-hint-only-mixed-test-run",
+                token_level_prefix_advantage=False,
+                reward_mode="rule_only",
+                num_beams=4,
+                dynamic_hint_max_depth=3,
+                dynamic_hint_task_names="missing_task",
+            )
+
     def test_dynamic_hint_shell_dry_run_forwards_run_name_and_uses_working_batch_default(self):
         result = subprocess.run(
             ["bash", str(DYNAMIC_HINT_SCRIPT), "--dry-run"],
@@ -1041,6 +1147,61 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         script_text = DYNAMIC_HINT_SID_TITLE_DESC_SCRIPT.read_text(encoding="utf-8")
 
         self.assertIn("trl_trainer.py", script_text)
+        self.assertNotIn("BASE_SCRIPT=", script_text)
+        self.assertNotIn("exec bash", script_text)
+
+    def test_dynamic_hint_sid_hint_only_mixed_shell_dry_run_forwards_sid_only_hint_flags(self):
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            model_dir = temp_root_path / "model"
+            data_dir = temp_root_path / "data" / "rl"
+            index_path = temp_root_path / "data" / "id2sid.json"
+            add_tokens_path = temp_root_path / "data" / "new_tokens.json"
+            ds_config_path = temp_root_path / "config" / "zero2.yaml"
+            model_dir.mkdir(parents=True)
+            data_dir.mkdir(parents=True)
+            ds_config_path.parent.mkdir(parents=True)
+            (data_dir / "train.json").write_text("[]", encoding="utf-8")
+            (data_dir / "valid.json").write_text("[]", encoding="utf-8")
+            (data_dir / "test.json").write_text("[]", encoding="utf-8")
+            index_path.write_text("{}", encoding="utf-8")
+            add_tokens_path.write_text("[]", encoding="utf-8")
+            ds_config_path.write_text("train_micro_batch_size_per_gpu: 1\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    "bash",
+                    str(DYNAMIC_HINT_SID_HINT_ONLY_MIXED_SCRIPT),
+                    "--run",
+                    "--dry-run",
+                    "--model-path",
+                    str(model_dir),
+                    "--data-dir",
+                    str(data_dir),
+                    "--index-path",
+                    str(index_path),
+                    "--add-tokens-path",
+                    str(add_tokens_path),
+                    "--ds-config",
+                    str(ds_config_path),
+                ],
+                cwd=REPO_ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("--dynamic_hint_task_names task1_sid_sft", result.stdout)
+        self.assertIn("--eval_task_names task1_sid_sft", result.stdout)
+        self.assertNotIn("--train_task_names", result.stdout)
+        self.assertIn("--eval_on_start true", result.stdout)
+
+    def test_dynamic_hint_sid_hint_only_mixed_shell_is_standalone_launcher(self):
+        script_text = DYNAMIC_HINT_SID_HINT_ONLY_MIXED_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("trl_trainer.py", script_text)
+        self.assertNotIn("analyze_rl_beam_hint.py", script_text)
         self.assertNotIn("BASE_SCRIPT=", script_text)
         self.assertNotIn("exec bash", script_text)
 
@@ -1297,7 +1458,7 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         training_scripts = sorted(
             path
             for path in GREC_RL_SCRIPT_DIR.glob("*-rl*.sh")
-            if "analyze-rl-beam-hint" not in path.name and "fixed-hint-ce" not in path.name
+            if "analyze-rl-beam-hint" not in path.name and "hint-ce" not in path.name
         )
         self.assertTrue(training_scripts, msg="Expected grecc RL launcher scripts")
 
