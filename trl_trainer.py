@@ -187,8 +187,8 @@ def main(
 
     if fixed_hint_depth_map_path is not None and dynamic_hint_enabled:
         raise ValueError("fixed_hint_depth_map_path and dynamic_hint_max_depth cannot be enabled at the same time.")
-    if hint_ce_loss_coef and fixed_hint_depth_map_path is None:
-        raise ValueError("hint_ce_loss_coef currently requires fixed_hint_depth_map_path.")
+    if hint_ce_loss_coef and fixed_hint_depth_map_path is None and not dynamic_hint_enabled:
+        raise ValueError("hint_ce_loss_coef currently requires fixed_hint_depth_map_path or dynamic_hint_max_depth.")
     if dynamic_hint_enabled and normalized_reward_mode not in {"rule_only", "ranking"}:
         raise NotImplementedError(
             "Dynamic hint cascade training currently supports reward_mode=rule_only or reward_mode=ranking only."
@@ -407,6 +407,7 @@ def main(
             reward_funcs=reward_funcs,
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
+            hint_ce_loss_coef=hint_ce_loss_coef,
             dynamic_hint_max_depth=dynamic_hint_max_depth,
             dynamic_hint_apply_to_eval=dynamic_hint_apply_to_eval,
         )

@@ -21,6 +21,12 @@ DYNAMIC_HINT_SCRIPT = (
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint.sh"
 )
+DYNAMIC_HINT_CE_SCRIPT = (
+    REPO_ROOT
+    / "hope"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-ce.sh"
+)
 DYNAMIC_HINT_MAX1_SCRIPT = (
     REPO_ROOT
     / "hope"
@@ -928,6 +934,56 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         self.assertIn("--per_device_eval_batch_size 64", result.stdout)
         self.assertIn("--eval_on_start true", result.stdout)
 
+    def test_dynamic_hint_ce_shell_dry_run_forwards_hint_ce_defaults(self):
+        result = subprocess.run(
+            ["bash", str(DYNAMIC_HINT_CE_SCRIPT), "--dry-run"],
+            cwd=REPO_ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn(
+            "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-hintce005",
+            result.stdout,
+        )
+        self.assertIn("--hint_ce_loss_coef 0.005", result.stdout)
+        self.assertIn("--reward_mode rule_only", result.stdout)
+        self.assertIn("--eval_on_start false", result.stdout)
+
+    def test_dynamic_hint_shell_forwards_hint_ce_loss_coef_to_dynamic_hint_trainer(self):
+        grpo_kwargs = {}
+        dynamic_hint_trainer_kwargs = {}
+        module = _load_trl_trainer_module(
+            grpo_kwargs,
+            trainer_kwargs_sink=dynamic_hint_trainer_kwargs,
+        )
+
+        with self.assertRaises(StopAfterTrainerInit):
+            module.main(
+                model="dummy-model",
+                data_dir="dummy-data",
+                index_path="dummy-index",
+                output_dir="dummy-output",
+                report_to="wandb",
+                run_name="dynamic-hint-ce-test-run",
+                token_level_prefix_advantage=False,
+                reward_mode="rule_only",
+                num_beams=4,
+                dynamic_hint_max_depth=3,
+                hint_ce_loss_coef=0.005,
+            )
+
+        self.assertEqual(dynamic_hint_trainer_kwargs["hint_ce_loss_coef"], 0.005)
+        self.assertEqual(dynamic_hint_trainer_kwargs["dynamic_hint_max_depth"], 3)
+        self.assertFalse(dynamic_hint_trainer_kwargs["dynamic_hint_apply_to_eval"])
+        self.assertTrue(grpo_kwargs["gradient_checkpointing"])
+        self.assertEqual(
+            grpo_kwargs["gradient_checkpointing_kwargs"],
+            {"use_reentrant": False},
+        )
+
     def test_dynamic_hint_max1_shell_dry_run_limits_hint_depth_to_one_token(self):
         result = subprocess.run(
             ["bash", str(DYNAMIC_HINT_MAX1_SCRIPT), "--dry-run"],
@@ -1085,6 +1141,18 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         self.assertNotIn("exec bash", script_text)
         self.assertNotIn(
             "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint.sh",
+            script_text,
+        )
+
+    def test_dynamic_hint_ce_shell_is_standalone_launcher(self):
+        script_text = DYNAMIC_HINT_CE_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("trl_trainer.py", script_text)
+        self.assertNotIn("analyze_rl_beam_hint.py", script_text)
+        self.assertNotIn("BASE_SCRIPT=", script_text)
+        self.assertNotIn("exec bash", script_text)
+        self.assertNotIn(
+            "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint.sh",
             script_text,
         )
 
