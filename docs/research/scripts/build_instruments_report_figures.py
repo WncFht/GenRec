@@ -66,6 +66,19 @@ SINGLE_HINT_BASELINE_KEYS = [
     "dynamic_single_hint_mixed",
     "single_hint_mixed",
 ]
+DUAL_TASK_FIXED_FAMILY_KEYS = [
+    "fixed_dual_task",
+    "fixed_old",
+    "fixed_taskfix_sid_only",
+    "fixed_taskfix",
+    "single_hint_mixed",
+]
+DUAL_TASK_DYNAMIC_FAMILY_KEYS = [
+    "dynamic_dual_task",
+    "dynamic_sid_only",
+    "rule_only",
+    "dynamic_single_hint_mixed",
+]
 CE_FIXED_KEYS = ["fixed_taskfix", "hintce_batch_mean", "hintce_token_mean", "hintce_coef_005", "hintce_coef_01"]
 CE_DYNAMIC_FIRSTLOOK_KEYS = ["dynamic_gather_fix", "dynamic_hint_ce005", "fixed_taskfix", "hintce_coef_01"]
 PROMISING_CANDIDATE_KEYS = [
@@ -440,11 +453,20 @@ def main() -> None:
     plot_metric_grid(
         df,
         SPECS,
-        ["dynamic_dual_task", "fixed_dual_task", "dynamic_gather_fix", "fixed_taskfix_sid_only"],
-        "Instruments Dual-Task Family vs References",
-        ASSET_DIR / "dual_task_vs_references_curves.png",
+        DUAL_TASK_FIXED_FAMILY_KEYS,
+        "Instruments Fixed Dual-Task vs Fixed Family",
+        ASSET_DIR / "dual_task_vs_fixed_family_curves.png",
         sft,
-        legend_cols=4,
+        legend_cols=3,
+    )
+    plot_metric_grid(
+        df,
+        SPECS,
+        DUAL_TASK_DYNAMIC_FAMILY_KEYS,
+        "Instruments Dynamic Dual-Task vs Dynamic Baselines",
+        ASSET_DIR / "dual_task_vs_dynamic_family_curves.png",
+        sft,
+        legend_cols=3,
     )
     plot_single_metric(
         df,

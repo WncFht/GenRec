@@ -38,14 +38,20 @@ fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1935 \\
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.96\textwidth]{dual_task_vs_references_curves.png}
-\caption{dual-task family 与 canonical dynamic / clean fixed reference。}
+\includegraphics[width=0.96\textwidth]{dual_task_vs_fixed_family_curves.png}
+\caption{fixed dual-task vs fixed family：old fixed、fixed sid-only、corrected fixed taskfix、fixed single-hint mixed。}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{dual_task_vs_dynamic_family_curves.png}
+\caption{dynamic dual-task vs dynamic baselines：dynamic sid-only、rule-only、dynamic single-hint mixed。}
 \end{figure}
 
 \subsection{结论}
 
 \begin{itemize}
-\item \texttt{dynamic dual-task} 已经进入可比较状态，但还没有超过 canonical \texttt{dynamic gather-fix}。
-\item \texttt{fixed dual-task} 已经整体强于 \texttt{dynamic dual-task}，因此 dual-task family 内部也复现了 “fixed 比 dynamic 更稳” 的方向。
-\item 但它离 clean fixed 主线仍然有明显差距，所以当前更准确的定位是：dual-task 是一条值得继续跟的 filtered setting，而不是已经改写主线排序。
+\item 把 dual-task family 拆成 fixed / dynamic 两张图之后，fixed 侧更容易直接看出：\texttt{fixed dual-task} 仍落后于 old fixed、corrected \texttt{fixed taskfix sid-only}、corrected \texttt{fixed taskfix} 和 fixed \texttt{single-hint mixed}。
+\item dynamic 侧则更容易看出：\texttt{dynamic dual-task} 已经进入可比较状态，但当前仍没有超过 \texttt{rule-only}、\texttt{dynamic sid-only} 或 \texttt{dynamic single-hint mixed} 这些 baseline。
+\item 因而当前更准确的定位仍然是：dual-task 是一条值得继续跟的 filtered setting，而不是已经改写主线排序。
 \end{itemize}

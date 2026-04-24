@@ -147,7 +147,8 @@ cd /Users/fanghaotian/Desktop/src/GenRec/docs/research
 - `ce_scaling_dynamic_first_look_curves.png`
 - `single_hint_vs_fixed_family_epoch_curves.png`
 - `single_hint_mixed_vs_baselines_compact_curves.png`
-- `dual_task_vs_references_curves.png`
+- `dual_task_vs_fixed_family_curves.png`
+- `dual_task_vs_dynamic_family_curves.png`
 
 配套结构化输出：
 
