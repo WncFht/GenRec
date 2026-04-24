@@ -59,6 +59,15 @@ SEVEN_WAY_MAIN_KEYS = [
 MAX1_ABLATION_KEYS = ["max1", "dynamic_gather_fix", "dynamic_sid_only", "rule_only", "fixed_taskfix_sid_only"]
 MAX1_FOCUS_KEYS = ["fixed_taskfix", "dynamic_gather_fix", "max1", "fixed_old"]
 SINGLE_HINT_FIXED_KEYS = ["fixed_old", "fixed_taskfix", "fixed_taskfix_sid_only", "single_hint_mixed"]
+SINGLE_HINT_BASELINE_KEYS = [
+    "rule_only",
+    "dynamic_gather_fix",
+    "dynamic_dual_task",
+    "dynamic_single_hint_mixed",
+    "single_hint_mixed",
+]
+CE_FIXED_KEYS = ["fixed_taskfix", "hintce_batch_mean", "hintce_token_mean", "hintce_coef_005", "hintce_coef_01"]
+CE_DYNAMIC_FIRSTLOOK_KEYS = ["dynamic_gather_fix", "dynamic_hint_ce005", "fixed_taskfix", "hintce_coef_01"]
 PROMISING_CANDIDATE_KEYS = [
     "rule_only",
     "single_hint_mixed",
@@ -116,6 +125,16 @@ SPECS = [
         color=TABLEAU_10["blue"],
         marker="o",
         launcher_path="hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint.sh",
+    ),
+    VariantSpec(
+        key="dynamic_hint_ce005",
+        label="RL dynamic CE coef=0.005",
+        model_dir="Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-hintce005-qwen2.5-3b-qwen4B-4-256-from-sft495",
+        color=TABLEAU_10["yellow"],
+        marker="X",
+        linestyle="--",
+        epoch_max_step_ref_key="dynamic_gather_fix",
+        launcher_path="hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-ce.sh",
     ),
     VariantSpec(
         key="ranking_dynamic",
@@ -202,6 +221,16 @@ SPECS = [
         color=TABLEAU_10["pink"],
         marker="P",
         launcher_path="hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-hint-only-mixed.sh",
+    ),
+    VariantSpec(
+        key="dynamic_single_hint_mixed",
+        label="RL dynamic single-hint mixed",
+        model_dir="Instruments-grec-grpo-rule-only-dynamic-hint-sid-hint-only-mixed-qwen2.5-3b-qwen4B-4-256-from-sft495",
+        color="#4361EE",
+        marker="^",
+        linestyle="--",
+        epoch_max_step_ref_key="single_hint_mixed",
+        launcher_path="hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-hint-only-mixed.sh",
     ),
     VariantSpec(
         key="dynamic_dual_task",
@@ -375,11 +404,21 @@ def main() -> None:
     plot_metric_grid(
         df,
         SPECS,
-        ["fixed_taskfix", "hintce_batch_mean", "hintce_token_mean", "hintce_coef_005", "hintce_coef_01"],
+        CE_FIXED_KEYS,
         "Instruments Fixed Hint CE Scaling",
         ASSET_DIR / "ce_scaling_three_variants_curves.png",
         sft,
         legend_cols=3,
+    )
+    plot_metric_grid(
+        df,
+        SPECS,
+        CE_DYNAMIC_FIRSTLOOK_KEYS,
+        "Instruments Dynamic Hint+CE First Look",
+        ASSET_DIR / "ce_scaling_dynamic_first_look_curves.png",
+        sft,
+        legend_cols=4,
+        x_lim=(0.0, 0.45),
     )
     plot_metric_grid(
         df,
@@ -393,8 +432,8 @@ def main() -> None:
     plot_metric_grid(
         df,
         SPECS,
-        ["rule_only", "dynamic_gather_fix", "fixed_old", "fixed_taskfix_sid_only", "single_hint_mixed"],
-        "Instruments Single-Hint Mixed vs Baselines",
+        SINGLE_HINT_BASELINE_KEYS,
+        "Instruments Single-Hint Mixed vs Dynamic Family",
         ASSET_DIR / "single_hint_mixed_vs_baselines_compact_curves.png",
         sft,
         legend_cols=3,

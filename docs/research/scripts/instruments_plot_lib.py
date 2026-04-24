@@ -154,6 +154,7 @@ def plot_metric_grid(
     reference_label: str = "SFT495",
     figsize: tuple[float, float] = (11, 8),
     dpi: int = 180,
+    x_lim: tuple[float, float] | None = None,
 ) -> Path:
     spec_map = _variant_map(specs)
     fig, axes = plt.subplots(2, 2, figsize=figsize, sharex=True)
@@ -166,6 +167,8 @@ def plot_metric_grid(
         ax.set_title(metric_title)
         ax.set_xlabel(x_label)
         ax.set_ylabel(metric)
+        if x_lim is not None:
+            ax.set_xlim(*x_lim)
         ax.grid(alpha=0.22)
 
     handles, labels = axes[0, 0].get_legend_handles_labels()
@@ -202,6 +205,7 @@ def plot_single_metric(
     reference_label: str = "SFT495",
     figsize: tuple[float, float] = (9.8, 5.2),
     dpi: int = 180,
+    x_lim: tuple[float, float] | None = None,
 ) -> Path:
     spec_map = _variant_map(specs)
     fig, ax = plt.subplots(figsize=figsize)
@@ -213,6 +217,8 @@ def plot_single_metric(
     ax.set_title(title)
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label or metric)
+    if x_lim is not None:
+        ax.set_xlim(*x_lim)
     ax.grid(alpha=0.22)
 
     handles, labels = ax.get_legend_handles_labels()

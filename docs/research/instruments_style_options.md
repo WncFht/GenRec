@@ -1,13 +1,13 @@
 # Instruments Plot Style Options
 
-- Generated at: `2026-04-22T01:08:33+08:00`
+- Generated at: `2026-04-24T12:09:47+08:00`
 - Preview image: [`assets/instruments-report/style_option_preview.png`](assets/instruments-report/style_option_preview.png)
 - Active selection: `tableau-10` + `CE-A`
 
 ## 1. Current inventory
 
-- Current variant colors: `14` entries, all unique.
-- Current plot markers: `D`, `P`, `^`, `o`, `s`
+- Current variant colors: `17` entries, all unique.
+- Current plot markers: `D`, `P`, `X`, `^`, `o`, `s`
 - Current line styles: `-`, `--`, `-.`, `:`
 - Extra non-variant colors: SFT reference gray plus LaTeX link colors.
 
@@ -18,6 +18,7 @@
 | rule_only | RL rule-only | #9C755F | o | - |
 | dynamic_sid_only | RL dynamic sid-only | #76B7B2 | s | - |
 | dynamic_gather_fix | RL dynamic gather-fix | #4E79A7 | o | - |
+| dynamic_hint_ce005 | RL dynamic CE coef=0.005 | #EDC948 | X | -- |
 | ranking_dynamic | RL ranking dynamic | #BAB0AB | ^ | -- |
 | fixed_taskfix | RL fixed taskfix | #F28E2B | o | - |
 | fixed_taskfix_sid_only | RL fixed taskfix sid-only | #E15759 | s | - |
@@ -26,7 +27,9 @@
 | hintce_batch_mean | RL fixed CE batch-mean | #4E79A7 | s | -- |
 | hintce_token_mean | RL fixed CE token-mean | #59A14F | ^ | -. |
 | hintce_coef_005 | RL fixed CE coef=0.005 | #E15759 | D | : |
+| hintce_coef_01 | RL fixed CE coef=0.01 | #B07AA1 | X | - |
 | single_hint_mixed | RL single-hint mixed | #FF9DA7 | P | - |
+| dynamic_single_hint_mixed | RL dynamic single-hint mixed | #4361EE | ^ | -- |
 | dynamic_dual_task | RL dynamic dual-task | #76B7B2 | o | - |
 | fixed_dual_task | RL fixed dual-task | #BAB0AB | s | - |
 

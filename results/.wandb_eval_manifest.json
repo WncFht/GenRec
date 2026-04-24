@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-04-23T14:31:57+00:00",
+  "generated_at": "2026-04-24T03:58:05+00:00",
   "results_root": "/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/results",
   "models": [
     {
@@ -289,6 +289,21 @@
       "wandb_run_name": "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft495-eval"
     },
     {
+      "model_dir": "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-hintce005-qwen2.5-3b-qwen4B-4-256-from-sft495",
+      "dataset": "Instruments_grec_grpo_rule_only_dynamic_hint_cascade_reward_gather_fix_hintce005",
+      "cb_setting": "cb256",
+      "eval_split": "test",
+      "seed": 42,
+      "num_beams": 50,
+      "sid_levels": -1,
+      "num_train_epochs": null,
+      "wandb_group": null,
+      "wandb_project": "MIMIGenRec-Eval",
+      "wandb_entity": null,
+      "wandb_run_id": "eval-065402f57e1f332b1413",
+      "wandb_run_name": "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-hintce005-qwen2.5-3b-qwen4B-4-256-from-sft495-eval"
+    },
+    {
       "model_dir": "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495",
       "dataset": "Instruments_grec_grpo_rule_only_dynamic_hint_cascade_reward_gather_fix",
       "cb_setting": "cb256",
@@ -317,6 +332,21 @@
       "wandb_entity": null,
       "wandb_run_id": "eval-46df05b90f39b85beae7",
       "wandb_run_name": "Instruments-grec-grpo-rule-only-dynamic-hint-max1-qwen2.5-3b-qwen4B-4-256-from-sft495-eval"
+    },
+    {
+      "model_dir": "Instruments-grec-grpo-rule-only-dynamic-hint-sid-hint-only-mixed-qwen2.5-3b-qwen4B-4-256-from-sft495",
+      "dataset": "Instruments_grec_grpo_rule_only_dynamic_hint_sid_hint_only_mixed",
+      "cb_setting": "cb256",
+      "eval_split": "test",
+      "seed": 42,
+      "num_beams": 50,
+      "sid_levels": -1,
+      "num_train_epochs": null,
+      "wandb_group": null,
+      "wandb_project": "MIMIGenRec-Eval",
+      "wandb_entity": null,
+      "wandb_run_id": "eval-6275deaf2c8bd2eb0fec",
+      "wandb_run_name": "Instruments-grec-grpo-rule-only-dynamic-hint-sid-hint-only-mixed-qwen2.5-3b-qwen4B-4-256-from-sft495-eval"
     },
     {
       "model_dir": "Instruments-grec-grpo-rule-only-dynamic-hint-sid-only-qwen2.5-3b-qwen4B-4-256-from-sft495",

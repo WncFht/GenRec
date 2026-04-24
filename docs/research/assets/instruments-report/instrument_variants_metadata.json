@@ -36,6 +36,18 @@
     "epoch_max_step_ref_key": null
   },
   {
+    "key": "dynamic_hint_ce005",
+    "label": "RL dynamic CE coef=0.005",
+    "model_dir": "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-hintce005-qwen2.5-3b-qwen4B-4-256-from-sft495",
+    "color": "#EDC948",
+    "launcher_path": "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-ce.sh",
+    "marker": "X",
+    "linestyle": "--",
+    "linewidth": 2.2,
+    "epoch_max_step": null,
+    "epoch_max_step_ref_key": "dynamic_gather_fix"
+  },
+  {
     "key": "ranking_dynamic",
     "label": "RL ranking dynamic",
     "model_dir": "Instruments-grec-grpo-ranking-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft495",
@@ -154,6 +166,18 @@
     "linewidth": 2.2,
     "epoch_max_step": null,
     "epoch_max_step_ref_key": null
+  },
+  {
+    "key": "dynamic_single_hint_mixed",
+    "label": "RL dynamic single-hint mixed",
+    "model_dir": "Instruments-grec-grpo-rule-only-dynamic-hint-sid-hint-only-mixed-qwen2.5-3b-qwen4B-4-256-from-sft495",
+    "color": "#4361EE",
+    "launcher_path": "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-hint-only-mixed.sh",
+    "marker": "^",
+    "linestyle": "--",
+    "linewidth": 2.2,
+    "epoch_max_step": null,
+    "epoch_max_step_ref_key": "single_hint_mixed"
   },
   {
     "key": "dynamic_dual_task",

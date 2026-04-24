@@ -2,7 +2,12 @@
 
 \subsection{实验定义}
 
-这条线不是“只训练 \texttt{task1}”，而是 mixed 三任务仍然一起训练，只是 fixed hint 只注入到 \texttt{task1\_sid\_sft}，其余任务继续按 zero-hint 路径走。
+这条线现在已经有 fixed / dynamic 两个版本，它们的共同点都不是“只训练 \texttt{task1}”，而是 mixed 三任务仍然一起训练，只把 hint 限制到 \texttt{task1\_sid\_sft}：
+
+\begin{itemize}
+\item fixed single-hint mixed：只对 \texttt{task1\_sid\_sft} 注入 fixed hint，其余任务继续按 zero-hint 路径走。
+\item dynamic single-hint mixed：只对 \texttt{task1\_sid\_sft} 开 dynamic cascade，其余任务被强制停在 stage-0 / no-hint 路径。
+\end{itemize}
 
 \subsection{对应脚本}
 
@@ -10,7 +15,8 @@
 \begin{itemize}
 \item 画图脚本：\path{docs/research/scripts/build_instruments_report_figures.py}
 \item 脚本目录：\path{hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/}
-\item launcher：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-hint-only-mixed.sh}
+\item fixed launcher：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-hint-only-mixed.sh}
+\item dynamic launcher：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-hint-only-mixed.sh}
 \end{itemize}
 }
 
@@ -20,17 +26,19 @@
 \centering
 \small
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{p{4.0cm} p{2.4cm} c c c}
+\begin{tabular}{p{3.8cm} p{2.2cm} c c c p{2.4cm}}
 \toprule
-Variant & Best ckpt & Epoch & NDCG@10 & HR@50 \\
+Variant & Best ckpt & Epoch & NDCG@10 & HR@50 & 备注 \\
 \midrule
-fixed taskfix & checkpoint-2997 & 1.802 & 0.0931 & 0.1941 \\
-fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1935 \\
-old fixed mixed-single & checkpoint-3326 & 2.000 & 0.0953 & 0.1938 \\
-single-hint mixed & checkpoint-2664 & 1.602 & 0.0948 & 0.1958 \\
+fixed taskfix & checkpoint-2997 & 1.802 & 0.0931 & 0.1941 & clean fixed 参考 \\
+fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1935 & clean sid-only 上界 \\
+old fixed mixed-single & checkpoint-3326 & 2.000 & 0.0953 & 0.1938 & 带 bug caveat 的历史上界 \\
+fixed single-hint mixed & checkpoint-2664 & 1.602 & 0.0948 & 0.1958 & 当前最强 partial-hint 候选 \\
+dynamic dual-task & checkpoint-1510 & 1.003 & 0.0930 & 0.1885 & 当前 task-filtered dynamic 参考 \\
+dynamic single-hint mixed & checkpoint-666 & 0.400 & 0.0895 & 0.1864 & 当前只同步到 666 的 first-look \\
 \bottomrule
 \end{tabular}
-\caption{single-hint mixed 是当前最强的 partial-hint 候选。}
+\caption{single-hint mixed 现在已经从 fixed-only 读法扩展到 fixed / dynamic 两个版本。}
 \end{table}
 
 \subsection{图表}
@@ -44,13 +52,14 @@ single-hint mixed & checkpoint-2664 & 1.602 & 0.0948 & 0.1958 \\
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.96\textwidth]{single_hint_mixed_vs_baselines_compact_curves.png}
-\caption{single-hint mixed vs baselines；除 SFT 外控制在 5 条线以内。}
+\caption{single-hint mixed vs dynamic family；当前 compact 图里直接放入新的 dynamic single-hint mixed。}
 \end{figure}
 
 \subsection{结论}
 
 \begin{itemize}
-\item 这条线不是“只训练 task1”，而是 mixed 三任务仍然训练，只是 fixed hint 只注入到 \texttt{task1\_sid\_sft}。
-\item 它当前 best 点已经同时超过 corrected \texttt{fixed taskfix sid-only} 的 \texttt{NDCG@10} 和 \texttt{HR@50}。
-\item 因此后续更值得解释的问题不是“它有没有信号”，而是它为什么能在完整尾段维持住 fixed family 前沿水平。
+\item 这条线不再只是 fixed-only 实验；现在已经能把 fixed / dynamic 两个“只对 \texttt{task1} 给 hint”的版本放到同一节里读。
+\item fixed single-hint mixed 仍然是当前更强、更完整的 partial-hint 候选：它的 best 点已经同时超过 corrected \texttt{fixed taskfix sid-only} 的 \texttt{NDCG@10} 和 \texttt{HR@50}。
+\item 新同步的 dynamic single-hint mixed 目前还只是 first-look，因为它只到 \texttt{checkpoint-666}；但在这个窗口里它已经达到 `NDCG@10=0.0895 / HR@50=0.1864`，明显高于 dynamic dual-task 的起步段 readout，并且只比同 checkpoint 的 canonical \texttt{dynamic gather-fix} (`0.0907 / 0.1914`) 略低一小截。因此现在更合理的说法不是“dynamic single-hint mixed 已经赢了”，而是“它已经有足够像样的早窗信号，值得继续同步后段 checkpoint”。
+\item 因而后续更值得解释的问题分成两件事：fixed single-hint mixed 为什么能在完整尾段维持 fixed family 前沿，以及 dynamic single-hint mixed 在继续长跑后会不会向 fixed 版本靠拢，还是仍然停留在 dynamic baseline 附近。
 \end{itemize}
