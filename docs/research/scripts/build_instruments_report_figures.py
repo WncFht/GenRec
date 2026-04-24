@@ -216,7 +216,7 @@ SPECS = [
     ),
     VariantSpec(
         key="single_hint_mixed",
-        label="RL single-hint mixed",
+        label="RL fixed single-hint mixed",
         model_dir="Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-hint-only-mixed-sft495",
         color=TABLEAU_10["pink"],
         marker="P",
@@ -418,7 +418,6 @@ def main() -> None:
         ASSET_DIR / "ce_scaling_dynamic_first_look_curves.png",
         sft,
         legend_cols=4,
-        x_lim=(0.0, 0.45),
     )
     plot_metric_grid(
         df,

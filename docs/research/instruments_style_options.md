@@ -1,6 +1,6 @@
 # Instruments Plot Style Options
 
-- Generated at: `2026-04-24T12:09:47+08:00`
+- Generated at: `2026-04-24T12:16:20+08:00`
 - Preview image: [`assets/instruments-report/style_option_preview.png`](assets/instruments-report/style_option_preview.png)
 - Active selection: `tableau-10` + `CE-A`
 
@@ -28,7 +28,7 @@
 | hintce_token_mean | RL fixed CE token-mean | #59A14F | ^ | -. |
 | hintce_coef_005 | RL fixed CE coef=0.005 | #E15759 | D | : |
 | hintce_coef_01 | RL fixed CE coef=0.01 | #B07AA1 | X | - |
-| single_hint_mixed | RL single-hint mixed | #FF9DA7 | P | - |
+| single_hint_mixed | RL fixed single-hint mixed | #FF9DA7 | P | - |
 | dynamic_single_hint_mixed | RL dynamic single-hint mixed | #4361EE | ^ | -- |
 | dynamic_dual_task | RL dynamic dual-task | #76B7B2 | o | - |
 | fixed_dual_task | RL fixed dual-task | #BAB0AB | s | - |
