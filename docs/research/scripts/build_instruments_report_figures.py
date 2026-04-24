@@ -75,6 +75,7 @@ DUAL_TASK_FIXED_FAMILY_KEYS = [
 ]
 DUAL_TASK_DYNAMIC_FAMILY_KEYS = [
     "dynamic_dual_task",
+    "dynamic_gather_fix",
     "dynamic_sid_only",
     "rule_only",
     "dynamic_single_hint_mixed",
