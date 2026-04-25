@@ -428,7 +428,7 @@ def main() -> None:
         df,
         SPECS,
         CE_DYNAMIC_FIRSTLOOK_KEYS,
-        "Instruments Dynamic Hint+CE First Look",
+        "Instruments Dynamic Hint+CE Trajectory vs Baselines",
         ASSET_DIR / "ce_scaling_dynamic_first_look_curves.png",
         sft,
         legend_cols=4,

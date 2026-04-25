@@ -1,15 +1,15 @@
 \section{CE Scaling 消融}
 
-\subsection{fixed CE family 与 dynamic CE first-look}
+\subsection{fixed CE family 与 dynamic CE trajectory}
 
-fixed CE family 目前仍然是这节的主体，但这次已经补进一条新的 dynamic CE first-look，因此这里统一按“4 条 fixed CE + 1 条 dynamic CE”来读：
+fixed CE family 仍然是这节的主体，但现在这条 dynamic CE 线已经补到完整长跑，因此这里统一按“4 条 fixed CE + 1 条 dynamic CE”来读：
 
 \begin{itemize}
 \item \texttt{hintce}：早期版本，这里记作 batch-mean CE。
 \item \texttt{hintce-2}：和当前公式说明里 strict DAPO CE 更一致的 token-mean 版本。
 \item \texttt{hintce-3}：在 \texttt{hintce-2} 的基础上，把 CE 相对倍率调到 \texttt{0.005}。
 \item \texttt{hintce-4}：把 CE 相对倍率继续抬到 \texttt{0.01} 的更激进版本。
-\item \texttt{dynamic hint + CE(0.005)}：在 canonical \texttt{dynamic gather-fix} 上额外挂 prompt-side CE 的新尝试；当前已经同步到 \texttt{checkpoint-999}，但还只能当 first-look。
+\item \texttt{dynamic hint + CE(0.005)}：在 canonical \texttt{dynamic gather-fix} 上额外挂 prompt-side CE 的新尝试；当前已经同步到完整 \texttt{checkpoint-3326}。
 \end{itemize}
 
 \subsection{对应脚本}
@@ -38,7 +38,7 @@ hintce & checkpoint-2664 & 1.602 & 0.0915 & 0.1944 & batch-mean CE \\
 hintce-2 & checkpoint-2664 & 1.602 & 0.0931 & 0.1951 & token-mean / 更符合 DAPO \\
 hintce-3 & checkpoint-1665 & 1.001 & 0.0945 & 0.1985 & 在 hintce-2 基础上把倍率调到 0.005 \\
 hintce-4 & checkpoint-2997 & 1.802 & 0.0953 & 0.1943 & 0.01 倍率；当前已同步到完整可比较后段 \\
-dynamic hint + CE(0.005) & checkpoint-666 & 0.400 & 0.0904 & 0.1910 & canonical dynamic 上的 first-look；当前已同步到 999，但 best 仍在 666 \\
+dynamic hint + CE(0.005) & checkpoint-1998 & 1.201 & 0.0917 & 0.1851 & full-trace dynamic CE；peak \texttt{HR@50} 仍在 checkpoint-666 \\
 \bottomrule
 \end{tabular}
 \caption{CE scaling 消融。}
@@ -55,7 +55,7 @@ dynamic hint + CE(0.005) & checkpoint-666 & 0.400 & 0.0904 & 0.1910 & canonical 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.96\textwidth]{ce_scaling_dynamic_first_look_curves.png}
-\caption{dynamic hint + CE 的 first-look；当前已同步到 \texttt{checkpoint-333/666/999}，横轴保持完整 epoch 范围，后续继续补 checkpoint 时不需要再改图逻辑。}
+\caption{dynamic hint + CE 的完整轨迹；当前已同步到 \texttt{checkpoint-3326}。}
 \end{figure}
 
 \subsection{结论}
@@ -66,5 +66,6 @@ dynamic hint + CE(0.005) & checkpoint-666 & 0.400 & 0.0904 & 0.1910 & canonical 
 \item \texttt{hintce-2} 是当前更稳的 token-mean / DAPO-compatible CE 候选；\texttt{hintce-3} 则是在它基础上把倍率抬到 0.005 后得到的更激进版本。
 \item 当前 `0.01` 倍率的 \texttt{hintce-4} 已经不再只是 early readout：它现在一路补到 `checkpoint-2997`，best \texttt{NDCG@10} 已经来到 `0.0953`，说明这条线不是“偏激后直接失效”，而是真正进入了可比前沿。
 \item 但按当前完整可见轨迹看，\texttt{hintce-4} 和 \texttt{hintce-3} 呈现的是不同形状：\texttt{hintce-4} 更像“把 top-10 往长跑尾段继续抬高”，而 \texttt{hintce-3} 仍然保留更高的 coverage 峰值 `0.1985`。因此现在更合理的说法不是“ce4 不行”，而是“它在 top-10 上已经追平 old fixed 历史上界，但还没有在 coverage 上超过 ce3”。
-\item 新同步的 \texttt{dynamic hint + CE(0.005)} 现在已经补到 \texttt{checkpoint-999}，但 best 仍停在 \texttt{checkpoint-666}：该点给出 `NDCG@10=0.0904 / HR@50=0.1910`，而到 \texttt{checkpoint-999} 回落到 `0.0899 / 0.1869`。因此当前更合理的判断仍然是：它还没有证明自己优于 canonical dynamic baseline，但已经足够像一条需要继续观察长跑后段的真实候选，而不是一次失败试验。
+\item \texttt{dynamic hint + CE(0.005)} 现在已经补到完整 \texttt{checkpoint-3326}。它的 best \texttt{NDCG@10} 点来到 \texttt{checkpoint-1998 / 0.0917}，但对应 \texttt{HR@50} 只有 `0.1851`；而它的 peak \texttt{HR@50} 仍然停在更早的 \texttt{checkpoint-666 / 0.1910}，后段逐步回落到尾点 `0.1839`。
+\item 因此当前更合理的判断已经不再是“需要继续等后段再看”，而是：这条 dynamic CE 线并没有超过 canonical \texttt{dynamic gather-fix}，也没有改写 dynamic family 排序。它更像一次有信息量的负结果，说明把 fixed-side prompt CE 直接搬到 dynamic gather-fix 上，当前并不会自然带来更好的长跑表现。
 \end{itemize}

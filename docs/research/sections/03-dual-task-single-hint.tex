@@ -35,7 +35,7 @@ fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1935 & clean sid-o
 old fixed mixed-single & checkpoint-3326 & 2.000 & 0.0953 & 0.1938 & 带 bug caveat 的历史上界 \\
 fixed single-hint mixed & checkpoint-2664 & 1.602 & 0.0948 & 0.1958 & 当前最强 partial-hint 候选 \\
 dynamic dual-task & checkpoint-1510 & 1.003 & 0.0930 & 0.1885 & 当前 task-filtered dynamic 参考 \\
-dynamic single-hint mixed & checkpoint-666 & 0.400 & 0.0895 & 0.1864 & 当前已同步到 999，但 best 仍在 666 的 first-look \\
+dynamic single-hint mixed & checkpoint-2331 & 1.402 & 0.0911 & 0.1823 & 当前已同步到 checkpoint-2997，但仍弱于 dynamic baseline \\
 \bottomrule
 \end{tabular}
 \caption{single-hint mixed 现在已经从 fixed-only 读法扩展到 fixed / dynamic 两个版本。}
@@ -60,6 +60,7 @@ dynamic single-hint mixed & checkpoint-666 & 0.400 & 0.0895 & 0.1864 & 当前已
 \begin{itemize}
 \item 这条线不再只是 fixed-only 实验；现在已经能把 fixed / dynamic 两个“只对 \texttt{task1} 给 hint”的版本放到同一节里读。
 \item fixed single-hint mixed 仍然是当前更强、更完整的 partial-hint 候选：它的 best 点已经同时超过 corrected \texttt{fixed taskfix sid-only} 的 \texttt{NDCG@10} 和 \texttt{HR@50}。
-\item 新同步的 dynamic single-hint mixed 现在已经补到 \texttt{checkpoint-999}，但 best 仍停在 \texttt{checkpoint-666}：`NDCG@10=0.0895 / HR@50=0.1864`；到 \texttt{checkpoint-999} 时读数是 `0.0893 / 0.1864`。它仍明显高于 dynamic dual-task 的起步段 readout，并且只比同 checkpoint 的 canonical \texttt{dynamic gather-fix} (`0.0907 / 0.1914`) 略低一小截。因此当前更合理的说法依然不是“dynamic single-hint mixed 已经赢了”，而是“它已经有足够像样的早窗信号，值得继续同步后段 checkpoint”。
-\item 因而后续更值得解释的问题分成两件事：fixed single-hint mixed 为什么能在完整尾段维持 fixed family 前沿，以及 dynamic single-hint mixed 在继续长跑后会不会向 fixed 版本靠拢，还是仍然停留在 dynamic baseline 附近。
+\item dynamic single-hint mixed 现在已经补到 \texttt{checkpoint-2997}。它的 best \texttt{NDCG@10} 点在 \texttt{checkpoint-2331 / 0.0911}，对应 \texttt{HR@50=0.1823}；peak \texttt{HR@50} 则出现在 \texttt{checkpoint-1665 / 0.1874}，而尾点回落到 `0.0905 / 0.1802`。
+\item 这意味着之前在 \texttt{checkpoint-666} 看起来还算有希望的 early-window readout，并没有沿着长跑继续长成一个真正的 dynamic 候选。按当前完整得多的轨迹看，它既没有接近 fixed \texttt{single-hint mixed}，也没有超过 canonical \texttt{dynamic gather-fix} 或 \texttt{dynamic dual-task}。
+\item 因而这条线现在更像“帮助理解 partial-hint 机制边界”的对照项，而不是需要优先追加资源的新主候选。真正仍值得继续解释的 partial-hint 故事，仍然主要发生在 fixed \texttt{single-hint mixed} 上。
 \end{itemize}

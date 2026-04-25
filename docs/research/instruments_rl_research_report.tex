@@ -35,7 +35,7 @@
 \maketitle
 
 \begin{abstract}
-本文把 \texttt{Instruments-grec} 上已经跑出来的主要 RL 实验按“baseline、canonical hint family、家族内部对照、专项消融”四层结构重排。正文仍以 Instruments 为主，默认将 \texttt{dynamic gather-fix} 视为正确的 canonical dynamic 实现，将 old fixed-hint 明确标成带 bug caveat 的历史参考，并把 \texttt{max1}、CE scaling、single-hint mixed 与 dual-task 这些后续探索拆成单独 section。本轮更新进一步把新同步回来的 \texttt{dynamic hint + CE(0.005)} 与 \texttt{dynamic single-hint mixed} first-look 接进同一份研究稿中，使 fixed family 的完整长跑结果与 dynamic family 的早窗新候选可以在同一套本地图表下对照阅读。附录则补入 \texttt{Games-grec} 的全流程摘要与 RL 结果，作为第二数据集上的交叉验证。
+本文把 \texttt{Instruments-grec} 上已经跑出来的主要 RL 实验按“baseline、canonical hint family、家族内部对照、专项消融”四层结构重排。正文仍以 Instruments 为主，默认将 \texttt{dynamic gather-fix} 视为正确的 canonical dynamic 实现，将 old fixed-hint 明确标成带 bug caveat 的历史参考，并把 \texttt{max1}、CE scaling、single-hint mixed 与 dual-task 这些后续探索拆成单独 section。本轮更新进一步把新同步回来的 \texttt{dynamic hint + CE(0.005)} 与 \texttt{dynamic single-hint mixed} 的更长轨迹接进同一份研究稿中。新的完整曲线表明，这两条 dynamic 变体目前都没有改写 canonical dynamic baseline 的排序，而 fixed family 的主候选位置反而更清楚了。附录则补入 \texttt{Games-grec} 的全流程摘要与 RL 结果，作为第二数据集上的交叉验证。
 \end{abstract}
 
 \tableofcontents
@@ -61,7 +61,7 @@
 \item plain \texttt{rule-only} 仍然是当前 top-10 最强的无 hint baseline，但 coverage 损失很明确，因此不适合直接当 balanced 主线。
 \item \texttt{dynamic gather-fix} 应被视为当前 canonical dynamic 实现；\texttt{dynamic sid-only} 和 \texttt{ranking dynamic} 都还没有超过它。
 \item clean fixed family 仍然是当前最强的 balanced 主候选；其中 corrected \texttt{fixed taskfix sid-only} 是更干净的 fixed 参考，而 old fixed 只能当 historical reference。
-\item 在后续探索里，\texttt{max1} 更像 early-stop dynamic candidate；\texttt{hintce-3}、\texttt{hintce-4}、fixed \texttt{single-hint mixed} 和 \texttt{fixed dual-task} 仍然是当前最成熟的新候选，而新同步的 \texttt{dynamic hint + CE(0.005)} 与 \texttt{dynamic single-hint mixed} 则刚进入“值得继续跟后段 checkpoint”的 first-look 阶段。
+\item 在后续探索里，\texttt{max1} 更像 early-stop dynamic candidate；\texttt{hintce-3}、\texttt{hintce-4}、fixed \texttt{single-hint mixed} 和 \texttt{fixed dual-task} 仍然是当前最成熟的新候选。相对地，新同步完整后的 \texttt{dynamic hint + CE(0.005)} 与 \texttt{dynamic single-hint mixed} 目前都没有改写 dynamic family 的排序。
 \end{enumerate}
 
 \subsection{下一步最值得继续补的证据}
@@ -70,7 +70,7 @@
 \item 解释 \texttt{hintce-3} 为什么在完整尾段已经补齐后，best 点仍停在中段而不是最终点，并确认它该被当作峰值候选还是稳态候选。
 \item 继续跟 \texttt{single-hint mixed} 的尾段平台，并解释为什么它能在完整 2 epoch 维持住 fixed family 前沿。
 \item 继续跟 \texttt{dynamic dual-task} 与 \texttt{fixed dual-task} 的终段 readout，确认 dual-task family 的稳定排序。
-\item 继续同步 \texttt{dynamic hint + CE(0.005)} 和 \texttt{dynamic single-hint mixed} 的后段 checkpoint，判断它们当前看到的 early-window 改善能否延续到完整长跑，而不是只停留在 first-look 读数。
+\item 对 \texttt{dynamic hint + CE(0.005)} 和 \texttt{dynamic single-hint mixed} 这两条线，当前更值得做的是解释它们为什么在 early-window 看起来有信号，但长跑后没有转化成真正的主候选，而不是再把它们默认当成最优先的加算力对象。
 \item 如果后面要把这份稿件扩成更正式的研究报告，建议继续沿用“一个实验主题一个子文件”的结构，而不是回到按日期拼接的 note 模式。
 \end{itemize}
 
