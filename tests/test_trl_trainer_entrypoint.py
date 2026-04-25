@@ -93,6 +93,12 @@ FIXED_HINT_SID_HINT_ONLY_MIXED_SCRIPT = (
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-hint-only-mixed.sh"
 )
+FIXED_HINT_SID_HINT_ONLY_MIXED_CE_SCRIPT = (
+    REPO_ROOT
+    / "hope"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-hint-only-mixed-hint-ce.sh"
+)
 FIXED_HINT_PREFIX_SEQ_SID_ONLY_SCRIPT = (
     REPO_ROOT
     / "hope"
@@ -1448,6 +1454,63 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
 
     def test_fixed_hint_sid_hint_only_mixed_shell_is_standalone_launcher(self):
         script_text = FIXED_HINT_SID_HINT_ONLY_MIXED_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("analyze_rl_beam_hint.py", script_text)
+        self.assertIn("trl_trainer.py", script_text)
+        self.assertNotIn("BASE_SCRIPT=", script_text)
+        self.assertNotIn("exec bash", script_text)
+
+    def test_fixed_hint_sid_hint_only_mixed_ce_shell_dry_run_forwards_ce_and_sid_only_flags(self):
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            model_dir = temp_root_path / "model"
+            data_dir = temp_root_path / "data" / "rl"
+            index_path = temp_root_path / "data" / "id2sid.json"
+            add_tokens_path = temp_root_path / "data" / "new_tokens.json"
+            ds_config_path = temp_root_path / "config" / "zero2.yaml"
+            model_dir.mkdir(parents=True)
+            data_dir.mkdir(parents=True)
+            ds_config_path.parent.mkdir(parents=True)
+            (data_dir / "train.json").write_text("[]", encoding="utf-8")
+            (data_dir / "valid.json").write_text("[]", encoding="utf-8")
+            (data_dir / "test.json").write_text("[]", encoding="utf-8")
+            index_path.write_text("{}", encoding="utf-8")
+            add_tokens_path.write_text("[]", encoding="utf-8")
+            ds_config_path.write_text("train_micro_batch_size_per_gpu: 1\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    "bash",
+                    str(FIXED_HINT_SID_HINT_ONLY_MIXED_CE_SCRIPT),
+                    "--run",
+                    "--dry-run",
+                    "--model-path",
+                    str(model_dir),
+                    "--data-dir",
+                    str(data_dir),
+                    "--index-path",
+                    str(index_path),
+                    "--add-tokens-path",
+                    str(add_tokens_path),
+                    "--ds-config",
+                    str(ds_config_path),
+                ],
+                cwd=REPO_ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("--task-names task1_sid_sft", result.stdout)
+        self.assertIn("--fixed_hint_task_names task1_sid_sft", result.stdout)
+        self.assertIn("--eval_task_names task1_sid_sft", result.stdout)
+        self.assertIn("--hint_ce_loss_coef 0.005", result.stdout)
+        self.assertIn("--eval_on_start false", result.stdout)
+        self.assertNotIn("--train_task_names", result.stdout)
+
+    def test_fixed_hint_sid_hint_only_mixed_ce_shell_is_standalone_launcher(self):
+        script_text = FIXED_HINT_SID_HINT_ONLY_MIXED_CE_SCRIPT.read_text(encoding="utf-8")
 
         self.assertIn("analyze_rl_beam_hint.py", script_text)
         self.assertIn("trl_trainer.py", script_text)
