@@ -1506,6 +1506,7 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         self.assertIn("--fixed_hint_task_names task1_sid_sft", result.stdout)
         self.assertIn("--eval_task_names task1_sid_sft", result.stdout)
         self.assertIn("--hint_ce_loss_coef 0.005", result.stdout)
+        self.assertIn("--optim adamw_torch", result.stdout)
         self.assertIn("--eval_on_start false", result.stdout)
         self.assertNotIn("--train_task_names", result.stdout)
 

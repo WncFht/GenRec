@@ -29,6 +29,7 @@ Common overrides:
   --grad-acc <n>
   --epochs <n>
   --lr <float>
+  --optim <name>          Default: adamw_torch
   --eval-step <n>
   --eval-on-start <true|false>
   --max-completion-length <n>
@@ -123,6 +124,7 @@ PER_DEVICE_EVAL_BSZ="${PER_DEVICE_EVAL_BSZ:-64}"
 GRAD_ACC="${GRAD_ACC:-4}"
 NUM_EPOCHS="${NUM_EPOCHS:-2}"
 LEARNING_RATE="${LEARNING_RATE:-1e-5}"
+OPTIM="${OPTIM:-adamw_torch}"
 EVAL_STEP="${EVAL_STEP:-100}"
 EVAL_ON_START="${EVAL_ON_START:-false}"
 MAX_COMPLETION_LENGTH="${MAX_COMPLETION_LENGTH:-128}"
@@ -242,6 +244,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --lr)
       LEARNING_RATE="$2"
+      shift 2
+      ;;
+    --optim)
+      OPTIM="$2"
       shift 2
       ;;
     --eval-step)
@@ -401,6 +407,7 @@ if [[ "$MODE" == "nohup" || "$MODE" == "detach" ]]; then
     --grad-acc "$GRAD_ACC"
     --epochs "$NUM_EPOCHS"
     --lr "$LEARNING_RATE"
+    --optim "$OPTIM"
     --eval-step "$EVAL_STEP"
     --eval-on-start "$EVAL_ON_START"
     --max-completion-length "$MAX_COMPLETION_LENGTH"
@@ -499,6 +506,7 @@ TRAIN_CMD=(
   --gradient_accumulation_steps "$GRAD_ACC"
   --num_train_epochs "$NUM_EPOCHS"
   --learning_rate "$LEARNING_RATE"
+  --optim "$OPTIM"
   --eval_step "$EVAL_STEP"
   --eval_on_start "$EVAL_ON_START"
   --max_completion_length "$MAX_COMPLETION_LENGTH"
@@ -560,6 +568,7 @@ echo "[INFO] EVAL_BSZ=$PER_DEVICE_EVAL_BSZ"
 echo "[INFO] GRAD_ACC=$GRAD_ACC"
 echo "[INFO] NUM_EPOCHS=$NUM_EPOCHS"
 echo "[INFO] LEARNING_RATE=$LEARNING_RATE"
+echo "[INFO] OPTIM=$OPTIM"
 echo "[INFO] EVAL_STEP=$EVAL_STEP"
 echo "[INFO] EVAL_ON_START=$EVAL_ON_START"
 echo "[INFO] MAX_COMPLETION_LENGTH=$MAX_COMPLETION_LENGTH"
