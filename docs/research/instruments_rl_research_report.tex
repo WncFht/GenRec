@@ -28,14 +28,14 @@
 
 \title{GenRec RL 实验整理：Instruments 主报告与 Games 附录}
 \author{按实验主题重构的 LaTeX 研究稿}
-\date{2026-04-24}
+\date{2026-04-26}
 
 \begin{document}
 
 \maketitle
 
 \begin{abstract}
-本文把 \texttt{Instruments-grec} 上已经跑出来的主要 RL 实验按“baseline、canonical hint family、家族内部对照、专项消融”四层结构重排。正文仍以 Instruments 为主，默认将 \texttt{dynamic gather-fix} 视为正确的 canonical dynamic 实现，将 old fixed-hint 明确标成带 bug caveat 的历史参考，并把 \texttt{max1}、CE scaling、single-hint mixed 与 dual-task 这些后续探索拆成单独 section。本轮更新进一步把新同步回来的 \texttt{dynamic hint + CE(0.005)} 与 \texttt{dynamic single-hint mixed} 的更长轨迹接进同一份研究稿中。新的完整曲线表明，这两条 dynamic 变体目前都没有改写 canonical dynamic baseline 的排序，而 fixed family 的主候选位置反而更清楚了。附录则补入 \texttt{Games-grec} 的全流程摘要与 RL 结果，作为第二数据集上的交叉验证。
+本文把 \texttt{Instruments-grec} 上已经跑出来的主要 RL 实验按“baseline、canonical hint family、家族内部对照、专项消融”四层结构重排。正文仍以 Instruments 为主，默认将 \texttt{dynamic gather-fix} 视为正确的 canonical dynamic 实现，将 old fixed-hint 明确标成带 bug caveat 的历史参考，并把 \texttt{max1}、CE scaling、single-hint mixed 与 dual-task 这些后续探索拆成单独 section。本轮更新进一步把新同步回来的 \texttt{dynamic hint + CE(0.005)} 与 \texttt{dynamic single-hint mixed} 的更长轨迹接进同一份研究稿中，并把 \texttt{fixed single-hint mixed + CE(0.005)} 从旧的 first-look 升级成完整轨迹对照。当前完整曲线表明，这条新 fixed 变体并没有把 plain \texttt{single-hint mixed} 与 \texttt{hintce-3} 的优势叠加起来：它的 top-10 接近 parent line，但 coverage 明显更弱，因此暂时更像一次有信息量的负结果。附录则补入 \texttt{Games-grec} 的全流程摘要与 RL 结果，作为第二数据集上的交叉验证。
 \end{abstract}
 
 \tableofcontents
@@ -50,8 +50,10 @@
 \input{sections/02-dynamic-max1-ablation}
 \input{sections/08-ce-scaling-ablation}
 \input{sections/03-dual-task-single-hint}
+\input{sections/03a-single-hint-ce-mixed}
 \input{sections/09-dual-task-ablation}
 \input{sections/09a-promising-instruments-candidates}
+\input{sections/09b-hint-token-sft}
 
 \section{结论与下一步}
 
@@ -62,6 +64,7 @@
 \item \texttt{dynamic gather-fix} 应被视为当前 canonical dynamic 实现；\texttt{dynamic sid-only} 和 \texttt{ranking dynamic} 都还没有超过它。
 \item clean fixed family 仍然是当前最强的 balanced 主候选；其中 corrected \texttt{fixed taskfix sid-only} 是更干净的 fixed 参考，而 old fixed 只能当 historical reference。
 \item 在后续探索里，\texttt{max1} 更像 early-stop dynamic candidate；\texttt{hintce-3}、\texttt{hintce-4}、fixed \texttt{single-hint mixed} 和 \texttt{fixed dual-task} 仍然是当前最成熟的新候选。相对地，新同步完整后的 \texttt{dynamic hint + CE(0.005)} 与 \texttt{dynamic single-hint mixed} 目前都没有改写 dynamic family 的排序。
+\item 新增的 \texttt{fixed single-hint mixed + CE(0.005)} 现在已经补齐完整轨迹；按当前 full-trace 对照看，它仍然没有把 \texttt{single-hint mixed} 和 \texttt{hintce-3} 的优势自然合并起来，因此暂时不应被当作新的主候选。
 \end{enumerate}
 
 \subsection{下一步最值得继续补的证据}
@@ -69,6 +72,7 @@
 \begin{itemize}
 \item 解释 \texttt{hintce-3} 为什么在完整尾段已经补齐后，best 点仍停在中段而不是最终点，并确认它该被当作峰值候选还是稳态候选。
 \item 继续跟 \texttt{single-hint mixed} 的尾段平台，并解释为什么它能在完整 2 epoch 维持住 fixed family 前沿。
+\item 对 \texttt{single-hint mixed + CE(0.005)}，当前更值得做的是解释为什么它没有继承 plain \texttt{single-hint mixed} 和 \texttt{hintce-3} 的优势，而不是继续把它默认当成等待后段翻盘的候选。
 \item 继续跟 \texttt{dynamic dual-task} 与 \texttt{fixed dual-task} 的终段 readout，确认 dual-task family 的稳定排序。
 \item 对 \texttt{dynamic hint + CE(0.005)} 和 \texttt{dynamic single-hint mixed} 这两条线，当前更值得做的是解释它们为什么在 early-window 看起来有信号，但长跑后没有转化成真正的主候选，而不是再把它们默认当成最优先的加算力对象。
 \item 如果后面要把这份稿件扩成更正式的研究报告，建议继续沿用“一个实验主题一个子文件”的结构，而不是回到按日期拼接的 note 模式。

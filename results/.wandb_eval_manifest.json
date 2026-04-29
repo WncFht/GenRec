@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-04-25T07:27:05+00:00",
+  "generated_at": "2026-04-28T06:18:11+00:00",
   "results_root": "/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/results",
   "models": [
     {
@@ -482,6 +482,21 @@
       "wandb_entity": null,
       "wandb_run_id": "eval-7496742c37888e35b425",
       "wandb_run_name": "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495-eval"
+    },
+    {
+      "model_dir": "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-hint-only-mixed-hintce005-sft495",
+      "dataset": "Instruments_grec",
+      "cb_setting": "none",
+      "eval_split": "test",
+      "seed": 42,
+      "num_beams": 50,
+      "sid_levels": -1,
+      "num_train_epochs": null,
+      "wandb_group": null,
+      "wandb_project": "MIMIGenRec-Eval",
+      "wandb_entity": null,
+      "wandb_run_id": "eval-7f342d3237e4423f1a4a",
+      "wandb_run_name": "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-hint-only-mixed-hintce005-sft495-eval"
     },
     {
       "model_dir": "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-hint-only-mixed-sft495",

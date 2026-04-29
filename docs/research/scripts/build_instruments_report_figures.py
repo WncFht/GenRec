@@ -59,6 +59,7 @@ SEVEN_WAY_MAIN_KEYS = [
 MAX1_ABLATION_KEYS = ["max1", "dynamic_gather_fix", "dynamic_sid_only", "rule_only", "fixed_taskfix_sid_only"]
 MAX1_FOCUS_KEYS = ["fixed_taskfix", "dynamic_gather_fix", "max1", "fixed_old"]
 SINGLE_HINT_FIXED_KEYS = ["fixed_old", "fixed_taskfix", "fixed_taskfix_sid_only", "single_hint_mixed"]
+SINGLE_HINT_CE_KEYS = ["single_hint_mixed_hintce005", "single_hint_mixed", "hintce_coef_005"]
 SINGLE_HINT_BASELINE_KEYS = [
     "rule_only",
     "dynamic_gather_fix",
@@ -235,6 +236,16 @@ SPECS = [
         color=TABLEAU_10["pink"],
         marker="P",
         launcher_path="hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-hint-only-mixed.sh",
+    ),
+    VariantSpec(
+        key="single_hint_mixed_hintce005",
+        label="RL fixed single-hint mixed + CE(0.005)",
+        model_dir="Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-hint-only-mixed-hintce005-sft495",
+        color="#264653",
+        marker="X",
+        linestyle="-.",
+        epoch_max_step_ref_key="single_hint_mixed",
+        launcher_path="hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-hint-only-mixed-hint-ce.sh",
     ),
     VariantSpec(
         key="dynamic_single_hint_mixed",
@@ -450,6 +461,15 @@ def main() -> None:
         ASSET_DIR / "single_hint_mixed_vs_baselines_compact_curves.png",
         sft,
         legend_cols=3,
+    )
+    plot_metric_grid(
+        df,
+        SPECS,
+        SINGLE_HINT_CE_KEYS,
+        "Instruments Single-Hint Mixed + CE(0.005) Full-Trace Comparison",
+        ASSET_DIR / "single_hint_mixed_ce005_vs_parents_curves.png",
+        sft,
+        legend_cols=4,
     )
     plot_metric_grid(
         df,

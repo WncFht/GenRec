@@ -1,0 +1,63 @@
+\section{Single-Hint Mixed + CE(0.005) 完整轨迹}
+
+\subsection{实验定义}
+
+这条新线把前一节的 fixed \texttt{single-hint mixed} 和 CE scaling 里的
+\texttt{hintce-3} 直接拼到一起：
+
+\begin{itemize}
+\item 训练任务仍然保持 mixed 三任务。
+\item hint 仍然只对 \texttt{task1\_sid\_sft} 打开，也就是沿用 \texttt{single-hint mixed} 的 partial-hint 设定。
+\item 同时在这个设定上再加 fixed-side prompt CE，倍率沿用 \texttt{0.005}，也就是和 \texttt{hintce-3} 相同的 CE 系数。
+\end{itemize}
+
+因此这里最自然的比较对象不是整个 fixed family，而是它的两个“父实验”：
+\texttt{single-hint mixed} 和 fixed CE coef=\texttt{0.005}（\texttt{hintce-3}）。
+
+\subsection{对应脚本}
+
+{\footnotesize
+\begin{itemize}
+\item 画图脚本：\path{docs/research/scripts/build_instruments_report_figures.py}
+\item 脚本目录：\path{hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/}
+\item plain single-hint mixed launcher：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-hint-only-mixed.sh}
+\item single-hint mixed + CE(0.005) launcher：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-hint-only-mixed-hint-ce.sh}
+\item fixed CE coef=\texttt{0.005} parent launcher：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-ce.sh}
+\end{itemize}
+}
+
+\subsection{关键指标}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{4.2cm} p{2.2cm} c c c p{2.3cm}}
+\toprule
+Variant & Best ckpt & Epoch & NDCG@10 & HR@50 & 备注 \\
+\midrule
+fixed single-hint mixed & checkpoint-2664 & 1.602 & 0.0948 & 0.1958 & plain partial-hint baseline \\
+fixed CE coef=0.005 (\texttt{hintce-3}) & checkpoint-1665 & 1.001 & 0.0945 & 0.1985 & plain CE parent line \\
+single-hint mixed + CE(0.005) & checkpoint-2664 & 1.602 & 0.0943 & 0.1919 & 当前已同步到 checkpoint-3326 \\
+\bottomrule
+\end{tabular}
+\caption{single-hint mixed + CE(0.005) 与两个 parent line 的完整轨迹对照。}
+\end{table}
+
+\subsection{图表}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{single_hint_mixed_ce005_vs_parents_curves.png}
+\caption{single-hint mixed + CE(0.005) vs plain single-hint mixed vs fixed CE coef=\texttt{0.005}。}
+\end{figure}
+
+\subsection{结论}
+
+\begin{itemize}
+\item 这条线现在虽然已经补齐到完整 \texttt{checkpoint-3326}，但按代码实现看，它并不是一个“把 \texttt{single-hint mixed} 和 \texttt{hintce-3} 直接做加法”的 clean additive ablation。
+\item 关键原因在于 task scope 被改了两次：这两个 \texttt{single-hint} launcher 都把 \texttt{FIXED\_HINT\_TASK\_NAMES}、\texttt{ANALYSIS\_TASK\_NAMES} 和 \texttt{EVAL\_TASK\_NAMES} 固定成 \texttt{task1\_sid\_sft}，而 plain \texttt{hintce-3} 的 fixed-hint CE launcher 并没有这组 task filter。也就是说，\texttt{hintce-3} 是“full fixed-hint + CE”，而这里的新线实际上是“task1-only fixed-hint + task1-only CE”。
+\item 更具体地说，trainer 在应用 \texttt{fixed\_hint\_task\_names} 时，会把不在集合里的样本直接改写成 zero-hint example，而不是保留成“有 map 但不显示 hint”的状态；随后 prompt-side CE mask 又直接由 \texttt{oracle\_hint\_depth} 构造。因此对 \texttt{task4/task5} 来说，新线不仅没有 fixed hint，也没有任何 hint CE 梯度；CE 实际上只作用在 \texttt{task1} 被显式拼进 prompt 的那几个 oracle prefix token 上。
+\item 这就是为什么这里的“叠加”更像副作用，而不是 gain source 的自然相加：它新增的不是一个覆盖整个 mixed-task training distribution 的辅助损失，而是一个只在 \texttt{task1}、只在已经暴露出来的 hinted prefix 上生效的额外正则。这个操作更接近于重新加重 \texttt{task1} 前缀 token 的 imitation pressure，而不是把 \texttt{hintce-3} 的稳定化机制完整搬进 \texttt{single-hint mixed}。
+\item 从结果上看，这种 task-conditional reweighting 也确实没有长成新的主候选：新线 best 点是 \texttt{checkpoint-2664 / NDCG@10=0.0943 / HR@50=0.1919}，\texttt{NDCG@10} 只接近 \texttt{hintce-3} 的 \texttt{0.0945}，但仍低于 plain \texttt{single-hint mixed} 的 \texttt{0.0948}；而 \texttt{HR@50} 则同时明显低于两个 parent line 的 \texttt{0.1958} 和 \texttt{0.1985}。因此当前更合理的结论不是“继续等后段翻盘”，而是：这条线提供了一次有信息量的机制性负结果，说明 partial-hint task gating 和 prompt-side CE 在这个实现下并不会自动叠加成更好的 coverage-balanced candidate。
+\end{itemize}

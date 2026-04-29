@@ -1,0 +1,102 @@
+\section{Hint-Token SFT：去掉 RL 后的 Beam-Selected Hint Imitation}
+
+\subsection{动机}
+
+前面的 CE family 都是在 GRPO / DAPO 主损失旁边加一个 prompt-side CE：
+
+\[
+\mathcal{L}_{\text{total}}
+= \mathcal{L}_{\text{RL}}
++ \lambda_{\text{CE}} \mathcal{L}_{\text{hint-CE}} .
+\]
+
+这次新设定把问题拆得更干净：不再让 reward、advantage、KL/reference model 或 completion-token policy gradient 参与更新，而是只训练模型在应该暴露 oracle hint 的位置上模仿真实 SID prefix token。换句话说，beam search rollout 只负责决定“这个样本至少需要多少个 hint token 才能解出来”，最终梯度只来自这些被选中的 hint token。
+
+\subsection{代码入口}
+
+{\footnotesize
+\begin{itemize}
+\item Trainer：\path{hint_sft_trainer.py}
+\item fixed launcher：\path{hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-hint-token-sft-fixed.sh}
+\item dynamic launcher：\path{hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-hint-token-sft-dynamic.sh}
+\item 合成单测：\path{tests/test_hint_sft_trainer.py}
+\end{itemize}
+}
+
+这两个 launcher 默认都跑 Instruments mixed 三任务，不再启用 \texttt{sid-hint-only} 或 task filter。也就是说，训练分布仍然覆盖 \texttt{task1\_sid\_sft}、\texttt{task4\_hisTitle2sid} 和 \texttt{task5\_title\_desc2sid}。
+
+\subsection{Fixed 版本}
+
+fixed 版本使用已有的 beam-hint 分析缓存作为 oracle depth 来源。启动脚本先调用
+\path{analyze_rl_beam_hint.py}，从 \texttt{summary.json} / \texttt{details.json} 导出 fixed hint-depth map，然后把 map 注入训练集：
+
+\[
+d_i = \texttt{fixed\_hint\_depth\_map}(x_i).
+\]
+
+对每个训练样本，prompt 后拼接由 ground truth SID 构造出来的前 \(d_i\) 个 oracle token。若 \(d_i=0\)，该样本仍在 batch 中参与 padding 和 forward，但不会贡献 hint-token loss。若样本在离线 beam 分析里到最大深度仍未解出，默认使用 \texttt{fixed\_hint\_unsolved\_depth=3}。
+
+\subsection{Dynamic 版本}
+
+dynamic 版本把“需要多少 hint token”的选择放到训练时在线完成。对一个 batch，trainer 从 depth 0 开始构造 hinted prompt，用当前模型做 constrained beam rollout；如果某个样本任意 beam completion 和 ground truth SID 精确匹配，就选中当前 depth。没有命中的样本进入下一层 depth，直到 \texttt{dynamic\_hint\_max\_depth}。
+
+需要强调的是：rollout completion 只是 selector，不进入监督标签。选中 depth 之后，真正反传的仍然只是 prompt 末尾的 oracle hint token CE。
+
+\subsection{Loss 细节}
+
+设拼好 hint 后的 token 序列为 \(z_i = [x_i, h_i]\)，其中 \(h_i\) 是 oracle hint prefix。代码构造 shift-label 位置上的 mask：
+
+\[
+m_{i,t} =
+\begin{cases}
+1, & z_{i,t+1} \in h_i,\\
+0, & \text{otherwise}.
+\end{cases}
+\]
+
+训练 loss 是 masked token mean：
+
+\[
+\mathcal{L}_{\text{hint-SFT}}
+= \lambda_{\text{SFT}}
+\frac{\sum_{i,t} m_{i,t}
+\operatorname{CE}\left(p_\theta(\cdot \mid z_{i,\le t}), z_{i,t+1}\right)}
+{\sum_{i,t} m_{i,t}} .
+\]
+
+实现上，DDP 下先 gather 全局 hint-token count，并把 denominator 按进程数缩放回每个 rank，这样各 rank 的梯度平均后等价于全局 token mean，而不是局部 token mean。若某个 batch 全局没有 hint token，则返回带梯度路径的 zero loss，避免反传时断图。
+
+\subsection{和之前 CE / RL 的区别}
+
+\begin{itemize}
+\item 旧的 \texttt{fixed-hint-ce} 仍然先 rollout completion、算 reward、算 advantage，再用 RL loss 更新 completion policy；hint CE 只是旁路辅助项。
+\item 新的 hint-token SFT 完全去掉 reward 计算、advantage 标准化、old/ref log-prob、KL penalty 和 completion-token RL 更新。
+\item fixed 版本的 beam search 是离线 map 生成步骤；dynamic 版本的 beam search 是在线 depth selector。两者的共同点是 completion 本身都不作为 SFT 标签。
+\item 旧 CE 里 \(\lambda_{\text{CE}}=0.005\) 是加在 RL 主 loss 旁边的相对倍率；新 SFT 没有 RL 主 loss，所以不能直接继续用 \texttt{lr=1e-5, coef=0.005} 当作同一个优化设定。
+\end{itemize}
+
+\subsection{学习率与 coef}
+
+这个 setting 已经不是 RL loss 旁边的辅助 CE，而是一个纯 masked SFT objective。因此默认学习率不再按
+\texttt{RL lr} 和 \texttt{hintce-3} 系数相乘，而是对齐 Instruments full SFT 配置
+\path{examples/train_full/Instruments/instruments_rec_full_sft_3b_dsz0_qwen4b_4_256_grec.yaml}：
+
+\[
+\texttt{learning\_rate}=3.0\times10^{-4},
+\qquad
+\lambda_{\text{SFT}}=1.0.
+\]
+
+之前考虑过的 \(10^{-5}\times0.005=5\times10^{-8}\) 更适合解释“RL 主 loss 旁边的辅助 CE 有多重”，但放到纯 SFT 里会把 step size 压得过小。这里保留 \(\lambda_{\text{SFT}}=1.0\)，让 loss 本身就是标准 masked token mean；后续如果发现训练不稳，更自然的消融是直接扫 \texttt{learning\_rate}，例如 \texttt{1e-4} 或 \texttt{3e-5}，而不是重新引入一个很小的 loss coef。
+
+\subsection{当前验证状态}
+
+本地已经覆盖三个轻量检查：
+
+\begin{itemize}
+\item masked batch builder 只在 prompt suffix 的 oracle hint token 上打 CE mask。
+\item fixed trainer 可以在合成数据上完整跑过一个 train step。
+\item dynamic selector 可以选中最小成功 depth，并记录 selected-depth metric。
+\end{itemize}
+
+此外两个启动脚本都跑过 \texttt{--dry-run}，确认默认 5 epoch、\texttt{lr=3.0e-4}、\texttt{hint\_sft\_loss\_coef=1.0}，并且没有传入 task filter。真实结果跑完后，可以把 WandB / sidecar 指标接进现有 \texttt{docs/research/scripts/build\_instruments\_report\_figures.py} 画图流程。
