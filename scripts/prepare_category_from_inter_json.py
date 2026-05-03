@@ -103,7 +103,11 @@ def split_rows_by_ratio(
     return train_rows, valid_rows, test_rows
 
 
-def build_rows_grec(inter_data: dict[str, Any], history_max: int) -> tuple[list, list, list]:
+def build_rows_grec(
+    inter_data: dict[str, Any],
+    history_max: int,
+    train_row_order: str = "reverse",
+) -> tuple[list, list, list]:
     """GRec-like split:
     - train: per-user training prefix (exclude last2) and generate next-item pairs
     - valid: one row per user (target is last-2, history is train prefix)
@@ -122,11 +126,18 @@ def build_rows_grec(inter_data: dict[str, Any], history_max: int) -> tuple[list,
         # train_data = seq[:-2], valid target=seq[-2], test target=seq[-1].
         train_seq = seq_ids[:-2]
 
-        # Generate train rows in reverse target order, same as GRec's convert_to_atomic_files.
-        for target_idx in range(1, len(train_seq)):
-            target_item = train_seq[-target_idx]
-            history = train_seq[:-target_idx][-history_max:]
-            train_rows.append((str(user_id), history, target_item))
+        if train_row_order == "forward":
+            # Match LC-Rec SeqRec/FusionSeqRecDataset: generate from left to right on seq[:-2].
+            for i in range(1, len(train_seq)):
+                target_item = train_seq[i]
+                history = train_seq[:i][-history_max:]
+                train_rows.append((str(user_id), history, target_item))
+        else:
+            # Match legacy GRec conversion: generate train rows in reverse target order.
+            for target_idx in range(1, len(train_seq)):
+                target_item = train_seq[-target_idx]
+                history = train_seq[:-target_idx][-history_max:]
+                train_rows.append((str(user_id), history, target_item))
 
         valid_history = seq_ids[:-2][-history_max:]
         valid_target = seq_ids[-2]
@@ -246,7 +257,20 @@ def main() -> None:
         help="How to build train/valid/test rows from <category>.inter.json.",
     )
     parser.add_argument(
+        "--train-row-order",
+        type=str,
+        default="reverse",
+        choices=["reverse", "forward"],
+        help="Order for generating GRec train rows. `forward` matches LC-Rec left-to-right next-item construction.",
+    )
+    parser.add_argument(
         "--seq-sample", type=int, default=10000, help="Forwarded to preprocess_data_sft_rl.py --seq_sample"
+    )
+    parser.add_argument(
+        "--task3-sample",
+        type=int,
+        default=-1,
+        help="Forwarded to preprocess_data_sft_rl.py --task3_sample. <=0 means keep all fusion train samples.",
     )
     parser.add_argument("--seed", type=int, default=42, help="Forwarded to preprocess_data_sft_rl.py --seed")
     parser.add_argument(
@@ -320,7 +344,9 @@ def main() -> None:
             raise ValueError("No usable interaction rows generated from inter json.")
         train_rows, valid_rows, test_rows = split_rows_by_ratio(rows, args.train_ratio, args.valid_ratio)
     else:
-        train_rows, valid_rows, test_rows = build_rows_grec(inter_data, args.history_max)
+        train_rows, valid_rows, test_rows = build_rows_grec(
+            inter_data, args.history_max, train_row_order=args.train_row_order
+        )
         if not (train_rows or valid_rows or test_rows):
             raise ValueError("No usable interaction rows generated from inter json.")
 
@@ -340,7 +366,11 @@ def main() -> None:
         print(
             f"[INFO] split_ratio train/valid/test={args.train_ratio}/{args.valid_ratio}/{1.0 - args.train_ratio - args.valid_ratio}"
         )
+    else:
+        print(f"[INFO] train_row_order={args.train_row_order}")
+    print(f"[INFO] history_max={args.history_max}")
     print(f"[INFO] sid_levels={args.sid_levels}")
+    print(f"[INFO] task3_sample={args.task3_sample}")
     print(f"[INFO] staging_category_dir={staging_category_dir}")
     print(f"[INFO] output_dir={output_dir}")
     print(f"[INFO] dataset_subdir={dataset_subdir}")
@@ -372,6 +402,8 @@ def main() -> None:
         output_dir,
         "--seq_sample",
         str(args.seq_sample),
+        "--task3_sample",
+        str(args.task3_sample),
         "--seed",
         str(args.seed),
         "--sid_levels",

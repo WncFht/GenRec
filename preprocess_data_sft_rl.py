@@ -423,6 +423,7 @@ def main(
     rl_only_task4: bool = False,
     rl_only_task5: bool = False,
     seq_sample: int = 10000,
+    task3_sample: int = -1,
     seed: int = 42,
     sid_levels: int = -1,
     data_source: str = "",
@@ -510,9 +511,10 @@ def main(
 
     if task3_fusion_seq:
         # FusionSeqRecDataset: history sids -> predict next title (from train sequences)
-        fusion_train = build_fusion_seq_samples(train_rows, id2sid, id2title, sample=-1, seed=seed)
+        fusion_train = build_fusion_seq_samples(train_rows, id2sid, id2title, sample=task3_sample, seed=seed)
         sft_train.extend(fusion_train)
-        print(f"Task3 FusionSeqRec: train={len(fusion_train)} (sft, history_sids->title)")
+        task3_sample_desc = "all" if task3_sample <= 0 else str(task3_sample)
+        print(f"Task3 FusionSeqRec: train={len(fusion_train)} (sft, history_sids->title, sample={task3_sample_desc})")
 
     if rl_task4_hisTitle2sid:
         # RLSeqTitle2SidDataset: input history title, output sid
