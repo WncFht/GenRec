@@ -184,6 +184,8 @@ llamaboard_config/
 *.rar
 config/wandb_eval_manifest_overrides.json
 data/_preprocess_input/
+data/Office_Products/
+data/Toys_and_Games/
 log/
 saves/
 output/
