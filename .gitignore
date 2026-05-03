@@ -198,3 +198,4 @@ rl_outputs/
 .history/
 temp/
 /state/
+.ace-tool/
