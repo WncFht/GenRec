@@ -144,6 +144,57 @@ class EvaluateAllCheckpointsTests(unittest.TestCase):
             self.assertIn(f"test_data={games_test}", result.stdout)
             self.assertIn(f"index={games_index}", result.stdout)
 
+    def test_games_grec_lcrec_aligned_model_prefers_compact_index_variant_dir(self):
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            data_root = temp_root_path / "data"
+            sft_root = temp_root_path / "saves"
+            model_root = sft_root / "Games-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu"
+            checkpoint_dir = model_root / "checkpoint-495"
+            checkpoint_dir.mkdir(parents=True)
+
+            legacy_variant_dir = data_root / "Games_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsGames"
+            (legacy_variant_dir / "sft").mkdir(parents=True)
+            (legacy_variant_dir / "sft" / "test.json").write_text("[]", encoding="utf-8")
+            (legacy_variant_dir / "id2sid.json").write_text("{}", encoding="utf-8")
+            os.utime(legacy_variant_dir, (1_700_000_000, 1_700_000_000))
+
+            compact_variant_dir = data_root / "Games_grec_index"
+            (compact_variant_dir / "sft").mkdir(parents=True)
+            (compact_variant_dir / "sft" / "test.json").write_text("[]", encoding="utf-8")
+            (compact_variant_dir / "id2sid.json").write_text("{}", encoding="utf-8")
+            os.utime(compact_variant_dir, (1_800_000_000, 1_800_000_000))
+
+            env = dict(os.environ)
+            env.update(
+                {
+                    "RUN_MODE": "foreground",
+                    "TAIL_LOG": "0",
+                    "DRY_RUN": "1",
+                    "FORCE_REEVAL": "1",
+                    "INCLUDE_SFT": "1",
+                    "INCLUDE_RL": "0",
+                    "AUTO_DATA_MAPPING": "1",
+                    "MODEL_FILTER": model_root.name,
+                    "DATA_ROOT": str(data_root),
+                    "SFT_ROOT": str(sft_root),
+                }
+            )
+            result = subprocess.run(
+                ["bash", str(EVALUATE_ALL_CHECKPOINTS_SCRIPT)],
+                cwd=REPO_ROOT,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, msg=result.stderr or result.stdout)
+            self.assertIn("category=Games_grec", result.stdout)
+            self.assertIn(f"test_data={compact_variant_dir / 'sft' / 'test.json'}", result.stdout)
+            self.assertIn(f"index={compact_variant_dir / 'id2sid.json'}", result.stdout)
+            self.assertNotIn(f"test_data={legacy_variant_dir / 'sft' / 'test.json'}", result.stdout)
+
     def test_arts_grec_models_auto_pick_matching_cb_width_variant(self):
         with tempfile.TemporaryDirectory() as temp_root:
             temp_root_path = Path(temp_root)
@@ -196,6 +247,111 @@ class EvaluateAllCheckpointsTests(unittest.TestCase):
             self.assertIn(f"test_data={cb256_variant_dir / 'sft' / 'test.json'}", result.stdout)
             self.assertIn(f"index={cb256_variant_dir / 'id2sid.json'}", result.stdout)
             self.assertNotIn(f"test_data={cb128_variant_dir / 'sft' / 'test.json'}", result.stdout)
+
+    def test_arts_grec_lcrec_aligned_model_prefers_compact_index_variant_dir(self):
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            data_root = temp_root_path / "data"
+            sft_root = temp_root_path / "saves"
+            model_root = sft_root / "Arts-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu"
+            checkpoint_dir = model_root / "checkpoint-495"
+            checkpoint_dir.mkdir(parents=True)
+
+            legacy_variant_dir = data_root / "Arts_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsArts"
+            (legacy_variant_dir / "sft").mkdir(parents=True)
+            (legacy_variant_dir / "sft" / "test.json").write_text("[]", encoding="utf-8")
+            (legacy_variant_dir / "id2sid.json").write_text("{}", encoding="utf-8")
+            os.utime(legacy_variant_dir, (1_700_000_000, 1_700_000_000))
+
+            compact_variant_dir = data_root / "Arts_grec_index"
+            (compact_variant_dir / "sft").mkdir(parents=True)
+            (compact_variant_dir / "sft" / "test.json").write_text("[]", encoding="utf-8")
+            (compact_variant_dir / "id2sid.json").write_text("{}", encoding="utf-8")
+            os.utime(compact_variant_dir, (1_800_000_000, 1_800_000_000))
+
+            env = dict(os.environ)
+            env.update(
+                {
+                    "RUN_MODE": "foreground",
+                    "TAIL_LOG": "0",
+                    "DRY_RUN": "1",
+                    "FORCE_REEVAL": "1",
+                    "INCLUDE_SFT": "1",
+                    "INCLUDE_RL": "0",
+                    "AUTO_DATA_MAPPING": "1",
+                    "MODEL_FILTER": model_root.name,
+                    "DATA_ROOT": str(data_root),
+                    "SFT_ROOT": str(sft_root),
+                }
+            )
+            result = subprocess.run(
+                ["bash", str(EVALUATE_ALL_CHECKPOINTS_SCRIPT)],
+                cwd=REPO_ROOT,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, msg=result.stderr or result.stdout)
+            self.assertIn("category=Arts_grec", result.stdout)
+            self.assertIn(f"test_data={compact_variant_dir / 'sft' / 'test.json'}", result.stdout)
+            self.assertIn(f"index={compact_variant_dir / 'id2sid.json'}", result.stdout)
+            self.assertNotIn(f"test_data={legacy_variant_dir / 'sft' / 'test.json'}", result.stdout)
+
+    def test_instruments_grec_lcrec_aligned_model_prefers_compact_index_variant_dir(self):
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            data_root = temp_root_path / "data"
+            sft_root = temp_root_path / "saves"
+            model_root = sft_root / "Instruments-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu"
+            checkpoint_dir = model_root / "checkpoint-495"
+            checkpoint_dir.mkdir(parents=True)
+
+            legacy_variant_dir = (
+                data_root
+                / "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47"
+            )
+            (legacy_variant_dir / "sft").mkdir(parents=True)
+            (legacy_variant_dir / "sft" / "test.json").write_text("[]", encoding="utf-8")
+            (legacy_variant_dir / "id2sid.json").write_text("{}", encoding="utf-8")
+            os.utime(legacy_variant_dir, (1_700_000_000, 1_700_000_000))
+
+            compact_variant_dir = data_root / "Instruments_grec_index"
+            (compact_variant_dir / "sft").mkdir(parents=True)
+            (compact_variant_dir / "sft" / "test.json").write_text("[]", encoding="utf-8")
+            (compact_variant_dir / "id2sid.json").write_text("{}", encoding="utf-8")
+            os.utime(compact_variant_dir, (1_800_000_000, 1_800_000_000))
+
+            env = dict(os.environ)
+            env.update(
+                {
+                    "RUN_MODE": "foreground",
+                    "TAIL_LOG": "0",
+                    "DRY_RUN": "1",
+                    "FORCE_REEVAL": "1",
+                    "INCLUDE_SFT": "1",
+                    "INCLUDE_RL": "0",
+                    "AUTO_DATA_MAPPING": "1",
+                    "MODEL_FILTER": model_root.name,
+                    "DATA_ROOT": str(data_root),
+                    "SFT_ROOT": str(sft_root),
+                }
+            )
+            result = subprocess.run(
+                ["bash", str(EVALUATE_ALL_CHECKPOINTS_SCRIPT)],
+                cwd=REPO_ROOT,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, msg=result.stderr or result.stdout)
+            self.assertIn("category=Instruments_grec", result.stdout)
+            self.assertIn(f"test_data={compact_variant_dir / 'sft' / 'test.json'}", result.stdout)
+            self.assertIn(f"index={compact_variant_dir / 'id2sid.json'}", result.stdout)
+            self.assertNotIn(f"test_data={legacy_variant_dir / 'sft' / 'test.json'}", result.stdout)
 
 
 class EvaluateAllCheckpointWatcherTests(unittest.TestCase):
@@ -367,6 +523,102 @@ class EvaluateAllCheckpointWatcherTests(unittest.TestCase):
             self.assertEqual(tasks[0].data_profile, "fallback:fixed_grec_cb256")
             self.assertEqual(tasks[0].test_data_path, cb256_variant_dir / "sft" / "test.json")
             self.assertEqual(tasks[0].index_path, cb256_variant_dir / "id2sid.json")
+
+    def test_watcher_instruments_grec_lcrec_aligned_model_prefers_compact_index_variant_dir(self):
+        sidecar = load_sidecar_module()
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            now_epoch = 1_800_000_000
+            old_epoch = now_epoch - 600
+            config = self.make_config(sidecar, temp_root_path)
+            state = sidecar.normalize_watch_state({})
+
+            model_root = config.sft_root / "Instruments-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu"
+            checkpoint_dir = model_root / "checkpoint-495"
+            self.write_file(checkpoint_dir / "config.json", "{}", old_epoch)
+            self.write_file(checkpoint_dir / "model.safetensors", "weights", old_epoch)
+
+            legacy_variant_dir = (
+                config.data_root
+                / "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47"
+            )
+            compact_variant_dir = config.data_root / "Instruments_grec_index"
+            self.write_file(legacy_variant_dir / "sft" / "test.json", "[]", old_epoch)
+            self.write_file(legacy_variant_dir / "id2sid.json", "{}", old_epoch)
+            self.write_file(compact_variant_dir / "sft" / "test.json", "[]", now_epoch - 400)
+            self.write_file(compact_variant_dir / "id2sid.json", "{}", now_epoch - 400)
+
+            state, tasks = sidecar.scan_pending_tasks(config, state, now_epoch=now_epoch)
+            self.assertEqual(tasks, [])
+
+            state, tasks = sidecar.scan_pending_tasks(config, state, now_epoch=now_epoch)
+            self.assertEqual(len(tasks), 1)
+            self.assertEqual(tasks[0].model_name, model_root.name)
+            self.assertEqual(tasks[0].data_profile, f"auto:variant_dir={compact_variant_dir}")
+            self.assertEqual(tasks[0].test_data_path, compact_variant_dir / "sft" / "test.json")
+            self.assertEqual(tasks[0].index_path, compact_variant_dir / "id2sid.json")
+
+    def test_watcher_games_grec_lcrec_aligned_model_prefers_compact_index_variant_dir(self):
+        sidecar = load_sidecar_module()
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            now_epoch = 1_800_000_000
+            old_epoch = now_epoch - 600
+            config = self.make_config(sidecar, temp_root_path)
+            state = sidecar.normalize_watch_state({})
+
+            model_root = config.sft_root / "Games-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu"
+            checkpoint_dir = model_root / "checkpoint-495"
+            self.write_file(checkpoint_dir / "config.json", "{}", old_epoch)
+            self.write_file(checkpoint_dir / "model.safetensors", "weights", old_epoch)
+
+            legacy_variant_dir = config.data_root / "Games_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsGames"
+            compact_variant_dir = config.data_root / "Games_grec_index"
+            self.write_file(legacy_variant_dir / "sft" / "test.json", "[]", old_epoch)
+            self.write_file(legacy_variant_dir / "id2sid.json", "{}", old_epoch)
+            self.write_file(compact_variant_dir / "sft" / "test.json", "[]", now_epoch - 400)
+            self.write_file(compact_variant_dir / "id2sid.json", "{}", now_epoch - 400)
+
+            state, tasks = sidecar.scan_pending_tasks(config, state, now_epoch=now_epoch)
+            self.assertEqual(tasks, [])
+
+            state, tasks = sidecar.scan_pending_tasks(config, state, now_epoch=now_epoch)
+            self.assertEqual(len(tasks), 1)
+            self.assertEqual(tasks[0].model_name, model_root.name)
+            self.assertEqual(tasks[0].data_profile, f"auto:variant_dir={compact_variant_dir}")
+            self.assertEqual(tasks[0].test_data_path, compact_variant_dir / "sft" / "test.json")
+            self.assertEqual(tasks[0].index_path, compact_variant_dir / "id2sid.json")
+
+    def test_watcher_arts_grec_lcrec_aligned_model_prefers_compact_index_variant_dir(self):
+        sidecar = load_sidecar_module()
+        with tempfile.TemporaryDirectory() as temp_root:
+            temp_root_path = Path(temp_root)
+            now_epoch = 1_800_000_000
+            old_epoch = now_epoch - 600
+            config = self.make_config(sidecar, temp_root_path)
+            state = sidecar.normalize_watch_state({})
+
+            model_root = config.sft_root / "Arts-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu"
+            checkpoint_dir = model_root / "checkpoint-495"
+            self.write_file(checkpoint_dir / "config.json", "{}", old_epoch)
+            self.write_file(checkpoint_dir / "model.safetensors", "weights", old_epoch)
+
+            legacy_variant_dir = config.data_root / "Arts_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsArts"
+            compact_variant_dir = config.data_root / "Arts_grec_index"
+            self.write_file(legacy_variant_dir / "sft" / "test.json", "[]", old_epoch)
+            self.write_file(legacy_variant_dir / "id2sid.json", "{}", old_epoch)
+            self.write_file(compact_variant_dir / "sft" / "test.json", "[]", now_epoch - 400)
+            self.write_file(compact_variant_dir / "id2sid.json", "{}", now_epoch - 400)
+
+            state, tasks = sidecar.scan_pending_tasks(config, state, now_epoch=now_epoch)
+            self.assertEqual(tasks, [])
+
+            state, tasks = sidecar.scan_pending_tasks(config, state, now_epoch=now_epoch)
+            self.assertEqual(len(tasks), 1)
+            self.assertEqual(tasks[0].model_name, model_root.name)
+            self.assertEqual(tasks[0].data_profile, f"auto:variant_dir={compact_variant_dir}")
+            self.assertEqual(tasks[0].test_data_path, compact_variant_dir / "sft" / "test.json")
+            self.assertEqual(tasks[0].index_path, compact_variant_dir / "id2sid.json")
 
     def test_failed_task_is_sticky_and_skipped(self):
         sidecar = load_sidecar_module()

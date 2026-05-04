@@ -43,4 +43,78 @@ Games & HR@1 & 0.0085 & 0.0154 & 0.0176 & 0.0136 & 0.0145 & 0.0152 & 0.0161 & 0.
 \label{tab:lcrec-multidataset-main}
 \end{table}
 
+\subsection{Instruments 上的当前复现实测}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.08}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{p{4.0cm} p{2.6cm} c c c c c c c}
+\toprule
+Variant & Checkpoint & HR@1 & HR@5 & HR@10 & NDCG@5 & NDCG@10 & NDCG@50 & HR@50 \\
+\midrule
+Paper LC-Rec & -- & 0.0706 & 0.1002 & 0.1220 & 0.0856 & 0.0926 & -- & -- \\
+GenRec unified eval (best) & \texttt{ckpt-4023} & 0.0647 & 0.0886 & 0.1084 & 0.0768 & 0.0832 & 0.0995 & 0.1836 \\
+GenRec unified eval (late) & \texttt{ckpt-5364} & 0.0629 & 0.0835 & 0.1012 & 0.0736 & 0.0793 & 0.0935 & 0.1671 \\
+\bottomrule
+\end{tabular}%
+}
+\caption{当前 \texttt{Instruments-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu} 在 GenRec 统一评测口径下的复现实测。}
+\label{tab:lcrec-instruments-genrec-repro}
+\end{table}
+
+LC-Rec 包含多种语义对齐任务，具体包括：
+\begin{itemize}
+\item \texttt{SEQ}：Section III-C1 中介绍的序列物品预测任务，也是其主要目标。
+\item \texttt{MUT}：Section III-C2 中用于显式 index-language 对齐的双向预测任务。
+\item \texttt{ASY}：Section III-C3a 中的非对称物品预测任务。
+\item \texttt{ITE}：Section III-C3b 中基于用户意图的物品预测任务。
+\item \texttt{PER}：Section III-C3c 中的个性化偏好推断任务。
+\end{itemize}
+
+其中，后面三项都属于 Section III-C3 里提出的隐式、面向推荐的对齐任务。为了验证各个组成部分的有效性，论文在 Arts 和 Games 数据集上做了消融实验，用来分析每一部分的贡献。Table IV 的结果表明：在只包含协同语义的序列推荐基础上，逐步加入多种语义对齐任务，可以显著提升性能。LC-Rec 中这些 instruction tuning 任务整体上都对增强序列推荐有帮助，并且继续加入更多语义对齐任务，理论上仍有进一步提升空间。
+
+\subsection{基于 Table IV 的粗略推断}
+
+如果先不考虑 prompt 模板和 \texttt{load\_best\_model\_at\_end} 的影响，只把当前差距近似归因于“缺少 \texttt{ITE} 与 \texttt{PER} 两类任务”，那么可以直接用论文 Table IV 在 Arts 和 Games 上的增益来做一个数量级估计。
+
+\begin{itemize}
+\item Arts 上，从 \texttt{+ASY} 到最终 \texttt{+PER}，增幅大约是：
+  \texttt{HR@1} +5.32\%，
+  \texttt{HR@5} +6.98\%，
+  \texttt{HR@10} +8.01\%，
+  \texttt{NDCG@5} +6.70\%，
+  \texttt{NDCG@10} +6.84\%。
+\item Games 上，从 \texttt{+ASY} 到最终 \texttt{+PER}，增幅大约是：
+  \texttt{HR@1} +12.81\%，
+  \texttt{HR@5} +10.34\%，
+  \texttt{HR@10} +9.41\%，
+  \texttt{NDCG@5} +10.67\%，
+  \texttt{NDCG@10} +10.73\%。
+\item 取 Arts 和 Games 的平均值，少掉 \texttt{ITE}+\texttt{PER} 这两类任务，粗略可以理解成会带来约
+  \texttt{HR@1} 9.1\%，
+  \texttt{HR@5} 8.7\%，
+  \texttt{HR@10} 8.7\%，
+  \texttt{NDCG@5} 8.7\%，
+  \texttt{NDCG@10} 8.8\%
+  的相对损失量级。
+\item 如果把这个量级反推到 Instruments 论文主表，意味着单看 “缺少 \texttt{ITE}+\texttt{PER}” 这一项，Instruments 上大致可能会损失：
+  \texttt{HR@1} 约 0.0064，
+  \texttt{HR@5} 约 0.0087，
+  \texttt{HR@10} 约 0.0106，
+  \texttt{NDCG@5} 约 0.0075，
+  \texttt{NDCG@10} 约 0.0081。
+\item 按这个粗略推算，若从论文 Instruments 主表数值往下扣，落点大约会到：
+  \texttt{HR@1} 0.0642，
+  \texttt{HR@5} 0.0915，
+  \texttt{HR@10} 0.1114，
+  \texttt{NDCG@5} 0.0781，
+  \texttt{NDCG@10} 0.0845。
+\item 这组反推值和当前复现实测 best checkpoint
+  （\texttt{HR@1}=0.0647,\ \texttt{HR@5}=0.0886,\ \texttt{HR@10}=0.1084,\ \texttt{NDCG@5}=0.0768,\ \texttt{NDCG@10}=0.0832）
+  在量级上已经比较接近，因此如果接受“当前训练集基本等于 \texttt{SEQ}+\texttt{MUT}+\texttt{ASY}，主要少的是 \texttt{ITE}+\texttt{PER}”这个前提，那么现在这批 Instruments 结果偏低，确实大体可以由缺少这两类任务来解释。
+\end{itemize}
+
 \end{document}

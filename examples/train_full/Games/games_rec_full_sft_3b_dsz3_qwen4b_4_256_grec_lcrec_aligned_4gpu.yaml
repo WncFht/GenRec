@@ -1,0 +1,47 @@
+### model
+model_name_or_path: /mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/ckpt/base_model/Qwen2.5-3B-Instruct
+trust_remote_code: true
+add_tokens_list: 'data/Games_grec_index/new_tokens.json'
+
+### method
+stage: sft
+do_train: true
+finetuning_type: full
+deepspeed: examples/deepspeed/ds_z3_config.json
+
+### dataset
+dataset: Games_grec_index_train
+cutoff_len: 2048
+preprocessing_num_workers: 16
+dataloader_num_workers: 4
+
+### output
+output_dir: saves/qwen2.5-3b/full/Games-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu
+logging_steps: 1
+save_strategy: epoch
+plot_loss: true
+overwrite_output_dir: true
+save_only_model: false
+load_best_model_at_end: true
+save_total_limit: 5
+
+### experiment
+report_to: wandb
+run_name: Games-grec-lcrec-aligned-qwen2.5-3b-sft-qwen4B-4-256-dsz3-4gpu
+
+### train
+per_device_train_batch_size: 8
+gradient_accumulation_steps: 4
+learning_rate: 5.0e-5
+num_train_epochs: 4.0
+lr_scheduler_type: cosine
+warmup_ratio: 0.01
+bf16: true
+ddp_timeout: 180000000
+resume_from_checkpoint: null
+metric_for_best_model: loss
+
+### eval
+eval_dataset: Games_grec_index_valid
+per_device_eval_batch_size: 8
+eval_strategy: epoch

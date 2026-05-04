@@ -186,6 +186,16 @@ run_legacy_once() {
     fi
   }
 
+  candidate_variant_dirs_for_prefix() {
+    local variant_prefix="$1"
+    [[ -d "$data_root" ]] || return 0
+    find "$data_root" -mindepth 1 -maxdepth 1 -type d \( \
+      -name "${variant_prefix}_index_emb-*" -o \
+      -name "${variant_prefix}_index" -o \
+      -name "${variant_prefix}_*" \
+    \) | sort -V
+  }
+
   pick_latest_variant_dir_by_cb() {
     local variant_prefix="$1"
     local cb_width="$2"
@@ -197,14 +207,20 @@ run_legacy_once() {
 
     while IFS= read -r candidate; do
       candidate_name="$(basename "$candidate")"
-      [[ "$candidate_name" == *"_cb${cb_width}-"* ]] || continue
+      if [[ "$candidate_name" == *"_cb${cb_width}-"* || "$candidate_name" == *"_cb${cb_width}_"* || "$candidate_name" == *"_cb${cb_width}" ]]; then
+        :
+      elif [[ "$candidate_name" == "${variant_prefix}_index" && "$cb_width" == "256" ]]; then
+        :
+      else
+        continue
+      fi
 
       candidate_mtime="$(dir_mtime_epoch "$candidate")"
       if [[ -z "$best_dir" || "$candidate_mtime" -gt "$best_mtime" ]]; then
         best_dir="$candidate"
         best_mtime="$candidate_mtime"
       fi
-    done < <(find "$data_root" -mindepth 1 -maxdepth 1 -type d -name "${variant_prefix}_index_emb-*")
+    done < <(candidate_variant_dirs_for_prefix "$variant_prefix")
 
     if [[ -n "$best_dir" ]]; then
       echo "$best_dir"
@@ -227,7 +243,7 @@ run_legacy_once() {
         best_dir="$candidate"
         best_mtime="$candidate_mtime"
       fi
-    done < <(find "$data_root" -mindepth 1 -maxdepth 1 -type d -name "${variant_prefix}_index_emb-*")
+    done < <(candidate_variant_dirs_for_prefix "$variant_prefix")
 
     if [[ -n "$best_dir" ]]; then
       echo "$best_dir"

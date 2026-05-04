@@ -239,6 +239,128 @@ nohup bash -lc '
 
 ### 7.1 评测思路
 
+从 2026-05-04 开始，`evaluate_all_checkpoints.sh` 和 `scripts/evaluate_all_checkpoints_sidecar.py`
+对 `Instruments-grec*` / `Instruments_mimionerec*` 模型的自动数据映射策略统一为：
+
+1. 优先使用显式环境变量覆盖  
+   例如：
+   - `TEST_DATA_PATH`
+   - `INDEX_PATH`
+   - `INSTRUMENTS_GREC_TEST_DATA_PATH`
+   - `INSTRUMENTS_GREC_INDEX_PATH`
+
+2. 若启用 `AUTO_DATA_MAPPING=1` 且模型名能解析出 `cb` 宽度，则优先按 `category + cb_width`
+   自动匹配 `data/` 下的 variant 目录。
+
+3. 若没有精确 `cb` 命中，则回退到同前缀的“最新 variant 目录”。
+
+4. 若仍找不到，再回退到历史固定路径。
+
+### 7.2 新旧 variant 命名现在都支持
+
+旧命名族：
+
+```text
+Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_rid...
+```
+
+新命名族：
+
+```text
+Instruments_grec_index
+```
+
+当前自动映射会同时扫描：
+
+- `<prefix>_index_emb-*`
+- `<prefix>_index`
+- `<prefix>_*`
+
+其中 `<prefix>` 对 `grec` 来说通常是：
+
+- `Instruments_grec`
+- `Games_grec`
+- `Arts_grec`
+
+对 `mimionerec` 则是：
+
+- `Instruments_mimionerec`
+
+### 7.3 对紧凑新命名的 `cb` 解释规则
+
+像下面这种新模型名：
+
+```text
+Instruments-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu
+```
+
+评测映射会：
+
+- 从模型名里的 `-4-256-` 解析出 `cb_width=256`
+- 在 `data/` 下优先寻找 `Instruments_grec` 前缀、且与 `cb256` 对应的 variant
+
+对紧凑目录名：
+
+```text
+Instruments_grec_index
+```
+
+当前规则把它视为：
+
+- 一个 `Instruments_grec` 变体目录
+- 默认等价于 `cb256` 路由
+
+这么做的原因是：
+
+- 这批新数据正是基于 `qwen4B-4-256`
+- 目录名虽然省略了长尾 `index_emb...cb256...` 信息，但语义上仍然是 `cb256` 这条评测线
+
+### 7.4 为什么需要这次改动
+
+旧逻辑只会扫描：
+
+```text
+<prefix>_index_emb-*
+```
+
+所以对于新目录：
+
+```text
+data/Instruments_grec_index/
+```
+
+会出现两个问题：
+
+1. one-shot 评测脚本可能错误回退到旧的 `*_index_emb-*` 目录
+2. watcher 版 sidecar 也可能把新模型评到旧测试集上
+
+改完之后：
+
+- 如果 `Instruments_grec_index/` 比旧目录更新，它会被优先选中
+- `test.json` 和 `id2sid.json` 会自动对到这份新数据
+
+### 7.5 当前推荐做法
+
+如果你的模型就是基于新数据：
+
+```text
+data/Instruments_grec_index/
+```
+
+那么现在可以直接使用自动映射，不必手工再传：
+
+- `TEST_DATA_PATH`
+- `INDEX_PATH`
+
+只要：
+
+- 模型名以 `Instruments-grec` 或 `Instruments_grec` 开头
+- 模型名里还能解析出 `4-256` 或显式 `cb256`
+
+脚本就会优先选到新的紧凑目录。
+
+如果你在做特殊实验，或者同时保留多份同前缀 variant，仍然建议用显式环境变量绑定，避免歧义。
+
 训练输出在：
 
 - `$LCREC_ROOT/ckpt/Instruments-grec-qwen2.5-3b`

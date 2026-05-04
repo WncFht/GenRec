@@ -316,11 +316,20 @@ def pick_latest_variant_dir_by_cb(data_root: Path, variant_prefix: str, cb_width
         return None
     best_dir: Path | None = None
     best_mtime = -1
-    pattern = f"{variant_prefix}_index_emb-*"
-    for candidate in data_root.glob(pattern):
+    for candidate in iter_variant_dirs(data_root, variant_prefix):
         if not candidate.is_dir():
             continue
-        if f"_cb{cb_width}-" not in candidate.name:
+        candidate_name = candidate.name
+        if (
+            f"_cb{cb_width}-" in candidate_name
+            or f"_cb{cb_width}_" in candidate_name
+            or candidate_name.endswith(f"_cb{cb_width}")
+        ):
+            pass
+        elif candidate_name == f"{variant_prefix}_index" and cb_width == "256":
+            # Support newer compact variant names like Instruments_grec_index.
+            pass
+        else:
             continue
         candidate_mtime = dir_mtime_epoch(candidate)
         if best_dir is None or candidate_mtime > best_mtime:
@@ -334,8 +343,7 @@ def pick_latest_variant_dir_by_prefix(data_root: Path, variant_prefix: str) -> P
         return None
     best_dir: Path | None = None
     best_mtime = -1
-    pattern = f"{variant_prefix}_index_emb-*"
-    for candidate in data_root.glob(pattern):
+    for candidate in iter_variant_dirs(data_root, variant_prefix):
         if not candidate.is_dir():
             continue
         candidate_mtime = dir_mtime_epoch(candidate)
@@ -343,6 +351,20 @@ def pick_latest_variant_dir_by_prefix(data_root: Path, variant_prefix: str) -> P
             best_dir = candidate
             best_mtime = candidate_mtime
     return best_dir
+
+
+def iter_variant_dirs(data_root: Path, variant_prefix: str) -> list[Path]:
+    patterns = [
+        f"{variant_prefix}_index_emb-*",
+        f"{variant_prefix}_index",
+        f"{variant_prefix}_*",
+    ]
+    found: dict[str, Path] = {}
+    for pattern in patterns:
+        for candidate in data_root.glob(pattern):
+            if candidate.is_dir():
+                found[str(candidate.resolve())] = candidate
+    return sorted(found.values(), key=lambda item: item.name)
 
 
 def resolve_eval_profile(config: WatcherConfig, model_name: str) -> dict[str, Path | str]:
@@ -585,6 +607,7 @@ def iter_checkpoint_dirs(model_root: Path) -> list[tuple[int, str, Path]]:
         if step is None:
             continue
         checkpoints.append((step, entry.name, entry))
+
     checkpoints.sort(key=lambda item: (item[0], item[1]))
     return checkpoints
 
