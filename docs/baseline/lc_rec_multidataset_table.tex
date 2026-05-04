@@ -1,0 +1,46 @@
+\documentclass[11pt,a4paper]{ctexart}
+
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{graphicx}
+
+\begin{document}
+
+\section{LC-Rec 多数据集基线对比}
+
+\begin{table}[H]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.08}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llcccccccccccc}
+\toprule
+Dataset & Metrics & Caser & HGN & GRU4Rec & BERT4Rec & SASRec & FMLP-Rec & FDSA & S$^3$-Rec & P5-CID & TIGER & LC-Rec & Improv. \\
+\midrule
+Instruments & HR@1 & 0.0149 & 0.0523 & 0.0571 & 0.0435 & 0.0503 & 0.0480 & 0.0520 & 0.0367 & 0.0587 & \underline{0.0608} & \textbf{0.0706} & +16.12\% \\
+ & HR@5 & 0.0543 & 0.0813 & 0.0821 & 0.0671 & 0.0751 & 0.0786 & 0.0834 & \underline{0.0863} & 0.0827 & \underline{0.0863} & \textbf{0.1002} & +16.11\% \\
+ & HR@10 & 0.0710 & 0.1048 & 0.1031 & 0.0822 & 0.0947 & 0.0988 & 0.1046 & \underline{0.1136} & 0.1016 & 0.1064 & \textbf{0.1220} & +7.39\% \\
+ & NDCG@5 & 0.0355 & 0.0668 & 0.0698 & 0.0560 & 0.0627 & 0.0638 & 0.0681 & 0.0626 & 0.0708 & \underline{0.0738} & \textbf{0.0856} & +15.99\% \\
+ & NDCG@10 & 0.0409 & 0.0744 & 0.0765 & 0.0608 & 0.0690 & 0.0704 & 0.0750 & 0.0714 & 0.0768 & \underline{0.0803} & \textbf{0.0926} & +15.32\% \\
+\midrule
+Arts & HR@1 & 0.0138 & 0.0300 & 0.0421 & 0.0337 & 0.0225 & 0.0310 & 0.0451 & 0.0245 & \underline{0.0485} & 0.0465 & \textbf{0.0634} & +30.72\% \\
+ & HR@5 & 0.0379 & 0.0622 & 0.0749 & 0.0559 & 0.0757 & 0.0757 & 0.0734 & 0.0767 & 0.0724 & \underline{0.0788} & \textbf{0.1011} & +28.30\% \\
+ & HR@10 & 0.0541 & 0.0875 & 0.0964 & 0.0713 & 0.1016 & 0.1046 & 0.0933 & \underline{0.1051} & 0.0902 & 0.1012 & \textbf{0.1266} & +20.46\% \\
+ & NDCG@5 & 0.0262 & 0.0462 & 0.0590 & 0.0451 & 0.0508 & 0.0541 & 0.0595 & 0.0521 & 0.0607 & \underline{0.0631} & \textbf{0.0828} & +31.22\% \\
+ & NDCG@10 & 0.0313 & 0.0544 & 0.0659 & 0.0500 & 0.0592 & 0.0634 & 0.0660 & 0.0612 & 0.0664 & \underline{0.0703} & \textbf{0.0906} & +28.88\% \\
+\midrule
+Games & HR@1 & 0.0085 & 0.0154 & 0.0176 & 0.0136 & 0.0145 & 0.0152 & 0.0161 & 0.0119 & 0.0177 & \underline{0.0188} & \textbf{0.0317} & +68.62\% \\
+ & HR@5 & 0.0367 & 0.0517 & 0.0586 & 0.0482 & 0.0581 & 0.0571 & \underline{0.0644} & 0.0606 & 0.0506 & 0.0599 & \textbf{0.0800} & +24.22\% \\
+ & HR@10 & 0.0617 & 0.0856 & 0.0964 & 0.0763 & 0.0940 & 0.0930 & \underline{0.1041} & 0.1002 & 0.0803 & 0.0939 & \textbf{0.1174} & +12.78\% \\
+ & NDCG@5 & 0.0227 & 0.0333 & 0.0381 & 0.0311 & 0.0365 & 0.0361 & \underline{0.0404} & 0.0364 & 0.0342 & 0.0392 & \textbf{0.0560} & +38.61\% \\
+ & NDCG@10 & 0.0307 & 0.0442 & 0.0502 & 0.0401 & 0.0481 & 0.0476 & \underline{0.0531} & 0.0491 & 0.0437 & 0.0501 & \textbf{0.0681} & +28.25\% \\
+\bottomrule
+\end{tabular}%
+}
+\caption{LC-Rec 与现有 baseline 在 Instruments、Arts、Games 上的主表对比。加粗表示 LC-Rec，带下划线表示该行最强 baseline；若出现并列，则同时标出。}
+\label{tab:lcrec-multidataset-main}
+\end{table}
+
+\end{document}
