@@ -221,6 +221,19 @@ def normalize_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def dataset_paths_for_variant(data_root: Path, variant: str) -> dict[str, Path]:
+    base_dir = data_root / variant
+    return {
+        "base_dir": base_dir,
+        "train_path": base_dir / "sft" / "train.json",
+        "valid_path": base_dir / "sft" / "valid.json",
+        "test_path": base_dir / "sft" / "test.json",
+        "index_path": base_dir / "id2sid.json",
+        "new_tokens_path": base_dir / "new_tokens.json",
+        "rl_dir": base_dir / "rl",
+    }
+
+
 def register_dataset(manifest: dict[str, Any], variant: str) -> None:
     if not is_supported_variant(variant):
         return
@@ -403,6 +416,80 @@ def build_manifest(repo_root: Path, data_root: Path, overrides_path: Path | None
     return normalize_manifest(manifest)
 
 
+def collect_supported_variants_from_data_root(data_root: Path) -> list[str]:
+    variants: set[str] = set()
+    dataset_info_path = data_root / "dataset_info.json"
+    if dataset_info_path.is_file():
+        payload = json.loads(dataset_info_path.read_text(encoding="utf-8"))
+        for entry in payload.values():
+            file_name = str(entry.get("file_name", ""))
+            parts = Path(file_name).parts
+            if parts and is_supported_variant(parts[0]):
+                variants.add(parts[0])
+    if data_root.is_dir():
+        for child in data_root.iterdir():
+            if child.is_dir() and is_supported_variant(child.name):
+                variants.add(child.name)
+    return sorted(variants)
+
+
+def audit_manifest(
+    repo_root: Path,
+    data_root: Path,
+    *,
+    manifest_path: Path,
+    overrides_path: Path,
+) -> dict[str, Any]:
+    manifest = load_manifest_cached(
+        str(repo_root.resolve()),
+        str(data_root.resolve()),
+        str(manifest_path.resolve()),
+        str(overrides_path.resolve()),
+    )
+    aliases_by_variant: dict[str, list[str]] = {}
+    for alias, entry in manifest.get("aliases", {}).items():
+        variant = str(entry["dataset_variant"])
+        aliases_by_variant.setdefault(variant, []).append(alias)
+
+    candidate_variants = set(manifest.get("datasets", {}).keys())
+    candidate_variants.update(collect_supported_variants_from_data_root(data_root))
+
+    datasets_report: list[dict[str, Any]] = []
+    manifest_missing_eval_files: list[str] = []
+    manifest_entries: dict[str, Any] = manifest.get("datasets", {})
+    for variant in sorted(candidate_variants):
+        paths = dataset_paths_for_variant(data_root, variant)
+        in_manifest = variant in manifest_entries
+        report = {
+            "variant": variant,
+            "in_manifest": in_manifest,
+            "category": manifest_entries.get(variant, {}).get("category", category_from_variant(variant)),
+            "base_dir_exists": paths["base_dir"].is_dir(),
+            "train_exists": paths["train_path"].is_file(),
+            "valid_exists": paths["valid_path"].is_file(),
+            "test_exists": paths["test_path"].is_file(),
+            "index_exists": paths["index_path"].is_file(),
+            "new_tokens_exists": paths["new_tokens_path"].is_file(),
+            "rl_dir_exists": paths["rl_dir"].is_dir(),
+            "alias_count": len(aliases_by_variant.get(variant, [])),
+            "aliases": sorted(aliases_by_variant.get(variant, [])),
+        }
+        if in_manifest and not (report["test_exists"] and report["index_exists"]):
+            manifest_missing_eval_files.append(variant)
+        datasets_report.append(report)
+
+    return {
+        "summary": {
+            "manifest_dataset_count": len(manifest_entries),
+            "manifest_alias_count": len(manifest.get("aliases", {})),
+            "candidate_variant_count": len(candidate_variants),
+            "manifest_missing_eval_files": len(manifest_missing_eval_files),
+        },
+        "manifest_missing_eval_files": manifest_missing_eval_files,
+        "datasets": datasets_report,
+    }
+
+
 @lru_cache(maxsize=8)
 def load_manifest_cached(
     repo_root_text: str,
@@ -474,6 +561,13 @@ def build_parser() -> argparse.ArgumentParser:
     resolve.add_argument("--overrides", default="./data/eval_profile_overrides.json")
     resolve.add_argument("--model-name", required=True)
     resolve.add_argument("--format", choices=("json", "tsv"), default="json")
+
+    audit = subparsers.add_parser("audit", help="Audit manifest assumptions against actual data files")
+    audit.add_argument("--repo-root", default=".")
+    audit.add_argument("--data-root", default="./data")
+    audit.add_argument("--manifest", default="./data/eval_profile_manifest.json")
+    audit.add_argument("--overrides", default="./data/eval_profile_overrides.json")
+    audit.add_argument("--format", choices=("json", "tsv"), default="json")
     return parser
 
 
@@ -516,6 +610,31 @@ def main() -> int:
                 ]
             )
         )
+        return 0
+
+    if args.command == "audit":
+        report = audit_manifest(
+            repo_root,
+            data_root,
+            manifest_path=Path(args.manifest).expanduser().resolve(),
+            overrides_path=Path(args.overrides).expanduser().resolve(),
+        )
+        if args.format == "json":
+            print(json.dumps(report, indent=2, ensure_ascii=True))
+            return 0
+        print("variant\tin_manifest\ttest_exists\tindex_exists\talias_count")
+        for item in report["datasets"]:
+            print(
+                "\t".join(
+                    [
+                        str(item["variant"]),
+                        str(item["in_manifest"]),
+                        str(item["test_exists"]),
+                        str(item["index_exists"]),
+                        str(item["alias_count"]),
+                    ]
+                )
+            )
         return 0
 
     parser.error(f"Unknown command: {args.command}")
