@@ -1,4 +1,9 @@
 {
+  "disabled_variants": [
+    "Arts",
+    "Games",
+    "Instruments"
+  ],
   "aliases": {
     "ins-lc4023-fixed": "Instruments_grec_index",
     "ins-lc4023-fixed-ce": "Instruments_grec_index",

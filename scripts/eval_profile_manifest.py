@@ -237,14 +237,25 @@ def dataset_paths_for_variant(data_root: Path, variant: str) -> dict[str, Path]:
 def register_dataset(manifest: dict[str, Any], variant: str) -> None:
     if not is_supported_variant(variant):
         return
+    if variant in manifest.get("_disabled_variants", set()):
+        return
     datasets = manifest["datasets"]
     if variant in datasets:
         return
-    datasets[variant] = {
+    dataset_entry = {
         "category": category_from_variant(variant),
         "test_data_path": f"{variant}/sft/test.json",
         "index_path": f"{variant}/id2sid.json",
     }
+    dataset_meta = manifest.get("_dataset_meta", {}).get(variant, {})
+    for key in ("train_entry", "valid_entry", "test_entry"):
+        if dataset_meta.get(key):
+            dataset_entry[key] = dataset_meta[key]
+    dataset_overrides = manifest.get("_dataset_overrides", {}).get(variant, {})
+    for key in ("category", "test_data_path", "index_path", "train_entry", "valid_entry", "test_entry"):
+        if dataset_overrides.get(key):
+            dataset_entry[key] = dataset_overrides[key]
+    datasets[variant] = dataset_entry
 
 
 def register_alias(
@@ -260,6 +271,8 @@ def register_alias(
     if "$" in cleaned_alias:
         return
     register_dataset(manifest, variant)
+    if variant not in manifest["datasets"]:
+        return
     aliases = manifest["aliases"]
     existing = aliases.get(cleaned_alias)
     if existing is None:
@@ -302,7 +315,14 @@ def dataset_variant_from_test_path(test_path: str | None) -> str | None:
 
 
 def load_dataset_manifest_entries(data_root: Path) -> dict[str, Any]:
-    manifest: dict[str, Any] = {"datasets": {}, "aliases": {}, "_dataset_keys": {}}
+    manifest: dict[str, Any] = {
+        "datasets": {},
+        "aliases": {},
+        "_dataset_keys": {},
+        "_dataset_meta": {},
+        "_disabled_variants": set(),
+        "_dataset_overrides": {},
+    }
     dataset_info_path = data_root / "dataset_info.json"
     if dataset_info_path.is_file():
         payload = json.loads(dataset_info_path.read_text(encoding="utf-8"))
@@ -313,16 +333,11 @@ def load_dataset_manifest_entries(data_root: Path) -> dict[str, Any]:
                 continue
             variant = parts[0]
             manifest["_dataset_keys"][entry_name] = variant
-            register_dataset(manifest, variant)
-            dataset_entry = manifest["datasets"][variant]
+            dataset_entry = manifest["_dataset_meta"].setdefault(variant, {})
             if entry_name.endswith("_train"):
                 dataset_entry["train_entry"] = entry_name
             if entry_name.endswith("_valid"):
                 dataset_entry["valid_entry"] = entry_name
-    for child in sorted(data_root.iterdir(), key=lambda item: item.name) if data_root.is_dir() else []:
-        if not child.is_dir():
-            continue
-        register_dataset(manifest, child.name)
     return manifest
 
 
@@ -396,6 +411,21 @@ def apply_overrides(overrides_path: Path, manifest: dict[str, Any]) -> None:
     if not overrides_path.is_file():
         return
     payload = json.loads(overrides_path.read_text(encoding="utf-8"))
+    manifest["_disabled_variants"].update(
+        variant
+        for variant in payload.get("disabled_variants", [])
+        if isinstance(variant, str) and variant
+    )
+    dataset_overrides = payload.get("dataset_overrides", {})
+    if isinstance(dataset_overrides, dict):
+        for variant, override in dataset_overrides.items():
+            if not isinstance(variant, str) or not isinstance(override, dict):
+                continue
+            manifest["_dataset_overrides"][variant] = {
+                key: value
+                for key, value in override.items()
+                if isinstance(key, str) and isinstance(value, str)
+            }
     for alias, variant in payload.get("aliases", {}).items():
         if not isinstance(alias, str) or not isinstance(variant, str):
             continue
@@ -409,10 +439,10 @@ def apply_overrides(overrides_path: Path, manifest: dict[str, Any]) -> None:
 
 def build_manifest(repo_root: Path, data_root: Path, overrides_path: Path | None = None) -> dict[str, Any]:
     manifest = load_dataset_manifest_entries(data_root)
-    collect_yaml_aliases(repo_root, manifest)
-    collect_shell_aliases(repo_root, manifest)
     if overrides_path is not None:
         apply_overrides(overrides_path, manifest)
+    collect_yaml_aliases(repo_root, manifest)
+    collect_shell_aliases(repo_root, manifest)
     return normalize_manifest(manifest)
 
 

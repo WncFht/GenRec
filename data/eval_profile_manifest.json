@@ -1,24 +1,12 @@
 {
   "version": 1,
   "datasets": {
-    "Arts": {
-      "category": "Arts",
-      "test_data_path": "Arts/sft/test.json",
-      "index_path": "Arts/id2sid.json"
-    },
     "Arts_grec_index": {
       "category": "Arts_grec",
       "test_data_path": "Arts_grec_index/sft/test.json",
       "index_path": "Arts_grec_index/id2sid.json",
       "train_entry": "Arts_grec_index_train",
       "valid_entry": "Arts_grec_index_valid"
-    },
-    "Games": {
-      "category": "Games",
-      "test_data_path": "Games/sft/test.json",
-      "index_path": "Games/id2sid.json",
-      "train_entry": "Games_train",
-      "valid_entry": "Games_valid"
     },
     "Games_grec_index": {
       "category": "Games_grec",
@@ -40,13 +28,6 @@
       "index_path": "Industrial_and_Scientific/id2sid.json",
       "train_entry": "Industrial_and_Scientific_train",
       "valid_entry": "Industrial_and_Scientific_valid"
-    },
-    "Instruments": {
-      "category": "Instruments",
-      "test_data_path": "Instruments/sft/test.json",
-      "index_path": "Instruments/id2sid.json",
-      "train_entry": "Instruments_train",
-      "valid_entry": "Instruments_valid"
     },
     "Instruments_grec_index": {
       "category": "Instruments_grec",
@@ -156,18 +137,6 @@
       "dataset_variant": "Games_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsGames",
       "sources": [
         "examples/train_full/Games/games_rec_full_sft_3b_dsz0_qwen4b_4_256_grec.yaml#yaml_output_dir"
-      ]
-    },
-    "Games-qwen2.5-3b-sft-qwen4B-4-256-dsz0": {
-      "dataset_variant": "Games",
-      "sources": [
-        "examples/train_full/Games/games_rec_full_sft_3b_dsz0_qwen4b_4_256.yaml#yaml_run_name"
-      ]
-    },
-    "Games-sft-qwen4B-4-256-dsz0": {
-      "dataset_variant": "Games",
-      "sources": [
-        "examples/train_full/Games/games_rec_full_sft_3b_dsz0_qwen4b_4_256.yaml#yaml_output_dir"
       ]
     },
     "Industrial_and_Scientific-minimind2-sft-dsz0": {
@@ -594,19 +563,6 @@
       "sources": [
         "examples/train_full/Instruments/instruments_rec_full_sft_3b_dsz0_qwen4b_4_256_mimionerec.yaml#yaml_output_dir",
         "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-mimionerec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-mimionerec-evaluate.sh#sft_root"
-      ]
-    },
-    "Instruments-qwen2.5-3b-sft-qwen4B-4-256-dsz0": {
-      "dataset_variant": "Instruments",
-      "sources": [
-        "examples/train_full/Instruments/instruments_rec_full_sft_3b_dsz0_qwen4b_4_256.yaml#yaml_run_name"
-      ]
-    },
-    "Instruments-sft-qwen4B-4-256-dsz0": {
-      "dataset_variant": "Instruments",
-      "sources": [
-        "examples/train_full/Instruments/instruments_rec_full_sft_3b_dsz0_qwen4b_4_256.yaml#yaml_output_dir",
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-evaluate.sh#sft_root"
       ]
     },
     "games_grec_rl_rule_only_dynamic_hint_cascade_qwen2_5_3b_qwen4b_4_256_from_ckpt896": {
