@@ -203,10 +203,7 @@ def is_supported_variant(variant: str) -> bool:
 
 
 def normalize_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
-    datasets = {
-        name: manifest["datasets"][name]
-        for name in sorted(manifest.get("datasets", {}).keys())
-    }
+    datasets = {name: manifest["datasets"][name] for name in sorted(manifest.get("datasets", {}).keys())}
     aliases = {
         name: {
             "dataset_variant": manifest["aliases"][name]["dataset_variant"],
@@ -282,9 +279,7 @@ def register_alias(
         }
         return
     if existing["dataset_variant"] != variant:
-        raise ValueError(
-            f"alias {cleaned_alias!r} maps to both {existing['dataset_variant']!r} and {variant!r}"
-        )
+        raise ValueError(f"alias {cleaned_alias!r} maps to both {existing['dataset_variant']!r} and {variant!r}")
     existing.setdefault("sources", []).append(source)
 
 
@@ -412,9 +407,7 @@ def apply_overrides(overrides_path: Path, manifest: dict[str, Any]) -> None:
         return
     payload = json.loads(overrides_path.read_text(encoding="utf-8"))
     manifest["_disabled_variants"].update(
-        variant
-        for variant in payload.get("disabled_variants", [])
-        if isinstance(variant, str) and variant
+        variant for variant in payload.get("disabled_variants", []) if isinstance(variant, str) and variant
     )
     dataset_overrides = payload.get("dataset_overrides", {})
     if isinstance(dataset_overrides, dict):
@@ -422,9 +415,7 @@ def apply_overrides(overrides_path: Path, manifest: dict[str, Any]) -> None:
             if not isinstance(variant, str) or not isinstance(override, dict):
                 continue
             manifest["_dataset_overrides"][variant] = {
-                key: value
-                for key, value in override.items()
-                if isinstance(key, str) and isinstance(value, str)
+                key: value for key, value in override.items() if isinstance(key, str) and isinstance(value, str)
             }
     for alias, variant in payload.get("aliases", {}).items():
         if not isinstance(alias, str) or not isinstance(variant, str):
@@ -623,10 +614,7 @@ def main() -> int:
         if profile is None:
             return 1
         if args.format == "json":
-            serializable = {
-                key: str(value) if isinstance(value, Path) else value
-                for key, value in profile.items()
-            }
+            serializable = {key: str(value) if isinstance(value, Path) else value for key, value in profile.items()}
             print(json.dumps(serializable, ensure_ascii=True))
             return 0
         print(

@@ -57,6 +57,7 @@ Legacy environment overrides:
   MODEL_FILTER="Industrial_and_Scientific,Instruments-grec"
   FORCE_REEVAL=0
   DRY_RUN=0
+  ALLOW_HEURISTIC_FALLBACK=1
 
 Watcher environment overrides:
   SIDECAR_PY=./scripts/evaluate_all_checkpoints_sidecar.py
@@ -68,6 +69,7 @@ Watcher environment overrides:
   IDLE_HOLD_MEMORY_RATIO=0.95
   IDLE_HOLD_RELEASE_GRACE_SECONDS=5
   WATCH_STATE_PATH=state/evaluate_all_checkpoints/watch_state.json
+  ALLOW_HEURISTIC_FALLBACK=1
 EOF
 }
 
@@ -97,6 +99,7 @@ run_legacy_once() {
   local eval_profile_manifest_py="${EVAL_PROFILE_MANIFEST_PY:-$REPO_ROOT/scripts/eval_profile_manifest.py}"
   local eval_profile_manifest_json="${EVAL_PROFILE_MANIFEST_JSON:-$REPO_ROOT/data/eval_profile_manifest.json}"
   local eval_profile_overrides_json="${EVAL_PROFILE_OVERRIDES_JSON:-$REPO_ROOT/data/eval_profile_overrides.json}"
+  local allow_heuristic_fallback="${ALLOW_HEURISTIC_FALLBACK:-1}"
   local cuda_list="${CUDA_LIST:-0 1 2 3}"
   local data_root="${DATA_ROOT:-$REPO_ROOT/data}"
   local auto_data_mapping="${AUTO_DATA_MAPPING:-1}"
@@ -319,6 +322,10 @@ run_legacy_once() {
         IFS=$'\t' read -r RES_CATEGORY RES_TEST_DATA_PATH RES_INDEX_PATH RES_PROFILE_INFO RES_CB_WIDTH <<< "$resolved_profile"
         return
       fi
+    fi
+
+    if [[ "$allow_heuristic_fallback" != "1" ]]; then
+      return
     fi
 
     local cb_width=""
@@ -560,6 +567,12 @@ run_legacy_once() {
     fi
 
     resolve_eval_profile "$model_name"
+
+    if [[ -z "$RES_CATEGORY" || -z "$RES_TEST_DATA_PATH" || -z "$RES_INDEX_PATH" ]]; then
+      echo "[ERROR] no eval profile resolved for model=$model_name"
+      echo "        allow_heuristic_fallback=$allow_heuristic_fallback"
+      return 1
+    fi
 
     if [[ ! -f "$RES_TEST_DATA_PATH" ]]; then
       echo "[ERROR] test_data_path not found for model=$model_name: $RES_TEST_DATA_PATH"

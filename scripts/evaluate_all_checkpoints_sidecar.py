@@ -24,6 +24,8 @@ from eval_profile_manifest import resolve_profile as resolve_manifest_profile
 
 
 CHECKPOINT_RE = re.compile(r"^checkpoint-(\d+)$")
+_HEURISTIC_PROFILE_WARNED_MODELS: set[str] = set()
+_MISSING_MANIFEST_PROFILE_WARNED_MODELS: set[str] = set()
 
 
 @dataclass(frozen=True)
@@ -41,6 +43,7 @@ class WatcherConfig:
     include_rl: bool
     model_filter: str
     force_reeval: bool
+    allow_heuristic_fallback: bool
     stable_age_seconds: int
     stable_confirmation_polls: int
     poll_interval_seconds: int
@@ -299,7 +302,10 @@ def extract_cb_width(model_name: str) -> str:
 def resolve_base_category_from_model_name(model_name: str) -> str | None:
     normalized = model_name.lower()
     alias_groups = (
-        ("Industrial_and_Scientific", ("industrial_and_scientific", "industrial-and-scientific", "industrial", "ind", "ias")),
+        (
+            "Industrial_and_Scientific",
+            ("industrial_and_scientific", "industrial-and-scientific", "industrial", "ind", "ias"),
+        ),
         ("Instruments", ("instruments", "instrument", "ins")),
         ("Games", ("games", "game", "gam", "gms")),
         ("Arts", ("arts", "art")),
@@ -380,17 +386,7 @@ def iter_variant_dirs(data_root: Path, variant_prefix: str) -> list[Path]:
     return sorted(found.values(), key=lambda item: item.name)
 
 
-def resolve_eval_profile(config: WatcherConfig, model_name: str) -> dict[str, Path | str]:
-    manifest_profile = resolve_manifest_profile(
-        config.repo_root,
-        config.data_root,
-        model_name,
-        manifest_path=config.repo_root / "data" / "eval_profile_manifest.json",
-        overrides_path=config.repo_root / "data" / "eval_profile_overrides.json",
-    )
-    if manifest_profile is not None:
-        return manifest_profile
-
+def resolve_eval_profile_from_heuristics(config: WatcherConfig, model_name: str) -> dict[str, Path | str]:
     data_root = config.data_root
     industrial_test = data_root / "Industrial_and_Scientific" / "sft" / "test.json"
     industrial_index = data_root / "Industrial_and_Scientific" / "id2sid.json"
@@ -512,6 +508,35 @@ def resolve_eval_profile(config: WatcherConfig, model_name: str) -> dict[str, Pa
         industrial_index,
         "fallback:industrial_default",
     )
+
+
+def resolve_eval_profile(config: WatcherConfig, model_name: str) -> dict[str, Path | str] | None:
+    manifest_profile = resolve_manifest_profile(
+        config.repo_root,
+        config.data_root,
+        model_name,
+        manifest_path=config.repo_root / "data" / "eval_profile_manifest.json",
+        overrides_path=config.repo_root / "data" / "eval_profile_overrides.json",
+    )
+    if manifest_profile is not None:
+        return manifest_profile
+    if not config.allow_heuristic_fallback:
+        if model_name not in _MISSING_MANIFEST_PROFILE_WARNED_MODELS:
+            logging.warning(
+                "Skipped model=%s because no manifest eval profile was found and heuristic fallback is disabled",
+                model_name,
+            )
+            _MISSING_MANIFEST_PROFILE_WARNED_MODELS.add(model_name)
+        return None
+    heuristic_profile = resolve_eval_profile_from_heuristics(config, model_name)
+    if model_name not in _HEURISTIC_PROFILE_WARNED_MODELS:
+        logging.warning(
+            "Using heuristic eval profile for model=%s profile=%s",
+            model_name,
+            heuristic_profile["data_profile"],
+        )
+        _HEURISTIC_PROFILE_WARNED_MODELS.add(model_name)
+    return heuristic_profile
 
 
 def task_key(task: CheckpointTask) -> str:
@@ -669,6 +694,8 @@ def build_candidate_tasks(config: WatcherConfig) -> list[CheckpointTask]:
             if not matches_filter(model_name, config.model_filter):
                 continue
             profile = resolve_eval_profile(config, model_name)
+            if profile is None:
+                continue
             test_data_path = Path(str(profile["test_data_path"]))
             index_path = Path(str(profile["index_path"]))
             if not test_data_path.is_file() or not index_path.is_file():
@@ -774,6 +801,22 @@ def build_idle_gpu_holder(config: WatcherConfig) -> TorchIdleGpuHolder | None:
     )
 
 
+def log_ready_tasks(ready_tasks: list[CheckpointTask]) -> None:
+    logging.info("Ready task count: %d", len(ready_tasks))
+    for index, task in enumerate(ready_tasks, start=1):
+        resolver_kind = "manifest" if str(task.data_profile).startswith("manifest:") else "heuristic"
+        logging.info(
+            "Ready task [%d/%d] model=%s checkpoint=%s category=%s resolver=%s profile=%s",
+            index,
+            len(ready_tasks),
+            task.model_name,
+            task.checkpoint_name,
+            task.category,
+            resolver_kind,
+            task.data_profile,
+        )
+
+
 def run_task(config: WatcherConfig, state: dict[str, Any], task: CheckpointTask, dry_run: bool) -> dict[str, Any]:
     command = ["bash", str(config.eval_script), str(task.model_root)]
     env = os.environ.copy()
@@ -840,6 +883,7 @@ def execute_watch_iteration(
     save_json_atomic(config.state_path, state)
 
     if ready_tasks:
+        log_ready_tasks(ready_tasks)
         if idle_holder is not None:
             idle_holder.stop()
             if config.idle_hold_release_grace_seconds > 0:
@@ -861,7 +905,7 @@ def execute_once(config: WatcherConfig, *, dry_run: bool) -> int:
     state, ready_tasks = scan_pending_tasks(config, state)
     save_json_atomic(config.state_path, state)
 
-    logging.info("Ready task count: %d", len(ready_tasks))
+    log_ready_tasks(ready_tasks)
     if not ready_tasks:
         return 0
 
@@ -921,6 +965,7 @@ def build_config_from_args(args: argparse.Namespace, cwd: Path) -> WatcherConfig
         include_rl=args.include_rl == "1",
         model_filter=args.model_filter,
         force_reeval=args.force_reeval == "1",
+        allow_heuristic_fallback=args.allow_heuristic_fallback == "1",
         stable_age_seconds=args.stable_age_seconds,
         stable_confirmation_polls=args.stable_confirmation_polls,
         poll_interval_seconds=args.poll_interval_seconds,
@@ -949,6 +994,10 @@ def build_parser() -> argparse.ArgumentParser:
         target.add_argument("--include-rl", default=os.environ.get("INCLUDE_RL", "1"))
         target.add_argument("--model-filter", default=os.environ.get("MODEL_FILTER", ""))
         target.add_argument("--force-reeval", default=os.environ.get("FORCE_REEVAL", "0"))
+        target.add_argument(
+            "--allow-heuristic-fallback",
+            default=os.environ.get("ALLOW_HEURISTIC_FALLBACK", "1"),
+        )
         target.add_argument("--stable-age-seconds", type=int, default=int(os.environ.get("STABLE_AGE_SECONDS", "180")))
         target.add_argument(
             "--stable-confirmation-polls",
