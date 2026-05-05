@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import re
 from functools import lru_cache
@@ -216,6 +217,13 @@ def normalize_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
         "datasets": datasets,
         "aliases": aliases,
     }
+
+
+def manifest_file_signature(path: Path) -> tuple[bool, int, int]:
+    if not path.is_file():
+        return (False, 0, 0)
+    stat_result = path.stat()
+    return (True, stat_result.st_mtime_ns, stat_result.st_size)
 
 
 def dataset_paths_for_variant(data_root: Path, variant: str) -> dict[str, Path]:
@@ -437,6 +445,67 @@ def build_manifest(repo_root: Path, data_root: Path, overrides_path: Path | None
     return normalize_manifest(manifest)
 
 
+def apply_runtime_overrides_to_manifest(manifest: dict[str, Any], overrides_path: Path) -> dict[str, Any]:
+    if not overrides_path.is_file():
+        return manifest
+
+    payload = json.loads(overrides_path.read_text(encoding="utf-8"))
+    runtime_manifest = {
+        "version": manifest.get("version", 1),
+        "datasets": copy.deepcopy(manifest.get("datasets", {})),
+        "aliases": copy.deepcopy(manifest.get("aliases", {})),
+    }
+
+    disabled_variants = {
+        variant
+        for variant in payload.get("disabled_variants", [])
+        if isinstance(variant, str) and variant
+    }
+    if disabled_variants:
+        for variant in disabled_variants:
+            runtime_manifest["datasets"].pop(variant, None)
+        runtime_manifest["aliases"] = {
+            alias: entry
+            for alias, entry in runtime_manifest["aliases"].items()
+            if str(entry.get("dataset_variant")) not in disabled_variants
+        }
+
+    dataset_overrides = payload.get("dataset_overrides", {})
+    if isinstance(dataset_overrides, dict):
+        for variant, override in dataset_overrides.items():
+            if not isinstance(variant, str) or not isinstance(override, dict):
+                continue
+            if variant not in runtime_manifest["datasets"]:
+                continue
+            runtime_manifest["datasets"][variant].update(
+                {
+                    key: value
+                    for key, value in override.items()
+                    if isinstance(key, str) and isinstance(value, str)
+                }
+            )
+
+    alias_overrides = payload.get("aliases", {})
+    if isinstance(alias_overrides, dict):
+        for alias, variant in alias_overrides.items():
+            if not isinstance(alias, str) or not isinstance(variant, str):
+                continue
+            if variant in disabled_variants:
+                continue
+            if variant not in runtime_manifest["datasets"]:
+                runtime_manifest["datasets"][variant] = {
+                    "category": category_from_variant(variant),
+                    "test_data_path": f"{variant}/sft/test.json",
+                    "index_path": f"{variant}/id2sid.json",
+                }
+            runtime_manifest["aliases"][alias] = {
+                "dataset_variant": variant,
+                "sources": [f"{overrides_path.name}#manual_override"],
+            }
+
+    return normalize_manifest(runtime_manifest)
+
+
 def collect_supported_variants_from_data_root(data_root: Path) -> list[str]:
     variants: set[str] = set()
     dataset_info_path = data_root / "dataset_info.json"
@@ -461,12 +530,7 @@ def audit_manifest(
     manifest_path: Path,
     overrides_path: Path,
 ) -> dict[str, Any]:
-    manifest = load_manifest_cached(
-        str(repo_root.resolve()),
-        str(data_root.resolve()),
-        str(manifest_path.resolve()),
-        str(overrides_path.resolve()),
-    )
+    manifest = load_manifest(repo_root, data_root, manifest_path, overrides_path)
     aliases_by_variant: dict[str, list[str]] = {}
     for alias, entry in manifest.get("aliases", {}).items():
         variant = str(entry["dataset_variant"])
@@ -517,14 +581,34 @@ def load_manifest_cached(
     data_root_text: str,
     manifest_path_text: str,
     overrides_path_text: str,
+    manifest_exists: bool,
+    manifest_mtime_ns: int,
+    manifest_size: int,
+    overrides_exists: bool,
+    overrides_mtime_ns: int,
+    overrides_size: int,
 ) -> dict[str, Any]:
     repo_root = Path(repo_root_text)
     data_root = Path(data_root_text)
     manifest_path = Path(manifest_path_text)
     overrides_path = Path(overrides_path_text)
     if manifest_path.is_file():
-        return normalize_manifest(json.loads(manifest_path.read_text(encoding="utf-8")))
+        manifest = normalize_manifest(json.loads(manifest_path.read_text(encoding="utf-8")))
+        return apply_runtime_overrides_to_manifest(manifest, overrides_path)
     return build_manifest(repo_root, data_root, overrides_path)
+
+
+def load_manifest(repo_root: Path, data_root: Path, manifest_path: Path, overrides_path: Path) -> dict[str, Any]:
+    manifest_signature = manifest_file_signature(manifest_path)
+    overrides_signature = manifest_file_signature(overrides_path)
+    return load_manifest_cached(
+        str(repo_root.resolve()),
+        str(data_root.resolve()),
+        str(manifest_path.resolve()),
+        str(overrides_path.resolve()),
+        *manifest_signature,
+        *overrides_signature,
+    )
 
 
 def resolve_profile(
@@ -535,12 +619,7 @@ def resolve_profile(
     manifest_path: Path,
     overrides_path: Path,
 ) -> dict[str, Path | str] | None:
-    manifest = load_manifest_cached(
-        str(repo_root.resolve()),
-        str(data_root.resolve()),
-        str(manifest_path.resolve()),
-        str(overrides_path.resolve()),
-    )
+    manifest = load_manifest(repo_root, data_root, manifest_path, overrides_path)
     alias_entry = manifest.get("aliases", {}).get(model_name)
     if alias_entry is None:
         return None

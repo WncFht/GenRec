@@ -1,4 +1,4 @@
-# AGENTS.md
+# AGENT.md
 
 ## 环境
 - 这台机器主要用于本地编辑、轻量级 CPU 分析，以及 notebook 编写。
@@ -29,6 +29,9 @@
 - 更新已有分析 notebook 时，优先在原 notebook 基础上继续扩展，而不是再建平行变体。
 - 不要假设远端文件已经镜像到本地；在配置单元里把远端位置写清楚。
 - 对仓库里的 shell 脚本，尤其是会在远端训练机上运行或同步过去的脚本，避免使用 `set -u` / `set -euo pipefail`；那个环境里未完全填充的环境变量很容易触发 nounset。优先使用 `set -eo pipefail`，并给显式默认值。
+- 新建 `hope/` 下的 train / rl / evaluate 入口时，不要只把训练脚本落地；要同时把对应的 eval/test 链路补齐。
+- 具体要求是：至少明确 `output_dir` / `run_name` / `data variant` / `test.json` / `id2sid.json` 的映射来源，并同步更新 `data/eval_profile_manifest.json`、`data/eval_profile_overrides.json` 或它们的生成来源。
+- 对新的 `hope` 入口，默认还要补一次 strict dry-run 验证：`evaluate_all_checkpoints_sidecar.py ... --allow-heuristic-fallback 0 --dry-run` 应该能命中对应 profile，而不是依赖 heuristic fallback。
 
 ## 任务收尾
 - 完成一个任务后，明确告诉用户这次需要同步哪些文件或目录。
