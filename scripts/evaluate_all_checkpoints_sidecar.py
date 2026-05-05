@@ -73,16 +73,18 @@ class TorchIdleGpuHolder:
         self.cuda_list = cuda_list
         self.memory_ratio = memory_ratio
         self._lock = Lock()
-        self._stop_event = Event()
+        self._stop_event: Event | None = None
         self._thread: Thread | None = None
 
     def ensure_running(self) -> None:
         with self._lock:
             if self._thread is not None and self._thread.is_alive():
                 return
-            self._stop_event = Event()
+            stop_event = Event()
+            self._stop_event = stop_event
             self._thread = Thread(
                 target=self._run,
+                args=(stop_event,),
                 name="evaluate-all-checkpoints-idle-holder",
                 daemon=True,
             )
@@ -92,18 +94,20 @@ class TorchIdleGpuHolder:
         with self._lock:
             thread = self._thread
             stop_event = self._stop_event
-            self._thread = None
-            self._stop_event = Event()
 
-        if thread is None:
+        if thread is None or stop_event is None:
             return
 
         stop_event.set()
         thread.join(timeout=30)
+        with self._lock:
+            if self._thread is thread and not thread.is_alive():
+                self._thread = None
+                self._stop_event = None
         if thread.is_alive():
             logging.warning("Idle GPU holder thread did not stop within timeout")
 
-    def _run(self) -> None:
+    def _run(self, stop_event: Event) -> None:
         gpu_ids: list[int] = []
         allocated_gib: dict[int, float] = {}
         blocks: list[list[Any]] = []
@@ -131,7 +135,7 @@ class TorchIdleGpuHolder:
 
         try:
             for gpu_id in gpu_ids:
-                if self._stop_event.is_set():
+                if stop_event.is_set():
                     return
 
                 device = torch.device(f"cuda:{gpu_id}")
@@ -140,7 +144,7 @@ class TorchIdleGpuHolder:
                 allocated_bytes = 0
                 device_blocks: list[Any] = []
 
-                while allocated_bytes < target_bytes and not self._stop_event.is_set():
+                while allocated_bytes < target_bytes and not stop_event.is_set():
                     next_chunk = min(self._ALLOCATION_CHUNK_BYTES, target_bytes - allocated_bytes)
                     if next_chunk <= 0:
                         break
@@ -166,7 +170,7 @@ class TorchIdleGpuHolder:
                     self.memory_ratio * 100.0,
                 )
 
-            while not self._stop_event.wait(1):
+            while not stop_event.wait(1):
                 continue
         finally:
             blocks.clear()
@@ -291,8 +295,15 @@ def extract_cb_width(model_name: str) -> str:
 
 
 def resolve_base_category_from_model_name(model_name: str) -> str | None:
-    for candidate in ("Industrial_and_Scientific", "Instruments", "Games", "Arts"):
-        if model_name.startswith(candidate):
+    normalized = model_name.lower()
+    alias_groups = (
+        ("Industrial_and_Scientific", ("industrial_and_scientific", "industrial-and-scientific", "industrial", "ind", "ias")),
+        ("Instruments", ("instruments", "instrument", "ins")),
+        ("Games", ("games", "game", "gam", "gms")),
+        ("Arts", ("arts", "art")),
+    )
+    for candidate, aliases in alias_groups:
+        if any(normalized.startswith(alias) for alias in aliases):
             return candidate
     return None
 
@@ -382,10 +393,14 @@ def resolve_eval_profile(config: WatcherConfig, model_name: str) -> dict[str, Pa
         data_root
         / "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47"
     )
+    instruments_grec_compact = data_root / "Instruments_grec_index"
     instruments_grec_test = instruments_grec_fallback / "sft" / "test.json"
     instruments_grec_index = instruments_grec_fallback / "id2sid.json"
+    instruments_grec_compact_test = instruments_grec_compact / "sft" / "test.json"
+    instruments_grec_compact_index = instruments_grec_compact / "id2sid.json"
 
     cb_width = extract_cb_width(model_name)
+    normalized_model_name = model_name.lower()
     base_category = resolve_base_category_from_model_name(model_name)
 
     def make_result(
@@ -402,12 +417,27 @@ def resolve_eval_profile(config: WatcherConfig, model_name: str) -> dict[str, Pa
             "cb_width": cb_width,
         }
 
-    if model_name.startswith("Industrial_and_Scientific"):
+    if base_category == "Industrial_and_Scientific":
         return make_result(
             "Industrial_and_Scientific",
             industrial_test,
             industrial_index,
             "fixed:industrial_default",
+        )
+
+    if normalized_model_name.startswith("ins-lc"):
+        if instruments_grec_compact_test.is_file() and instruments_grec_compact_index.is_file():
+            return make_result(
+                "Instruments_grec",
+                instruments_grec_compact_test,
+                instruments_grec_compact_index,
+                "fixed:legacy_ins_lc_compact_variant_dir=Instruments_grec_index",
+            )
+        return make_result(
+            "Instruments_grec",
+            instruments_grec_test,
+            instruments_grec_index,
+            "fallback:legacy_ins_lc_fixed_grec_cb256",
         )
 
     if base_category and (
@@ -458,11 +488,11 @@ def resolve_eval_profile(config: WatcherConfig, model_name: str) -> dict[str, Pa
                 "fallback:fixed_grec_cb256",
             )
 
-    if model_name.startswith("Instruments"):
+    if base_category == "Instruments":
         return make_result("Instruments", instruments_test, instruments_index, "fixed:instruments_default")
-    if model_name.startswith("Games"):
+    if base_category == "Games":
         return make_result("Games", games_test, games_index, "fixed:games_default")
-    if model_name.startswith("Arts"):
+    if base_category == "Arts":
         return make_result("Arts", arts_test, arts_index, "fixed:arts_default")
     return make_result(
         "Industrial_and_Scientific",
@@ -920,7 +950,7 @@ def build_parser() -> argparse.ArgumentParser:
         )
         target.add_argument(
             "--idle-hold-enabled",
-            default=os.environ.get("IDLE_HOLD_ENABLED", "0"),
+            default=os.environ.get("IDLE_HOLD_ENABLED", "1"),
         )
         target.add_argument(
             "--idle-hold-memory-ratio",

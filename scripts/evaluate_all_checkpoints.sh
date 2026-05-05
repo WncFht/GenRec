@@ -37,7 +37,6 @@ Watcher examples:
     --stable-confirmation-polls 2
 
   # Keep the watcher attached to GPUs while idle
-  IDLE_HOLD_ENABLED=1 \
   IDLE_HOLD_MEMORY_RATIO=0.95 \
   bash scripts/evaluate_all_checkpoints.sh run
 
@@ -65,7 +64,7 @@ Watcher environment overrides:
   POLL_INTERVAL_SECONDS=60
   STABLE_AGE_SECONDS=180
   STABLE_CONFIRMATION_POLLS=2
-  IDLE_HOLD_ENABLED=0
+  IDLE_HOLD_ENABLED=1
   IDLE_HOLD_MEMORY_RATIO=0.95
   IDLE_HOLD_RELEASE_GRACE_SECONDS=5
   WATCH_STATE_PATH=state/evaluate_all_checkpoints/watch_state.json
@@ -126,6 +125,7 @@ run_legacy_once() {
   local arts_index_path="${ARTS_INDEX_PATH:-$data_root/Arts/id2sid.json}"
 
   local instruments_grec_fallback_variant_dir="${INSTRUMENTS_GREC_FALLBACK_VARIANT_DIR:-$data_root/Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47}"
+  local instruments_grec_compact_variant_dir="${INSTRUMENTS_GREC_COMPACT_VARIANT_DIR:-$data_root/Instruments_grec_index}"
   local instruments_grec_test_data_path="${INSTRUMENTS_GREC_TEST_DATA_PATH:-$instruments_grec_fallback_variant_dir/sft/test.json}"
   local instruments_grec_index_path="${INSTRUMENTS_GREC_INDEX_PATH:-$instruments_grec_fallback_variant_dir/id2sid.json}"
 
@@ -254,13 +254,25 @@ run_legacy_once() {
 
   resolve_base_category_from_model_name() {
     local model_name="$1"
-    local candidate
-    for candidate in Industrial_and_Scientific Instruments Games Arts; do
-      if [[ "$model_name" == "$candidate"* ]]; then
-        echo "$candidate"
+    local normalized="${model_name,,}"
+    case "$normalized" in
+      industrial_and_scientific*|industrial-and-scientific*|industrial*|ind|ind-*|ind_*|ias|ias-*|ias_*)
+        echo "Industrial_and_Scientific"
         return 0
-      fi
-    done
+        ;;
+      instruments*|instrument*|ins|ins-*|ins_*)
+        echo "Instruments"
+        return 0
+        ;;
+      games*|game*|gam|gam-*|gam_*|gms|gms-*|gms_*)
+        echo "Games"
+        return 0
+        ;;
+      arts*|art|art-*|art_*)
+        echo "Arts"
+        return 0
+        ;;
+    esac
     return 1
   }
 
@@ -295,12 +307,27 @@ run_legacy_once() {
 
     local base_category=""
     base_category="$(resolve_base_category_from_model_name "$model_name" || true)"
+    local normalized_model_name="${model_name,,}"
 
-    if [[ "$model_name" == Industrial_and_Scientific* ]]; then
+    if [[ "$base_category" == "Industrial_and_Scientific" ]]; then
       RES_CATEGORY="Industrial_and_Scientific"
       RES_TEST_DATA_PATH="$industrial_test_data_path"
       RES_INDEX_PATH="$industrial_index_path"
       RES_PROFILE_INFO="fixed:industrial_default"
+      return
+    fi
+
+    if [[ "$normalized_model_name" == ins-lc* ]]; then
+      RES_CATEGORY="Instruments_grec"
+      if [[ -f "$instruments_grec_compact_variant_dir/sft/test.json" && -f "$instruments_grec_compact_variant_dir/id2sid.json" ]]; then
+        RES_TEST_DATA_PATH="$instruments_grec_compact_variant_dir/sft/test.json"
+        RES_INDEX_PATH="$instruments_grec_compact_variant_dir/id2sid.json"
+        RES_PROFILE_INFO="fixed:legacy_ins_lc_compact_variant_dir=Instruments_grec_index"
+      else
+        RES_TEST_DATA_PATH="$instruments_grec_test_data_path"
+        RES_INDEX_PATH="$instruments_grec_index_path"
+        RES_PROFILE_INFO="fallback:legacy_ins_lc_fixed_grec_cb256"
+      fi
       return
     fi
 
@@ -403,7 +430,7 @@ run_legacy_once() {
       return
     fi
 
-    if [[ "$model_name" == Instruments* ]]; then
+    if [[ "$base_category" == "Instruments" ]]; then
       RES_CATEGORY="Instruments"
       RES_TEST_DATA_PATH="$instruments_test_data_path"
       RES_INDEX_PATH="$instruments_index_path"
@@ -411,7 +438,7 @@ run_legacy_once() {
       return
     fi
 
-    if [[ "$model_name" == Games* ]]; then
+    if [[ "$base_category" == "Games" ]]; then
       RES_CATEGORY="Games"
       RES_TEST_DATA_PATH="$games_test_data_path"
       RES_INDEX_PATH="$games_index_path"
@@ -419,7 +446,7 @@ run_legacy_once() {
       return
     fi
 
-    if [[ "$model_name" == Arts* ]]; then
+    if [[ "$base_category" == "Arts" ]]; then
       RES_CATEGORY="Arts"
       RES_TEST_DATA_PATH="$arts_test_data_path"
       RES_INDEX_PATH="$arts_index_path"

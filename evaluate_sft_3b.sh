@@ -173,6 +173,8 @@ evaluate_one_model() {
   "$PYTHON_BIN" split_json.py --input_path "$TEST_DATA_PATH" --output_path "$temp_dir" --cuda_list "$CUDA_LIST"
 
   local gpu_id
+  local pids=()
+  local launched_gpu_ids=()
   for gpu_id in "${GPU_ARR[@]}"; do
     if [[ -f "$temp_dir/${gpu_id}.json" ]]; then
       echo "Start GPU ${gpu_id} ..."
@@ -189,10 +191,42 @@ evaluate_one_model() {
         --length_penalty "$LENGTH_PENALTY" \
         --sid_levels "$SID_LEVELS" \
         --compute_metrics_flag False &
+      pids+=("$!")
+      launched_gpu_ids+=("$gpu_id")
     fi
   done
 
-  wait
+  if [[ ${#pids[@]} -eq 0 ]]; then
+    echo "Error: split_json.py produced no GPU shards under $temp_dir"
+    rm -rf "$temp_dir"
+    return 1
+  fi
+
+  local wait_failed=0
+  local pid_index pid_exit
+  for pid_index in "${!pids[@]}"; do
+    gpu_id="${launched_gpu_ids[$pid_index]}"
+    if wait "${pids[$pid_index]}"; then
+      :
+    else
+      pid_exit=$?
+      echo "Error: GPU ${gpu_id} evaluation failed with exit code ${pid_exit}"
+      wait_failed=1
+    fi
+  done
+
+  if [[ "$wait_failed" -ne 0 ]]; then
+    rm -rf "$temp_dir"
+    return 1
+  fi
+
+  for gpu_id in "${launched_gpu_ids[@]}"; do
+    if [[ ! -f "$temp_dir/${gpu_id}_result.json" ]]; then
+      echo "Error: missing per-GPU result file: $temp_dir/${gpu_id}_result.json"
+      rm -rf "$temp_dir"
+      return 1
+    fi
+  done
 
   "$PYTHON_BIN" merge_json.py --input_path "$temp_dir" --output_path "$output_dir/final_result.json" --cuda_list "$CUDA_LIST" --compute_metrics False
   "$PYTHON_BIN" -u evaluate.py --result_json_path "$output_dir/final_result.json" --metrics_only True
