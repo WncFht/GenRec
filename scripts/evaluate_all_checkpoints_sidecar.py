@@ -20,6 +20,8 @@ from pathlib import Path
 from threading import Event, Lock, Thread
 from typing import Any
 
+from eval_profile_manifest import resolve_profile as resolve_manifest_profile
+
 
 CHECKPOINT_RE = re.compile(r"^checkpoint-(\d+)$")
 
@@ -379,6 +381,16 @@ def iter_variant_dirs(data_root: Path, variant_prefix: str) -> list[Path]:
 
 
 def resolve_eval_profile(config: WatcherConfig, model_name: str) -> dict[str, Path | str]:
+    manifest_profile = resolve_manifest_profile(
+        config.repo_root,
+        config.data_root,
+        model_name,
+        manifest_path=config.repo_root / "data" / "eval_profile_manifest.json",
+        overrides_path=config.repo_root / "data" / "eval_profile_overrides.json",
+    )
+    if manifest_profile is not None:
+        return manifest_profile
+
     data_root = config.data_root
     industrial_test = data_root / "Industrial_and_Scientific" / "sft" / "test.json"
     industrial_index = data_root / "Industrial_and_Scientific" / "id2sid.json"

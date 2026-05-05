@@ -94,6 +94,9 @@ is_running() {
 run_legacy_once() {
   local eval_script="${EVAL_SCRIPT:-$REPO_ROOT/evaluate_sft_3b.sh}"
   local python_bin="${PYTHON_BIN:-python}"
+  local eval_profile_manifest_py="${EVAL_PROFILE_MANIFEST_PY:-$REPO_ROOT/scripts/eval_profile_manifest.py}"
+  local eval_profile_manifest_json="${EVAL_PROFILE_MANIFEST_JSON:-$REPO_ROOT/data/eval_profile_manifest.json}"
+  local eval_profile_overrides_json="${EVAL_PROFILE_OVERRIDES_JSON:-$REPO_ROOT/data/eval_profile_overrides.json}"
   local cuda_list="${CUDA_LIST:-0 1 2 3}"
   local data_root="${DATA_ROOT:-$REPO_ROOT/data}"
   local auto_data_mapping="${AUTO_DATA_MAPPING:-1}"
@@ -300,6 +303,23 @@ run_legacy_once() {
     RES_INDEX_PATH=""
     RES_PROFILE_INFO=""
     RES_CB_WIDTH=""
+
+    if [[ -f "$eval_profile_manifest_py" ]]; then
+      local resolved_profile=""
+      resolved_profile="$(
+        "$python_bin" "$eval_profile_manifest_py" resolve \
+          --repo-root "$REPO_ROOT" \
+          --data-root "$data_root" \
+          --manifest "$eval_profile_manifest_json" \
+          --overrides "$eval_profile_overrides_json" \
+          --model-name "$model_name" \
+          --format tsv 2>/dev/null || true
+      )"
+      if [[ -n "$resolved_profile" ]]; then
+        IFS=$'\t' read -r RES_CATEGORY RES_TEST_DATA_PATH RES_INDEX_PATH RES_PROFILE_INFO RES_CB_WIDTH <<< "$resolved_profile"
+        return
+      fi
+    fi
 
     local cb_width=""
     cb_width="$(extract_cb_width "$model_name" || true)"
