@@ -8,6 +8,8 @@ export CUDA_LIST="${CUDA_LIST:-0 1 2 3}"
 
 REPO_ROOT="/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec"
 INSTANCE="${INSTANCE:-remote_eval}"
+LOG_DIR="${LOG_DIR:-$REPO_ROOT/log/evaluate_all_checkpoints}"
+LOG_FILE="${LOG_FILE:-$LOG_DIR/${INSTANCE}.log}"
 
 # Fail closed: if a model/output name is not in the manifest, do not guess.
 export ALLOW_HEURISTIC_FALLBACK="${ALLOW_HEURISTIC_FALLBACK:-0}"
@@ -23,5 +25,12 @@ export STABLE_CONFIRMATION_POLLS="${STABLE_CONFIRMATION_POLLS:-2}"
 
 cd "$REPO_ROOT"
 
-bash "$REPO_ROOT/scripts/evaluate_all_checkpoints.sh" start --instance "$INSTANCE"
-bash "$REPO_ROOT/scripts/evaluate_all_checkpoints.sh" status --instance "$INSTANCE"
+mkdir -p "$LOG_DIR"
+
+echo "[INFO] repo_root=$REPO_ROOT"
+echo "[INFO] instance=$INSTANCE"
+echo "[INFO] log_file=$LOG_FILE"
+echo "[INFO] launch_mode=foreground-run"
+
+exec > >(tee -a "$LOG_FILE") 2>&1
+exec bash "$REPO_ROOT/scripts/evaluate_all_checkpoints.sh" run

@@ -1,0 +1,2 @@
+path	HR@1	HR@3	HR@5	HR@10	HR@20	HR@50	NDCG@1	NDCG@3	NDCG@5	NDCG@10	NDCG@20	NDCG@50
+Instruments-grec-hint-token-sft-fixed-b16-lr3e-4-sft495/checkpoint-416	0.0007	0.0016	0.0034	0.0054	0.0117	0.0259	0.0007	0.0013	0.002	0.0026	0.0042	0.007

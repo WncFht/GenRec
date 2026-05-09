@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import re
+import signal
 import subprocess
 import sys
 import time
@@ -17,7 +18,7 @@ from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from threading import Event, Lock, Thread
+from threading import Event, Lock
 from typing import Any
 
 from eval_profile_manifest import resolve_profile as resolve_manifest_profile
@@ -72,122 +73,147 @@ class CheckpointTask:
 class TorchIdleGpuHolder:
     """Keep the watch process attached to the same GPUs while idle."""
 
-    _ALLOCATION_CHUNK_BYTES = 256 * 1024 * 1024
-
     def __init__(self, cuda_list: str, memory_ratio: float):
         self.cuda_list = cuda_list
         self.memory_ratio = memory_ratio
         self._lock = Lock()
-        self._stop_event: Event | None = None
-        self._thread: Thread | None = None
+        self._process: subprocess.Popen[str] | None = None
 
     def ensure_running(self) -> None:
         with self._lock:
-            if self._thread is not None and self._thread.is_alive():
+            if self._process is not None and self._process.poll() is None:
                 return
-            stop_event = Event()
-            self._stop_event = stop_event
-            self._thread = Thread(
-                target=self._run,
-                args=(stop_event,),
-                name="evaluate-all-checkpoints-idle-holder",
-                daemon=True,
+            command = [
+                sys.executable,
+                str(Path(__file__).resolve()),
+                "idle-hold",
+                "--cuda-list",
+                self.cuda_list,
+                "--memory-ratio",
+                str(self.memory_ratio),
+                "--log-level",
+                os.environ.get("LOG_LEVEL", "INFO"),
+            ]
+            env = os.environ.copy()
+            env["PYTHONUNBUFFERED"] = "1"
+            self._process = subprocess.Popen(
+                command,
+                env=env,
+                cwd=Path(__file__).resolve().parent,
+                text=True,
             )
-            self._thread.start()
+            logging.info("Idle GPU holder process started pid=%d", self._process.pid)
 
     def stop(self) -> None:
         with self._lock:
-            thread = self._thread
-            stop_event = self._stop_event
+            process = self._process
 
-        if thread is None or stop_event is None:
+        if process is None:
             return
 
-        stop_event.set()
-        thread.join(timeout=30)
-        with self._lock:
-            if self._thread is thread and not thread.is_alive():
-                self._thread = None
-                self._stop_event = None
-        if thread.is_alive():
-            logging.warning("Idle GPU holder thread did not stop within timeout")
-
-    def _run(self, stop_event: Event) -> None:
-        gpu_ids: list[int] = []
-        allocated_gib: dict[int, float] = {}
-        blocks: list[list[Any]] = []
-        torch = None
-        try:
-            import torch as torch_module
-        except ImportError as exc:
-            logging.warning("Idle GPU holder unavailable because torch import failed: %s", exc)
-            return
-
-        torch = torch_module
-        if not torch.cuda.is_available():
-            logging.warning("Idle GPU holder requested but CUDA is unavailable")
-            return
-
-        try:
-            gpu_ids = parse_cuda_list(self.cuda_list, torch.cuda.device_count())
-        except ValueError as exc:
-            logging.warning("Idle GPU holder disabled due to invalid CUDA_LIST=%r: %s", self.cuda_list, exc)
-            return
-
-        if not gpu_ids:
-            logging.warning("Idle GPU holder requested but no GPU ids were resolved from CUDA_LIST=%r", self.cuda_list)
-            return
-
-        try:
-            for gpu_id in gpu_ids:
-                if stop_event.is_set():
-                    return
-
-                device = torch.device(f"cuda:{gpu_id}")
-                total_memory = torch.cuda.get_device_properties(device).total_memory
-                target_bytes = int(total_memory * self.memory_ratio)
-                allocated_bytes = 0
-                device_blocks: list[Any] = []
-
-                while allocated_bytes < target_bytes and not stop_event.is_set():
-                    next_chunk = min(self._ALLOCATION_CHUNK_BYTES, target_bytes - allocated_bytes)
-                    if next_chunk <= 0:
-                        break
-                    try:
-                        block = torch.empty(next_chunk, dtype=torch.uint8, device=device)
-                    except Exception as exc:
-                        logging.warning(
-                            "Idle GPU holder stopped allocating on cuda:%d after %.2f GiB: %s",
-                            gpu_id,
-                            allocated_bytes / (1024**3),
-                            exc,
-                        )
-                        break
-                    device_blocks.append(block)
-                    allocated_bytes += block.nelement()
-
-                blocks.append(device_blocks)
-                allocated_gib[gpu_id] = allocated_bytes / (1024**3)
-                logging.info(
-                    "Idle GPU holder reserved %.2f GiB on cuda:%d (target %.1f%%)",
-                    allocated_gib[gpu_id],
-                    gpu_id,
-                    self.memory_ratio * 100.0,
+        if process.poll() is None:
+            process.terminate()
+            try:
+                process.wait(timeout=30)
+            except subprocess.TimeoutExpired:
+                logging.warning(
+                    "Idle GPU holder process did not stop within timeout, sending SIGKILL pid=%d", process.pid
                 )
+                process.kill()
+                process.wait(timeout=30)
 
-            while not stop_event.wait(1):
-                continue
-        finally:
-            blocks.clear()
-            if torch is not None:
+        with self._lock:
+            if self._process is process:
+                self._process = None
+
+
+def execute_idle_hold(cuda_list: str, memory_ratio: float) -> int:
+    allocation_chunk_bytes = 256 * 1024 * 1024
+    stop_event = Event()
+
+    def handle_signal(signum: int, _frame: Any) -> None:
+        logging.info("Idle GPU holder received signal=%d", signum)
+        stop_event.set()
+
+    signal.signal(signal.SIGTERM, handle_signal)
+    signal.signal(signal.SIGINT, handle_signal)
+
+    gpu_ids: list[int] = []
+    allocated_gib: dict[int, float] = {}
+    blocks: list[list[Any]] = []
+    torch = None
+    try:
+        import torch as torch_module
+    except ImportError as exc:
+        logging.warning("Idle GPU holder unavailable because torch import failed: %s", exc)
+        return 0
+
+    torch = torch_module
+    if not torch.cuda.is_available():
+        logging.warning("Idle GPU holder requested but CUDA is unavailable")
+        return 0
+
+    try:
+        gpu_ids = parse_cuda_list(cuda_list, torch.cuda.device_count())
+    except ValueError as exc:
+        logging.warning("Idle GPU holder disabled due to invalid CUDA_LIST=%r: %s", cuda_list, exc)
+        return 0
+
+    if not gpu_ids:
+        logging.warning("Idle GPU holder requested but no GPU ids were resolved from CUDA_LIST=%r", cuda_list)
+        return 0
+
+    try:
+        for gpu_id in gpu_ids:
+            if stop_event.is_set():
+                return 0
+
+            device = torch.device(f"cuda:{gpu_id}")
+            total_memory = torch.cuda.get_device_properties(device).total_memory
+            target_bytes = int(total_memory * memory_ratio)
+            allocated_bytes = 0
+            device_blocks: list[Any] = []
+
+            while allocated_bytes < target_bytes and not stop_event.is_set():
+                next_chunk = min(allocation_chunk_bytes, target_bytes - allocated_bytes)
+                if next_chunk <= 0:
+                    break
                 try:
-                    for gpu_id in gpu_ids:
-                        with torch.cuda.device(gpu_id):
-                            torch.cuda.empty_cache()
+                    block = torch.empty(next_chunk, dtype=torch.uint8, device=device)
                 except Exception as exc:
-                    logging.warning("Idle GPU holder cleanup raised: %s", exc)
-            if gpu_ids:
-                logging.info("Idle GPU holder released GPUs=%s", gpu_ids)
+                    logging.warning(
+                        "Idle GPU holder stopped allocating on cuda:%d after %.2f GiB: %s",
+                        gpu_id,
+                        allocated_bytes / (1024**3),
+                        exc,
+                    )
+                    break
+                device_blocks.append(block)
+                allocated_bytes += block.nelement()
+
+            blocks.append(device_blocks)
+            allocated_gib[gpu_id] = allocated_bytes / (1024**3)
+            logging.info(
+                "Idle GPU holder reserved %.2f GiB on cuda:%d (target %.1f%%)",
+                allocated_gib[gpu_id],
+                gpu_id,
+                memory_ratio * 100.0,
+            )
+
+        while not stop_event.wait(1):
+            continue
+        return 0
+    finally:
+        blocks.clear()
+        if torch is not None:
+            try:
+                for gpu_id in gpu_ids:
+                    with torch.cuda.device(gpu_id):
+                        torch.cuda.empty_cache()
+            except Exception as exc:
+                logging.warning("Idle GPU holder cleanup raised: %s", exc)
+        if gpu_ids:
+            logging.info("Idle GPU holder released GPUs=%s", gpu_ids)
 
 
 def now_utc_iso() -> str:
@@ -1036,6 +1062,11 @@ def build_parser() -> argparse.ArgumentParser:
     watch = subparsers.add_parser("watch", help="Run the watcher loop")
     add_common_flags(watch)
 
+    idle_hold = subparsers.add_parser("idle-hold", help=argparse.SUPPRESS)
+    idle_hold.add_argument("--cuda-list", required=True)
+    idle_hold.add_argument("--memory-ratio", type=float, required=True)
+    idle_hold.add_argument("--log-level", default=os.environ.get("LOG_LEVEL", "INFO"))
+
     return parser
 
 
@@ -1051,6 +1082,10 @@ def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
     configure_logging(args.log_level)
+
+    if args.command == "idle-hold":
+        return execute_idle_hold(args.cuda_list, args.memory_ratio)
+
     config = build_config_from_args(args, Path.cwd())
 
     if not config.eval_script.is_file():

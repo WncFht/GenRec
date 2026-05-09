@@ -1,8 +1,23 @@
 {
   "version": 1,
-  "generated_at": "2026-04-28T06:18:11+00:00",
+  "generated_at": "2026-05-08T12:05:13+00:00",
   "results_root": "/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/results",
   "models": [
+    {
+      "model_dir": "Arts-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu",
+      "dataset": "Arts_grec_lcrec_aligned",
+      "cb_setting": "cb256",
+      "eval_split": "test",
+      "seed": 42,
+      "num_beams": 50,
+      "sid_levels": -1,
+      "num_train_epochs": null,
+      "wandb_group": null,
+      "wandb_project": "MIMIGenRec-Eval",
+      "wandb_entity": null,
+      "wandb_run_id": "eval-74c7ada9b84b19e1e2f1",
+      "wandb_run_name": "Arts-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu-eval"
+    },
     {
       "model_dir": "Games-grec-grpo-rule-only-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft896",
       "dataset": "Games_grec_grpo_rule_only_dynamic_hint_cascade",
@@ -47,6 +62,21 @@
       "wandb_entity": null,
       "wandb_run_id": "eval-42321c6bd8b44c4631f2",
       "wandb_run_name": "Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft896-eval"
+    },
+    {
+      "model_dir": "Games-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu",
+      "dataset": "Games_grec_lcrec_aligned",
+      "cb_setting": "cb256",
+      "eval_split": "test",
+      "seed": 42,
+      "num_beams": 50,
+      "sid_levels": -1,
+      "num_train_epochs": null,
+      "wandb_group": null,
+      "wandb_project": "MIMIGenRec-Eval",
+      "wandb_entity": null,
+      "wandb_run_id": "eval-aa65c3d4dcf7c09b131a",
+      "wandb_run_name": "Games-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu-eval"
     },
     {
       "model_dir": "Games-grec-sft-qwen4B-4-256-dsz0",
@@ -589,6 +619,36 @@
       "wandb_run_name": "Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495-eval"
     },
     {
+      "model_dir": "Instruments-grec-hint-token-sft-fixed-b16-lr3e-4-sft495",
+      "dataset": "Instruments_grec_hint_token",
+      "cb_setting": "none",
+      "eval_split": "test",
+      "seed": 42,
+      "num_beams": 50,
+      "sid_levels": -1,
+      "num_train_epochs": null,
+      "wandb_group": null,
+      "wandb_project": "MIMIGenRec-Eval",
+      "wandb_entity": null,
+      "wandb_run_id": "eval-682db208f827021171f1",
+      "wandb_run_name": "Instruments-grec-hint-token-sft-fixed-b16-lr3e-4-sft495-eval"
+    },
+    {
+      "model_dir": "Instruments-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu",
+      "dataset": "Instruments_grec_lcrec_aligned",
+      "cb_setting": "cb256",
+      "eval_split": "test",
+      "seed": 42,
+      "num_beams": 50,
+      "sid_levels": -1,
+      "num_train_epochs": null,
+      "wandb_group": null,
+      "wandb_project": "MIMIGenRec-Eval",
+      "wandb_entity": null,
+      "wandb_run_id": "eval-494cfad4854bdf289ca2",
+      "wandb_run_name": "Instruments-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu-eval"
+    },
+    {
       "model_dir": "Instruments-grec-sft-qwen4B-4-128-dsz0",
       "dataset": "Instruments_grec",
       "cb_setting": "cb128",
@@ -722,6 +782,21 @@
       "wandb_entity": null,
       "wandb_run_id": "eval-e0c4b19588f0c0baed16",
       "wandb_run_name": "Instruments-mimionerec-sft-qwen4B-4-256-dsz0-backup-eval"
+    },
+    {
+      "model_dir": "ins-lc4023-rule",
+      "dataset": "ins_lc4023_rule",
+      "cb_setting": "none",
+      "eval_split": "test",
+      "seed": 42,
+      "num_beams": 50,
+      "sid_levels": -1,
+      "num_train_epochs": null,
+      "wandb_group": null,
+      "wandb_project": "MIMIGenRec-Eval",
+      "wandb_entity": null,
+      "wandb_run_id": "eval-02a2228d765ba0c6d385",
+      "wandb_run_name": "ins-lc4023-rule-eval"
     }
   ]
 }
