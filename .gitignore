@@ -161,7 +161,9 @@ cython_debug/
 .idea/
 
 # vscode
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 
 # uv
 uv.lock
