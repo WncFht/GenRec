@@ -4,7 +4,7 @@
 \usepackage{booktabs}
 \usepackage{float}
 \usepackage{graphicx}
-\graphicspath{{../research/assets/lc4023-fixed/}}
+\graphicspath{{../research/assets/lc4023-fixed/}{../research/assets/arts-report/}}
 
 \begin{document}
 
@@ -70,6 +70,36 @@ Games & GenRec eval (best) & \texttt{ckpt-14904} & 0.0232 & 0.0625 & 0.0945 & 0.
 }
 \caption{当前 LC-Rec/GenRec 相关 SFT 模型在 GenRec 统一评测口径下的复现实测。Arts 与 Games 取当前已同步 checkpoint 中的最佳结果。}
 \label{tab:lcrec-genrec-sft-repro}
+\end{table}
+
+\subsection{Arts 上的 SFT checkpoint 曲线与逐点结果}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{arts_sft_epoch_curves.png}
+\caption{Arts 上当前已同步 \texttt{Arts-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu} 的 checkpoint 曲线。该 SFT 配置为 \texttt{4 epoch}，横轴按 \texttt{step / 17268 * 4} 归一化。}
+\label{fig:lcrec-arts-sft-epoch-curves}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.05}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{c c c c c c c c c}
+\toprule
+Epoch & Step & HR@1 & HR@5 & HR@10 & NDCG@5 & NDCG@10 & NDCG@50 & HR@50 \\
+\midrule
+1.000 & 4317  & 0.0428 & 0.0635 & 0.0774 & 0.0534 & 0.0579 & 0.0701 & 0.1338 \\
+2.000 & 8634  & 0.0533 & 0.0811 & 0.0996 & 0.0675 & 0.0734 & 0.0890 & 0.1709 \\
+3.000 & 12951 & 0.0528 & 0.0827 & 0.1051 & 0.0682 & 0.0754 & 0.0928 & 0.1850 \\
+4.000 & 17268 & 0.0461 & 0.0713 & 0.0882 & 0.0590 & 0.0644 & 0.0787 & 0.1540 \\
+\bottomrule
+\end{tabular}%
+}
+\caption{\texttt{Arts-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu} 的逐 checkpoint 指标明细。由于该训练配置采用 \texttt{save\_strategy: epoch} 且 \texttt{num\_train\_epochs = 4.0}，所以四个 checkpoint 正好对应第 1 到第 4 个 epoch。}
+\label{tab:lcrec-arts-sft-all-points}
 \end{table}
 
 \subsection{Instruments 上的 rule-only RL 复现实测}
