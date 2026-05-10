@@ -42,6 +42,9 @@ CONDA_ENV_NAME="genrec"
 REPO_ROOT="/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec"
 PYTHON_BIN="python"
 
+# shellcheck disable=SC1091
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/_fixed_hint_artifacts.sh"
+
 DATA_VARIANT_DEFAULT="Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47"
 MODEL_PATH="${REPO_ROOT}/saves/qwen2.5-3b/full/Instruments-grec-sft-qwen4B-4-256-dsz0/checkpoint-495"
 DATA_DIR="${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/rl"
@@ -69,12 +72,11 @@ REPORT_TO="wandb"
 RESUME_FROM_CHECKPOINT="auto"
 
 RUN_NAME="instruments_grec_rl_rule_only_fixed_hint_taskfix_b16_ckpt495"
-ANALYSIS_DIR_DEFAULT="${REPO_ROOT}/temp/rl_beam_hint"
-ANALYSIS_RUN_NAME="${RUN_NAME}_analysis"
-ANALYSIS_PREFIX="$(sanitize_name "${ANALYSIS_RUN_NAME}")"
-ANALYSIS_SUMMARY_PATH="${ANALYSIS_DIR_DEFAULT}/${ANALYSIS_PREFIX}_summary.json"
-ANALYSIS_DETAILS_PATH="${ANALYSIS_DIR_DEFAULT}/${ANALYSIS_PREFIX}_details.json"
-FIXED_HINT_MAP_PATH="${ANALYSIS_DIR_DEFAULT}/$(sanitize_name "${RUN_NAME}")_beam16_hint_map.json"
+ANALYSIS_DIR_DEFAULT="${REPO_ROOT}/temp/rl_beam_hint/artifacts"
+ANALYSIS_DATASET_ID="instruments-grec-index-emb"
+ANALYSIS_TASK_NAMES=""
+ANALYSIS_SCOPE_ID="all"
+ANALYSIS_MODEL_ID="$(default_fixed_hint_model_id "$MODEL_PATH")"
 
 BEAM_SIZE=16
 UNSOLVED_DEPTH=3
@@ -86,9 +88,18 @@ ANALYZE_BATCH_SIZE=8
 ANALYZE_MAX_PROMPT_LENGTH=512
 ANALYZE_MAX_NEW_TOKENS=128
 ANALYZE_REPETITION_PENALTY=1.0
-ANALYSIS_TASK_NAMES=""
 FORCE_REANALYZE=0
 DRY_RUN=0
+
+init_fixed_hint_artifact_paths \
+  "$ANALYSIS_DIR_DEFAULT" \
+  "$ANALYSIS_DATASET_ID" \
+  "$ANALYSIS_SCOPE_ID" \
+  "$ANALYSIS_MODEL_ID" \
+  "$BEAM_SIZE" \
+  "$ANALYZE_MAX_HINT_DEPTH" \
+  "$SID_LEVELS" \
+  "$UNSOLVED_DEPTH"
 
 export WANDB_PROJECT="MIMIGenRec-GRPO"
 export WANDB_MODE="offline"

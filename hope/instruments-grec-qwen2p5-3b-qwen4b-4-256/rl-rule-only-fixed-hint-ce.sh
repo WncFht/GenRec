@@ -107,6 +107,9 @@ CONDA_ENV_NAME="${CONDA_ENV_NAME:-genrec}"
 REPO_ROOT="${REPO_ROOT:-$DEFAULT_REPO_ROOT}"
 PYTHON_BIN="${PYTHON_BIN:-python}"
 
+# shellcheck disable=SC1091
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/_fixed_hint_artifacts.sh"
+
 DATA_VARIANT_DEFAULT="${DATA_VARIANT_DEFAULT:-Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47}"
 MODEL_PATH="${MODEL_PATH:-${REPO_ROOT}/saves/qwen2.5-3b/full/Instruments-grec-sft-qwen4B-4-256-dsz0/checkpoint-495}"
 DATA_DIR="${DATA_DIR:-${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/rl}"
@@ -134,13 +137,16 @@ REPORT_TO="${REPORT_TO:-wandb}"
 RESUME_FROM_CHECKPOINT="${RESUME_FROM_CHECKPOINT:-auto}"
 
 RUN_NAME="${RUN_NAME:-instruments_grec_rl_rule_only_fixed_hint_taskfix_b16_hint_ce_ckpt495}"
-ANALYSIS_DIR_DEFAULT="${REPO_ROOT}/temp/rl_beam_hint"
-ANALYSIS_RUN_NAME="${ANALYSIS_RUN_NAME:-${RUN_NAME}_analysis}"
-ANALYSIS_PREFIX="$(sanitize_name "${ANALYSIS_RUN_NAME}")"
-ANALYSIS_SUMMARY_PATH="${ANALYSIS_SUMMARY_PATH:-${ANALYSIS_DIR_DEFAULT}/${ANALYSIS_PREFIX}_summary.json}"
-ANALYSIS_DETAILS_PATH="${ANALYSIS_DETAILS_PATH:-${ANALYSIS_DIR_DEFAULT}/${ANALYSIS_PREFIX}_details.json}"
-FIXED_HINT_MAP_PATH="${FIXED_HINT_MAP_PATH:-${ANALYSIS_DIR_DEFAULT}/$(sanitize_name "${RUN_NAME}")_${TS}_beam16_hint_map.json}"
+ANALYSIS_DIR_DEFAULT="${REPO_ROOT}/temp/rl_beam_hint/artifacts"
+ANALYSIS_DATASET_ID="instruments-grec-index-emb"
+ANALYSIS_TASK_NAMES="${ANALYSIS_TASK_NAMES:-}"
+ANALYSIS_SCOPE_ID="all"
+ANALYSIS_MODEL_ID="$(default_fixed_hint_model_id "$MODEL_PATH")"
+ANALYSIS_SUMMARY_PATH="${ANALYSIS_SUMMARY_PATH:-}"
+ANALYSIS_DETAILS_PATH="${ANALYSIS_DETAILS_PATH:-}"
+FIXED_HINT_MAP_PATH="${FIXED_HINT_MAP_PATH:-}"
 FIXED_HINT_MAP_PATH_EXPLICIT=0
+ANALYSIS_PATHS_EXPLICIT=0
 
 BEAM_SIZE="${BEAM_SIZE:-16}"
 UNSOLVED_DEPTH="${UNSOLVED_DEPTH:-3}"
@@ -152,7 +158,6 @@ ANALYZE_BATCH_SIZE="${ANALYZE_BATCH_SIZE:-8}"
 ANALYZE_MAX_PROMPT_LENGTH="${ANALYZE_MAX_PROMPT_LENGTH:-512}"
 ANALYZE_MAX_NEW_TOKENS="${ANALYZE_MAX_NEW_TOKENS:-128}"
 ANALYZE_REPETITION_PENALTY="${ANALYZE_REPETITION_PENALTY:-1.0}"
-ANALYSIS_TASK_NAMES="${ANALYSIS_TASK_NAMES:-}"
 FORCE_REANALYZE="${FORCE_REANALYZE:-0}"
 LOG_DIR="${LOG_DIR:-${REPO_ROOT}/log}"
 
@@ -281,17 +286,16 @@ while [[ $# -gt 0 ]]; do
       ;;
     --analysis-summary-path)
       ANALYSIS_SUMMARY_PATH="$2"
+      ANALYSIS_PATHS_EXPLICIT=1
       shift 2
       ;;
     --analysis-details-path)
       ANALYSIS_DETAILS_PATH="$2"
+      ANALYSIS_PATHS_EXPLICIT=1
       shift 2
       ;;
     --analysis-run-name)
-      ANALYSIS_RUN_NAME="$2"
-      ANALYSIS_PREFIX="$(sanitize_name "${ANALYSIS_RUN_NAME}")"
-      ANALYSIS_SUMMARY_PATH="${ANALYSIS_DIR_DEFAULT}/${ANALYSIS_PREFIX}_summary.json"
-      ANALYSIS_DETAILS_PATH="${ANALYSIS_DIR_DEFAULT}/${ANALYSIS_PREFIX}_details.json"
+      ANALYSIS_SCOPE_ID="$2"
       shift 2
       ;;
     --analysis-task-names|--analysis_task_names)
@@ -364,8 +368,25 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ "$FIXED_HINT_MAP_PATH_EXPLICIT" -eq 0 ]]; then
-  FIXED_HINT_MAP_PATH="${ANALYSIS_DIR_DEFAULT}/$(sanitize_name "${RUN_NAME}")_${TS}_beam16_hint_map.json"
+if [[ -n "$ANALYSIS_TASK_NAMES" ]]; then
+  ANALYSIS_SCOPE_ID="$(default_fixed_hint_scope_id "$ANALYSIS_TASK_NAMES")"
+fi
+
+init_fixed_hint_artifact_paths \
+  "$ANALYSIS_DIR_DEFAULT" \
+  "$ANALYSIS_DATASET_ID" \
+  "$ANALYSIS_SCOPE_ID" \
+  "$ANALYSIS_MODEL_ID" \
+  "$BEAM_SIZE" \
+  "$ANALYZE_MAX_HINT_DEPTH" \
+  "$SID_LEVELS" \
+  "$UNSOLVED_DEPTH"
+
+if [[ "$ANALYSIS_PATHS_EXPLICIT" -eq 1 ]]; then
+  if [[ -z "$ANALYSIS_SUMMARY_PATH" || -z "$ANALYSIS_DETAILS_PATH" ]]; then
+    echo "[ERROR] --analysis-summary-path and --analysis-details-path must be set together"
+    exit 1
+  fi
 fi
 
 if [[ -n "$LOG_FILE_OVERRIDE" ]]; then
@@ -584,7 +605,7 @@ echo "[INFO] BETA=$BETA"
 echo "[INFO] TEMPERATURE=$TEMPERATURE"
 echo "[INFO] REPORT_TO=$REPORT_TO"
 echo "[INFO] RESUME_FROM_CHECKPOINT=$RESUME_FROM_CHECKPOINT"
-echo "[INFO] ANALYSIS_RUN_NAME=$ANALYSIS_RUN_NAME"
+echo "[INFO] ANALYSIS_SCOPE_ID=$ANALYSIS_SCOPE_ID"
 echo "[INFO] ANALYSIS_SUMMARY_PATH=$ANALYSIS_SUMMARY_PATH"
 echo "[INFO] ANALYSIS_DETAILS_PATH=$ANALYSIS_DETAILS_PATH"
 echo "[INFO] ANALYSIS_TASK_NAMES=${ANALYSIS_TASK_NAMES:-<all>}"

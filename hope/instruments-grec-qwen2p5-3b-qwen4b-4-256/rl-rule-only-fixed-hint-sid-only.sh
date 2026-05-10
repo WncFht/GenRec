@@ -101,6 +101,9 @@ CONDA_ENV_NAME="${CONDA_ENV_NAME:-genrec}"
 REPO_ROOT="${REPO_ROOT:-$DEFAULT_REPO_ROOT}"
 PYTHON_BIN="${PYTHON_BIN:-python}"
 
+# shellcheck disable=SC1091
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/_fixed_hint_artifacts.sh"
+
 DATA_VARIANT_DEFAULT="${DATA_VARIANT_DEFAULT:-Instruments_grec_rlsidonly_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47}"
 MODEL_PATH="${MODEL_PATH:-${REPO_ROOT}/saves/qwen2.5-3b/full/Instruments-grec-sft-qwen4B-4-256-dsz0/checkpoint-495}"
 DATA_DIR="${DATA_DIR:-${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/rl}"
@@ -127,11 +130,13 @@ REPORT_TO="${REPORT_TO:-wandb}"
 RESUME_FROM_CHECKPOINT="${RESUME_FROM_CHECKPOINT:-auto}"
 
 RUN_NAME="${RUN_NAME:-instruments_grec_rl_rule_only_fixed_hint_taskfix_b16_sid_only_ckpt495}"
-ANALYSIS_RUN_NAME="${ANALYSIS_RUN_NAME:-instruments_grec_rlsidonly_beam_hint_qwen2_5_3b_qwen4b_4_256_ckpt495}"
-ANALYSIS_DIR_DEFAULT="${REPO_ROOT}/temp/rl_beam_hint"
-ANALYSIS_SUMMARY_PATH="${ANALYSIS_SUMMARY_PATH:-${ANALYSIS_DIR_DEFAULT}/instruments_grec_rlsidonly_beam_hint_cascade_summary.json}"
-ANALYSIS_DETAILS_PATH="${ANALYSIS_DETAILS_PATH:-${ANALYSIS_DIR_DEFAULT}/instruments_grec_rlsidonly_beam_hint_cascade_details.json}"
-FIXED_HINT_MAP_PATH="${FIXED_HINT_MAP_PATH:-${ANALYSIS_DIR_DEFAULT}/$(sanitize_name "${RUN_NAME}")_${TS}_beam16_hint_map.json}"
+ANALYSIS_DIR_DEFAULT="${REPO_ROOT}/temp/rl_beam_hint/artifacts"
+ANALYSIS_DATASET_ID="instruments-grec-rlsidonly-index-emb"
+ANALYSIS_SCOPE_ID="all"
+ANALYSIS_MODEL_ID="$(default_fixed_hint_model_id "$MODEL_PATH")"
+ANALYSIS_SUMMARY_PATH="${ANALYSIS_SUMMARY_PATH:-}"
+ANALYSIS_DETAILS_PATH="${ANALYSIS_DETAILS_PATH:-}"
+FIXED_HINT_MAP_PATH="${FIXED_HINT_MAP_PATH:-}"
 
 BEAM_SIZE="${BEAM_SIZE:-16}"
 UNSOLVED_DEPTH="${UNSOLVED_DEPTH:-3}"
@@ -143,6 +148,16 @@ ANALYZE_MAX_PROMPT_LENGTH="${ANALYZE_MAX_PROMPT_LENGTH:-512}"
 ANALYZE_MAX_NEW_TOKENS="${ANALYZE_MAX_NEW_TOKENS:-128}"
 ANALYZE_REPETITION_PENALTY="${ANALYZE_REPETITION_PENALTY:-1.0}"
 LOG_DIR="${LOG_DIR:-${REPO_ROOT}/log}"
+
+init_fixed_hint_artifact_paths \
+  "$ANALYSIS_DIR_DEFAULT" \
+  "$ANALYSIS_DATASET_ID" \
+  "$ANALYSIS_SCOPE_ID" \
+  "$ANALYSIS_MODEL_ID" \
+  "$BEAM_SIZE" \
+  "$ANALYZE_MAX_HINT_DEPTH" \
+  "$SID_LEVELS" \
+  "$UNSOLVED_DEPTH"
 
 export WANDB_PROJECT="${WANDB_PROJECT:-MIMIGenRec-GRPO}"
 export WANDB_MODE="${WANDB_MODE:-offline}"
@@ -531,7 +546,7 @@ echo "[INFO] PROBE_RULE_ZERO_WEIGHT=false"
 echo "[INFO] TOKEN_LEVEL_PREFIX_ADV=false"
 echo "[INFO] REPORT_TO=$REPORT_TO"
 echo "[INFO] RESUME_FROM_CHECKPOINT=$RESUME_FROM_CHECKPOINT"
-echo "[INFO] ANALYSIS_RUN_NAME=$ANALYSIS_RUN_NAME"
+echo "[INFO] ANALYSIS_SCOPE_ID=$ANALYSIS_SCOPE_ID"
 echo "[INFO] ANALYSIS_SUMMARY_PATH=$ANALYSIS_SUMMARY_PATH"
 echo "[INFO] ANALYSIS_DETAILS_PATH=$ANALYSIS_DETAILS_PATH"
 echo "[INFO] FIXED_HINT_MAP_PATH=$FIXED_HINT_MAP_PATH"
