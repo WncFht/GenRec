@@ -8,6 +8,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import pandas as pd
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -57,6 +58,30 @@ def load_series_points(root: Path, max_step: int) -> dict[str, list[float]]:
     return data
 
 
+def build_checkpoint_table() -> pd.DataFrame:
+    rows: list[dict[str, float | int | str]] = []
+    for series in SERIES:
+        metrics_files = sorted(
+            series["root"].glob("checkpoint-*/metrics.json"),
+            key=lambda path: int(path.parent.name.split("-")[-1]),
+        )
+        for path in metrics_files:
+            step = int(path.parent.name.split("-")[-1])
+            metrics = json.loads(path.read_text())
+            row: dict[str, float | int | str] = {
+                "variant": str(series["key"]),
+                "variant_label": str(series["label"]),
+                "step": step,
+                "epoch": step / int(series["max_step"]) * 2.0,
+            }
+            for metric, _ in METRICS:
+                row[metric] = float(metrics[metric])
+            for metric in ["HR@1", "HR@5", "NDCG@5"]:
+                row[metric] = float(metrics[metric])
+            rows.append(row)
+    return pd.DataFrame(rows)
+
+
 def load_sft_reference() -> dict[str, float]:
     metrics = json.loads(SFT_PATH.read_text())
     return {metric: float(metrics[metric]) for metric, _ in METRICS}
@@ -66,6 +91,8 @@ def main() -> None:
     ASSET_DIR.mkdir(parents=True, exist_ok=True)
     sft = load_sft_reference()
     series_points = [(series, load_series_points(series["root"], int(series["max_step"]))) for series in SERIES]
+    table_df = build_checkpoint_table()
+    table_df.to_csv(ASSET_DIR / "lc4023_checkpoint_metrics.csv", index=False)
 
     fig, axes = plt.subplots(2, 2, figsize=(10.8, 7.8), sharex=True)
     for ax, (metric, title) in zip(axes.flat, METRICS, strict=True):
