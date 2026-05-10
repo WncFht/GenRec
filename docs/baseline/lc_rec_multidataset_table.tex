@@ -4,6 +4,7 @@
 \usepackage{booktabs}
 \usepackage{float}
 \usepackage{graphicx}
+\graphicspath{{../research/assets/lc4023-fixed/}}
 
 \begin{document}
 
@@ -92,6 +93,41 @@ GenRec rule-only RL & \texttt{ckpt-5006} & 0.0676 & 0.0922 & 0.1069 & 0.0802 & 0
 \caption{当前 \texttt{ins-lc4023-rule} 在 GenRec 统一评测口径下的最佳 checkpoint，对比 Instruments SFT 复现与论文 LC-Rec 主表。}
 \label{tab:lcrec-instruments-rule-rl-repro}
 \end{table}
+
+\subsection{Instruments 上的 fixed-hint RL 复现实测}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.08}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{p{4.3cm} p{2.0cm} c c c c c c c}
+\toprule
+Variant & Checkpoint & HR@1 & HR@5 & HR@10 & NDCG@5 & NDCG@10 & NDCG@50 & HR@50 \\
+\midrule
+Paper LC-Rec & -- & 0.0706 & 0.1002 & 0.1220 & 0.0856 & 0.0926 & -- & -- \\
+GenRec SFT (best) & \texttt{ckpt-4023} & 0.0647 & 0.0886 & 0.1084 & 0.0768 & 0.0832 & 0.0995 & 0.1836 \\
+GenRec rule-only RL (best) & \texttt{ckpt-5006} & 0.0676 & 0.0922 & 0.1069 & 0.0802 & 0.0849 & 0.0964 & 0.1594 \\
+GenRec fixed-hint RL (best NDCG@10) & \texttt{ckpt-3507} & 0.0651 & 0.0870 & 0.1040 & 0.0763 & 0.0817 & 0.0960 & 0.1699 \\
+GenRec fixed-hint RL (last) & \texttt{ckpt-4008} & 0.0652 & 0.0873 & 0.1032 & 0.0764 & 0.0815 & 0.0958 & 0.1687 \\
+\bottomrule
+\end{tabular}%
+}
+\caption{当前 \texttt{Instruments-grec-lc4023-fixed} 在 GenRec 统一评测口径下的 fixed-hint RL 结果。该 run 共 2 epoch、8 个评测点，best \texttt{NDCG@10} 出现在 \texttt{ckpt-3507}，最终收尾为 \texttt{ckpt-4008}。}
+\label{tab:lcrec-instruments-fixed-rl-repro}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{lc4023_fixed_vs_rule_epoch_curves.png}
+\caption{Instruments 上 \texttt{lc4023} 两条 RL 复现线的 epoch 曲线图。横轴统一按各自完整训练长度归一化到 2 epoch：fixed-hint 为 \texttt{4008 step}，rule-only 为 \texttt{5006 step}，虚线表示 \texttt{SFT ckpt-4023}。}
+\label{fig:lcrec-instruments-lc4023-epoch-curves}
+\end{figure}
+
+从这组 \texttt{lc4023} 复现实测看，fixed-hint RL 的表现整体介于 SFT 与 rule-only RL 之间。它相对 SFT 在
+\texttt{NDCG@10} 上没有继续抬升，best checkpoint 只有 \texttt{0.0817}，但 \texttt{HR@50} 能稳定维持在
+\texttt{0.1687\textasciitilde0.1725} 区间，说明这条 fixed-hint 线至少没有像更激进的 RL 变体那样明显崩掉，只是当前 reward / hint 设计还不足以带来和 rule-only 相同的前排收益。
 
 LC-Rec 包含多种语义对齐任务，具体包括：
 \begin{itemize}
