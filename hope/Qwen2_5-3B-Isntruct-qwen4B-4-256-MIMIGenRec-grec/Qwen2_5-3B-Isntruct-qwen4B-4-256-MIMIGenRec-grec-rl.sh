@@ -12,53 +12,35 @@ Run modes:
   --tail                  Follow latest log for current run name
   --run                   Internal mode; run training command directly
 
-Common overrides:
-  --preset <name>         Reward preset shortcut (default: prefix_token)
-                          presets: prefix_token, prefix_token_totalnorm,
-                                   prefix_token_totalnorm_errtok,
-                                   prefix_token_only, prefix_seq_only,
-                                   rule_only, ranking, ranking_only
-  --model-path <path>
-  --data-dir <path>
-  --index-path <path>
-  --output-dir <path>
-  --resume <auto|none|path>
+Config selection:
+  --preset <name>         Preset config shortcut (default: prefix_token)
+  --config <path>         Explicit config path; overrides --preset
+
+Runtime / launch overrides:
   --run-name <name>
+  --wandb-mode <offline|online|disabled>
   --num-processes <n>
   --port <n>
   --ds-config <path>
-  --num-beams <n>
-  --sid-levels <n>
-  --train-bsz <n>
-  --eval-bsz <n>
-  --grad-acc <n>
-  --epochs <n>
-  --lr <float>
-  --eval-step <n>
-  --max-completion-length <n>
-  --beta <float>
-  --temperature <float>
-  --reward-mode <prefix_ranking|prefix_only|prefix_rule_only|ranking|rule_only|ranking_only>
-  --prefix-reward-normalize <true|false>
-  --probe-rule-zero-weight <true|false>
-  --token-level-prefix-adv <true|false>
-  --token-adv-total-token-normalize <true|false>
-  --token-level-ndcg-error-token-penalty <true|false>
-  --save-total-limit <n>
-  --report-to <name>
-  --wandb-mode <offline|online|disabled>
+  --conda-activate <path>
+  --conda-env <name>
   --log-dir <path>
   --log-file <path>
   --dry-run
   -h, --help
+
+Trainer overrides:
+  Common `trl_trainer.py` options such as `--output-dir`, `--eval_on_start`,
+  `--set section.key=value`, `--print-config`, and `--print-flat-kwargs`
+  are passed through to `trl_trainer.py`.
 EOF
 }
 
 sanitize_log_name() {
-  local v="$1"
-  v="${v//\//_}"
-  v="${v// /_}"
-  echo "$v"
+  local value="$1"
+  value="${value//\//_}"
+  value="${value// /_}"
+  echo "$value"
 }
 
 require_exists() {
@@ -87,153 +69,168 @@ latest_log_for_prefix() {
   echo "$latest"
 }
 
-set_if_unset() {
-  local var_name="$1"
-  local var_value="$2"
-  local is_set="$3"
-  if [[ "$is_set" -eq 0 ]]; then
-    printf -v "$var_name" '%s' "$var_value"
-  fi
-}
-
-apply_reward_preset() {
+resolve_preset_config_path() {
   local preset="$1"
   preset="$(echo "$preset" | tr '[:upper:]' '[:lower:]')"
   case "$preset" in
     prefix_token|default)
-      set_if_unset REWARD_MODE "prefix_only" "$REWARD_MODE_SET"
-      set_if_unset PREFIX_REWARD_NORMALIZE "true" "$PREFIX_REWARD_NORMALIZE_SET"
-      set_if_unset PROBE_RULE_ZERO_WEIGHT "true" "$PROBE_RULE_ZERO_WEIGHT_SET"
-      set_if_unset TOKEN_LEVEL_PREFIX_ADV "true" "$TOKEN_LEVEL_PREFIX_ADV_SET"
-      set_if_unset TOKEN_ADV_TOTAL_TOKEN_NORMALIZE "false" "$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE_SET"
-      set_if_unset TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY "false" "$TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY_SET"
+      echo "${REPO_ROOT}/configs/rl/instruments/prefix_token.json"
       ;;
     prefix_token_totalnorm)
-      set_if_unset REWARD_MODE "prefix_only" "$REWARD_MODE_SET"
-      set_if_unset PREFIX_REWARD_NORMALIZE "true" "$PREFIX_REWARD_NORMALIZE_SET"
-      set_if_unset PROBE_RULE_ZERO_WEIGHT "true" "$PROBE_RULE_ZERO_WEIGHT_SET"
-      set_if_unset TOKEN_LEVEL_PREFIX_ADV "true" "$TOKEN_LEVEL_PREFIX_ADV_SET"
-      set_if_unset TOKEN_ADV_TOTAL_TOKEN_NORMALIZE "true" "$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE_SET"
-      set_if_unset TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY "false" "$TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY_SET"
+      echo "${REPO_ROOT}/configs/rl/instruments/prefix_token_totalnorm.json"
       ;;
     prefix_token_totalnorm_errtok)
-      set_if_unset REWARD_MODE "prefix_only" "$REWARD_MODE_SET"
-      set_if_unset PREFIX_REWARD_NORMALIZE "true" "$PREFIX_REWARD_NORMALIZE_SET"
-      set_if_unset PROBE_RULE_ZERO_WEIGHT "true" "$PROBE_RULE_ZERO_WEIGHT_SET"
-      set_if_unset TOKEN_LEVEL_PREFIX_ADV "true" "$TOKEN_LEVEL_PREFIX_ADV_SET"
-      set_if_unset TOKEN_ADV_TOTAL_TOKEN_NORMALIZE "true" "$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE_SET"
-      set_if_unset TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY "true" "$TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY_SET"
+      echo "${REPO_ROOT}/configs/rl/instruments/prefix_token_totalnorm_errtok.json"
       ;;
     prefix_token_only)
-      set_if_unset REWARD_MODE "prefix_rule_only" "$REWARD_MODE_SET"
-      set_if_unset PREFIX_REWARD_NORMALIZE "true" "$PREFIX_REWARD_NORMALIZE_SET"
-      set_if_unset PROBE_RULE_ZERO_WEIGHT "false" "$PROBE_RULE_ZERO_WEIGHT_SET"
-      set_if_unset TOKEN_LEVEL_PREFIX_ADV "true" "$TOKEN_LEVEL_PREFIX_ADV_SET"
-      set_if_unset TOKEN_ADV_TOTAL_TOKEN_NORMALIZE "true" "$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE_SET"
-      set_if_unset TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY "false" "$TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY_SET"
+      echo "${REPO_ROOT}/configs/rl/instruments/prefix_token_only.json"
       ;;
     prefix_seq_only)
-      set_if_unset REWARD_MODE "prefix_rule_only" "$REWARD_MODE_SET"
-      set_if_unset PREFIX_REWARD_NORMALIZE "true" "$PREFIX_REWARD_NORMALIZE_SET"
-      set_if_unset PROBE_RULE_ZERO_WEIGHT "false" "$PROBE_RULE_ZERO_WEIGHT_SET"
-      set_if_unset TOKEN_LEVEL_PREFIX_ADV "false" "$TOKEN_LEVEL_PREFIX_ADV_SET"
-      set_if_unset TOKEN_ADV_TOTAL_TOKEN_NORMALIZE "false" "$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE_SET"
-      set_if_unset TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY "false" "$TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY_SET"
+      echo "${REPO_ROOT}/configs/rl/instruments/prefix_seq_only.json"
       ;;
     rule_only)
-      set_if_unset REWARD_MODE "rule_only" "$REWARD_MODE_SET"
-      set_if_unset PREFIX_REWARD_NORMALIZE "true" "$PREFIX_REWARD_NORMALIZE_SET"
-      set_if_unset PROBE_RULE_ZERO_WEIGHT "false" "$PROBE_RULE_ZERO_WEIGHT_SET"
-      set_if_unset TOKEN_LEVEL_PREFIX_ADV "false" "$TOKEN_LEVEL_PREFIX_ADV_SET"
-      set_if_unset TOKEN_ADV_TOTAL_TOKEN_NORMALIZE "false" "$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE_SET"
-      set_if_unset TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY "false" "$TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY_SET"
+      echo "${REPO_ROOT}/configs/rl/instruments/rule_only.json"
       ;;
     ranking)
-      set_if_unset REWARD_MODE "ranking" "$REWARD_MODE_SET"
-      set_if_unset PREFIX_REWARD_NORMALIZE "true" "$PREFIX_REWARD_NORMALIZE_SET"
-      set_if_unset PROBE_RULE_ZERO_WEIGHT "false" "$PROBE_RULE_ZERO_WEIGHT_SET"
-      set_if_unset TOKEN_LEVEL_PREFIX_ADV "false" "$TOKEN_LEVEL_PREFIX_ADV_SET"
-      set_if_unset TOKEN_ADV_TOTAL_TOKEN_NORMALIZE "false" "$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE_SET"
-      set_if_unset TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY "false" "$TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY_SET"
+      echo "${REPO_ROOT}/configs/rl/instruments/ranking.json"
       ;;
     ranking_only)
-      set_if_unset REWARD_MODE "ranking_only" "$REWARD_MODE_SET"
-      set_if_unset PREFIX_REWARD_NORMALIZE "true" "$PREFIX_REWARD_NORMALIZE_SET"
-      set_if_unset PROBE_RULE_ZERO_WEIGHT "false" "$PROBE_RULE_ZERO_WEIGHT_SET"
-      set_if_unset TOKEN_LEVEL_PREFIX_ADV "false" "$TOKEN_LEVEL_PREFIX_ADV_SET"
-      set_if_unset TOKEN_ADV_TOTAL_TOKEN_NORMALIZE "false" "$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE_SET"
-      set_if_unset TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY "false" "$TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY_SET"
+      echo "${REPO_ROOT}/configs/rl/instruments/ranking_only.json"
       ;;
     *)
-      echo "[ERROR] Unknown preset: $preset"
-      echo "[ERROR] Supported presets: prefix_token, prefix_token_totalnorm, prefix_token_totalnorm_errtok, prefix_token_only, prefix_seq_only, rule_only, ranking, ranking_only"
+      echo "[ERROR] Unknown preset: $preset" >&2
+      echo "[ERROR] Supported presets: prefix_token, prefix_token_totalnorm, prefix_token_totalnorm_errtok, prefix_token_only, prefix_seq_only, rule_only, ranking, ranking_only" >&2
       exit 1
       ;;
   esac
 }
 
+resolve_preset_default_run_name() {
+  local preset="$1"
+  preset="$(echo "$preset" | tr '[:upper:]' '[:lower:]')"
+  case "$preset" in
+    prefix_token|default)
+      echo "instruments_grec_rl_prefix_tokenadv_ndcg_rule0_qwen2_5_3b_qwen4b_4_256_from_ckpt495"
+      ;;
+    prefix_token_totalnorm)
+      echo "instruments_grec_rl_prefix_tokenadv_totalnorm_ndcg_rule0_qwen2_5_3b_qwen4b_4_256_from_ckpt495"
+      ;;
+    prefix_token_totalnorm_errtok)
+      echo "instruments_grec_rl_prefix_tokenadv_totalnorm_errtok_ndcg_rule0_qwen2_5_3b_qwen4b_4_256_from_ckpt495"
+      ;;
+    prefix_token_only)
+      echo "instruments_grec_rl_prefix_token_only_totalnorm_qwen2_5_3b_qwen4b_4_256_from_ckpt495"
+      ;;
+    prefix_seq_only)
+      echo "instruments_grec_rl_prefix_seq_only_fixbool_rerun_qwen2_5_3b_qwen4b_4_256_from_ckpt495"
+      ;;
+    rule_only)
+      echo "instruments_grec_rl_rule_only_rerun_quietlog_qwen2_5_3b_qwen4b_4_256_from_ckpt495"
+      ;;
+    ranking)
+      echo "instruments_grec_rl_ranking_qwen2_5_3b_qwen4b_4_256_from_ckpt495"
+      ;;
+    ranking_only)
+      echo "instruments_grec_rl_ranking_only_qwen2_5_3b_qwen4b_4_256_from_ckpt495"
+      ;;
+    *)
+      echo "instruments_grec_rl_qwen2_5_3b_qwen4b_4_256_from_ckpt495"
+      ;;
+  esac
+}
+
+trainer_option_is_flag() {
+  case "$1" in
+    --print-config|--print-flat-kwargs)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+trainer_option_expects_value() {
+  case "$1" in
+    --set|--model|--data-dir|--data_dir|--index-path|--index_path|--output-dir|--output_dir|--prefix|--num-beams|--num_beams|--sid-levels|--sid_levels|--reward-mode|--reward_mode|--hint-mode|--fixed-hint-depth-map-path|--fixed_hint_depth_map_path|--fixed-hint-depth-cap|--fixed_hint_depth_cap|--fixed-hint-unsolved-depth|--fixed_hint_unsolved_depth|--fixed-hint-task-names|--fixed_hint_task_names|--fixed-hint-apply-to-eval|--fixed_hint_apply_to_eval|--dynamic-hint-max-depth|--dynamic_hint_max_depth|--dynamic-hint-apply-to-eval|--dynamic_hint_apply_to_eval|--dynamic-hint-task-names|--dynamic_hint_task_names|--hint-ce-loss-coef|--hint_ce_loss_coef|--token-level-prefix-advantage|--token_level_prefix_advantage|--token-adv-total-token-normalize|--token_adv_total_token_normalize|--token-level-ndcg-error-token-penalty|--token_level_ndcg_error_token_penalty|--prefix-reward-normalize|--prefix_reward_normalize|--probe-rule-with-zero-weight|--probe_rule_with_zero_weight|--temperature|--top-p|--top_p|--top-k|--top_k|--max-completion-length|--max_completion_length|--beta|--repetition-penalty|--repetition_penalty|--do-sample|--do_sample|--per-device-train-batch-size|--per_device_train_batch_size|--per-device-eval-batch-size|--per_device_eval_batch_size|--gradient-accumulation-steps|--gradient_accumulation_steps|--num-train-epochs|--num_train_epochs|--learning-rate|--learning_rate|--logging-steps|--logging_steps|--eval-step|--eval_step|--eval-strategy|--eval_strategy|--eval-on-start|--eval_on_start|--save-strategy|--save_strategy|--save-steps|--save_steps|--save-total-limit|--save_total_limit|--save-only-model|--save_only_model|--warmup-ratio|--warmup_ratio|--max-grad-norm|--max_grad_norm|--optim|--lr-scheduler-type|--lr_scheduler_type|--bf16|--deepspeed|--report-to|--report_to|--resume-from-checkpoint|--resume_from_checkpoint|--train-task-names|--train_task_names|--eval-task-names|--eval_task_names)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+setup_runtime_env() {
+  if [[ ! -f "$CONDA_ACTIVATE" ]]; then
+    echo "[ERROR] Conda activate script not found: $CONDA_ACTIVATE" >&2
+    exit 1
+  fi
+
+  # shellcheck disable=SC1090
+  source "$CONDA_ACTIVATE" "$CONDA_ENV_NAME"
+  export CXX="${CONDA_PREFIX}/bin/x86_64-conda-linux-gnu-c++"
+  export DISABLE_VERSION_CHECK=1
+  export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1,2,3}"
+  export HF_HUB_OFFLINE=1
+  export TRANSFORMERS_OFFLINE=1
+  export HF_DATASETS_OFFLINE=1
+  unset HF_ENDPOINT || true
+  export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-false}"
+  export OMP_NUM_THREADS="${OMP_NUM_THREADS:-8}"
+  export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
+  export PYTHONPATH="${REPO_ROOT}:${PYTHONPATH:-}"
+}
+
+run_preflight_checks() {
+  require_exists "$REPO_ROOT" "REPO_ROOT"
+  require_file "$CONFIG_PATH" "RL config"
+  require_file "$DS_CONFIG" "DeepSpeed config"
+  require_file "${REPO_ROOT}/trl_trainer.py" "trl_trainer.py"
+
+  setup_runtime_env
+
+  if ! command -v accelerate >/dev/null 2>&1; then
+    echo "[ERROR] accelerate not found in PATH" >&2
+    exit 1
+  fi
+}
+
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_PATH="${SCRIPT_DIR}/$(basename -- "${BASH_SOURCE[0]}")"
+DEFAULT_REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../.." && pwd)"
 
-MODE="nohup" # nohup | detach | tail | run
+MODE="nohup"
 DRY_RUN=0
 FROM_NOHUP=0
 LOG_FILE_OVERRIDE=""
-FORWARD_ARGS=()
+PASSTHROUGH_ARGS=()
+CONFIG_FROM_PRESET=0
+FORWARD_RUN_NAME=0
+RUN_NAME_SET=0
 
-# cluster/env defaults
 CONDA_ACTIVATE="${CONDA_ACTIVATE:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/conda/bin/activate}"
 CONDA_ENV_NAME="${CONDA_ENV_NAME:-genrec}"
-REPO_ROOT="${REPO_ROOT:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec}"
-DATA_VARIANT_DEFAULT="${DATA_VARIANT_DEFAULT:-Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47}"
-
-# continue from provided SFT checkpoint-495 by default
-MODEL_PATH="${MODEL_PATH:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/saves/qwen2.5-3b/full/Instruments-grec-sft-qwen4B-4-256-dsz0/checkpoint-495}"
-DATA_DIR="${DATA_DIR:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/data/${DATA_VARIANT_DEFAULT}/rl}"
-INDEX_PATH="${INDEX_PATH:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/data/${DATA_VARIANT_DEFAULT}/id2sid.json}"
-OUTPUT_DIR="${OUTPUT_DIR:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/rl_outputs/Instruments-grec-grpo-qwen2.5-3b-qwen4B-4-256-from-sft495}"
-DS_CONFIG="${DS_CONFIG:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/config/zero2.yaml}"
-
-PYTHON_BIN="${PYTHON_BIN:-python}"
-CATEGORY="${CATEGORY:-Instruments_grec}"
+REPO_ROOT="${REPO_ROOT:-$DEFAULT_REPO_ROOT}"
+CONFIG_PATH="${CONFIG_PATH:-}"
+PRESET="${PRESET:-prefix_token}"
 NUM_PROCESSES="${NUM_PROCESSES:-4}"
 MAIN_PORT="${MAIN_PORT:-29513}"
-NUM_BEAMS="${NUM_BEAMS:-16}"
-SID_LEVELS="${SID_LEVELS:--1}"
-PER_DEVICE_TRAIN_BSZ="${PER_DEVICE_TRAIN_BSZ:-64}"
-PER_DEVICE_EVAL_BSZ="${PER_DEVICE_EVAL_BSZ:-64}"
-GRAD_ACC="${GRAD_ACC:-4}"
-NUM_EPOCHS="${NUM_EPOCHS:-2}"
-LEARNING_RATE="${LEARNING_RATE:-1e-5}"
-EVAL_STEP="${EVAL_STEP:-100}"
-EVAL_ON_START="${EVAL_ON_START:-true}"
-MAX_COMPLETION_LENGTH="${MAX_COMPLETION_LENGTH:-128}"
-BETA="${BETA:-1e-3}"
-TEMPERATURE="${TEMPERATURE:-1.0}"
-PRESET="${PRESET:-prefix_token}"
-REWARD_MODE="${REWARD_MODE:-}"
-PREFIX_REWARD_NORMALIZE="${PREFIX_REWARD_NORMALIZE:-}"
-PROBE_RULE_ZERO_WEIGHT="${PROBE_RULE_ZERO_WEIGHT:-}"
-TOKEN_LEVEL_PREFIX_ADV="${TOKEN_LEVEL_PREFIX_ADV:-}"
-TOKEN_ADV_TOTAL_TOKEN_NORMALIZE="${TOKEN_ADV_TOTAL_TOKEN_NORMALIZE:-}"
-TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY="${TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY:-}"
-SAVE_TOTAL_LIMIT="${SAVE_TOTAL_LIMIT:-10}"
-REPORT_TO="${REPORT_TO:-wandb}"
-RESUME_FROM_CHECKPOINT="${RESUME_FROM_CHECKPOINT:-auto}"
-
-REWARD_MODE_SET=0
-PREFIX_REWARD_NORMALIZE_SET=0
-PROBE_RULE_ZERO_WEIGHT_SET=0
-TOKEN_LEVEL_PREFIX_ADV_SET=0
-TOKEN_ADV_TOTAL_TOKEN_NORMALIZE_SET=0
-TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY_SET=0
+DS_CONFIG="${DS_CONFIG:-${REPO_ROOT}/config/zero2.yaml}"
+LOG_DIR="${LOG_DIR:-${REPO_ROOT}/log}"
 
 export WANDB_PROJECT="${WANDB_PROJECT:-MIMIGenRec-GRPO}"
 export WANDB_MODE="${WANDB_MODE:-offline}"
 export WANDB_API_KEY="${WANDB_API_KEY:-}"
-export WANDB_RUN_NAME="${WANDB_RUN_NAME:-instruments_grec_rl_qwen2_5_3b_qwen4b_4_256_from_ckpt495}"
 
-LOG_DIR="${LOG_DIR:-${REPO_ROOT}/log}"
+if [[ -n "${RUN_NAME:-}" ]]; then
+  RUN_NAME_SET=1
+elif [[ -n "${WANDB_RUN_NAME:-}" ]]; then
+  RUN_NAME="${WANDB_RUN_NAME}"
+  RUN_NAME_SET=1
+else
+  RUN_NAME=""
+fi
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -259,158 +256,39 @@ while [[ $# -gt 0 ]]; do
       ;;
     --preset)
       PRESET="$2"
-      FORWARD_ARGS+=("--preset" "$2")
       shift 2
       ;;
-    --model-path)
-      MODEL_PATH="$2"
-      FORWARD_ARGS+=("--model-path" "$2")
+    --config)
+      CONFIG_PATH="$2"
       shift 2
       ;;
-    --data-dir)
-      DATA_DIR="$2"
-      FORWARD_ARGS+=("--data-dir" "$2")
-      shift 2
-      ;;
-    --index-path)
-      INDEX_PATH="$2"
-      FORWARD_ARGS+=("--index-path" "$2")
-      shift 2
-      ;;
-    --output-dir)
-      OUTPUT_DIR="$2"
-      FORWARD_ARGS+=("--output-dir" "$2")
-      shift 2
-      ;;
-    --resume|--resume-from-checkpoint)
-      RESUME_FROM_CHECKPOINT="$2"
-      FORWARD_ARGS+=("--resume" "$2")
-      shift 2
-      ;;
-    --run-name)
-      export WANDB_RUN_NAME="$2"
-      FORWARD_ARGS+=("--run-name" "$2")
-      shift 2
-      ;;
-    --num-processes)
-      NUM_PROCESSES="$2"
-      FORWARD_ARGS+=("--num-processes" "$2")
-      shift 2
-      ;;
-    --port)
-      MAIN_PORT="$2"
-      FORWARD_ARGS+=("--port" "$2")
-      shift 2
-      ;;
-    --ds-config)
-      DS_CONFIG="$2"
-      FORWARD_ARGS+=("--ds-config" "$2")
-      shift 2
-      ;;
-    --num-beams)
-      NUM_BEAMS="$2"
-      FORWARD_ARGS+=("--num-beams" "$2")
-      shift 2
-      ;;
-    --sid-levels)
-      SID_LEVELS="$2"
-      FORWARD_ARGS+=("--sid-levels" "$2")
-      shift 2
-      ;;
-    --train-bsz)
-      PER_DEVICE_TRAIN_BSZ="$2"
-      FORWARD_ARGS+=("--train-bsz" "$2")
-      shift 2
-      ;;
-    --eval-bsz)
-      PER_DEVICE_EVAL_BSZ="$2"
-      FORWARD_ARGS+=("--eval-bsz" "$2")
-      shift 2
-      ;;
-    --grad-acc)
-      GRAD_ACC="$2"
-      FORWARD_ARGS+=("--grad-acc" "$2")
-      shift 2
-      ;;
-    --epochs)
-      NUM_EPOCHS="$2"
-      FORWARD_ARGS+=("--epochs" "$2")
-      shift 2
-      ;;
-    --lr)
-      LEARNING_RATE="$2"
-      FORWARD_ARGS+=("--lr" "$2")
-      shift 2
-      ;;
-    --eval-step)
-      EVAL_STEP="$2"
-      FORWARD_ARGS+=("--eval-step" "$2")
-      shift 2
-      ;;
-    --max-completion-length)
-      MAX_COMPLETION_LENGTH="$2"
-      FORWARD_ARGS+=("--max-completion-length" "$2")
-      shift 2
-      ;;
-    --beta)
-      BETA="$2"
-      FORWARD_ARGS+=("--beta" "$2")
-      shift 2
-      ;;
-    --temperature)
-      TEMPERATURE="$2"
-      FORWARD_ARGS+=("--temperature" "$2")
-      shift 2
-      ;;
-    --reward-mode|--reward_mode)
-      REWARD_MODE="$2"
-      REWARD_MODE_SET=1
-      FORWARD_ARGS+=("--reward-mode" "$2")
-      shift 2
-      ;;
-    --prefix-reward-normalize|--prefix_reward_normalize)
-      PREFIX_REWARD_NORMALIZE="$2"
-      PREFIX_REWARD_NORMALIZE_SET=1
-      FORWARD_ARGS+=("--prefix-reward-normalize" "$2")
-      shift 2
-      ;;
-    --probe-rule-zero-weight|--probe_rule_with_zero_weight)
-      PROBE_RULE_ZERO_WEIGHT="$2"
-      PROBE_RULE_ZERO_WEIGHT_SET=1
-      FORWARD_ARGS+=("--probe-rule-zero-weight" "$2")
-      shift 2
-      ;;
-    --token-level-prefix-adv|--token_level_prefix_advantage)
-      TOKEN_LEVEL_PREFIX_ADV="$2"
-      TOKEN_LEVEL_PREFIX_ADV_SET=1
-      FORWARD_ARGS+=("--token-level-prefix-adv" "$2")
-      shift 2
-      ;;
-    --token-adv-total-token-normalize|--token_adv_total_token_normalize)
-      TOKEN_ADV_TOTAL_TOKEN_NORMALIZE="$2"
-      TOKEN_ADV_TOTAL_TOKEN_NORMALIZE_SET=1
-      FORWARD_ARGS+=("--token-adv-total-token-normalize" "$2")
-      shift 2
-      ;;
-    --token-level-ndcg-error-token-penalty|--token_level_ndcg_error_token_penalty)
-      TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY="$2"
-      TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY_SET=1
-      FORWARD_ARGS+=("--token-level-ndcg-error-token-penalty" "$2")
-      shift 2
-      ;;
-    --save-total-limit)
-      SAVE_TOTAL_LIMIT="$2"
-      FORWARD_ARGS+=("--save-total-limit" "$2")
-      shift 2
-      ;;
-    --report-to)
-      REPORT_TO="$2"
-      FORWARD_ARGS+=("--report-to" "$2")
+    --run-name|--run_name)
+      RUN_NAME="$2"
+      RUN_NAME_SET=1
       shift 2
       ;;
     --wandb-mode)
       export WANDB_MODE="$2"
-      FORWARD_ARGS+=("--wandb-mode" "$2")
+      shift 2
+      ;;
+    --num-processes)
+      NUM_PROCESSES="$2"
+      shift 2
+      ;;
+    --port)
+      MAIN_PORT="$2"
+      shift 2
+      ;;
+    --ds-config)
+      DS_CONFIG="$2"
+      shift 2
+      ;;
+    --conda-activate)
+      CONDA_ACTIVATE="$2"
+      shift 2
+      ;;
+    --conda-env)
+      CONDA_ENV_NAME="$2"
       shift 2
       ;;
     --log-dir)
@@ -423,33 +301,75 @@ while [[ $# -gt 0 ]]; do
       ;;
     --dry-run)
       DRY_RUN=1
-      FORWARD_ARGS+=("--dry-run")
+      shift
+      ;;
+    --)
+      shift
+      while [[ $# -gt 0 ]]; do
+        PASSTHROUGH_ARGS+=("$1")
+        shift
+      done
+      break
+      ;;
+    --*=*)
+      PASSTHROUGH_ARGS+=("$1")
       shift
       ;;
     -h|--help)
       usage
       exit 0
       ;;
+    --*)
+      if trainer_option_is_flag "$1"; then
+        PASSTHROUGH_ARGS+=("$1")
+        shift
+      elif trainer_option_expects_value "$1"; then
+        if [[ $# -lt 2 ]]; then
+          echo "[ERROR] Missing value for trainer option: $1" >&2
+          exit 1
+        fi
+        PASSTHROUGH_ARGS+=("$1" "$2")
+        shift 2
+      else
+        echo "[ERROR] Unknown option: $1" >&2
+        exit 1
+      fi
+      ;;
     *)
-      echo "[ERROR] Unknown argument: $1"
-      usage
-      exit 1
+      PASSTHROUGH_ARGS+=("$1")
+      shift
       ;;
   esac
 done
 
-apply_reward_preset "$PRESET"
+if [[ -z "$CONFIG_PATH" ]]; then
+  CONFIG_PATH="$(resolve_preset_config_path "$PRESET")"
+  CONFIG_FROM_PRESET=1
+fi
+
+if [[ "$RUN_NAME_SET" -eq 1 ]]; then
+  FORWARD_RUN_NAME=1
+elif [[ "$CONFIG_FROM_PRESET" -eq 1 ]]; then
+  RUN_NAME="$(resolve_preset_default_run_name "$PRESET")"
+  FORWARD_RUN_NAME=1
+elif [[ -z "$RUN_NAME" ]]; then
+  RUN_NAME="$(sanitize_log_name "$(basename -- "${CONFIG_PATH%.*}")")"
+fi
+
+if [[ "$FORWARD_RUN_NAME" -eq 1 ]]; then
+  export WANDB_RUN_NAME="$RUN_NAME"
+fi
 
 if [[ -n "$LOG_FILE_OVERRIDE" ]]; then
   LOG_FILE="$LOG_FILE_OVERRIDE"
 else
   TS="$(date +%Y%m%d_%H%M%S)"
-  LOG_FILE="${LOG_DIR}/$(sanitize_log_name "${WANDB_RUN_NAME}")_${TS}.log"
+  LOG_FILE="${LOG_DIR}/$(sanitize_log_name "${RUN_NAME}")_${TS}.log"
 fi
 
 if [[ "$MODE" == "tail" ]]; then
   if [[ -z "$LOG_FILE_OVERRIDE" ]]; then
-    LOG_FILE="$(latest_log_for_prefix "$LOG_DIR" "$WANDB_RUN_NAME")"
+    LOG_FILE="$(latest_log_for_prefix "$LOG_DIR" "$RUN_NAME")"
   fi
   require_file "$LOG_FILE" "log file"
   echo "[INFO] Following log: $LOG_FILE"
@@ -457,13 +377,59 @@ if [[ "$MODE" == "tail" ]]; then
   exit 0
 fi
 
+build_train_cmd() {
+  TRAIN_CMD=(
+    accelerate launch
+    --config_file "$DS_CONFIG"
+    --num_processes "$NUM_PROCESSES"
+    --main_process_port "$MAIN_PORT"
+    trl_trainer.py
+    --config "$CONFIG_PATH"
+  )
+  if [[ "$FORWARD_RUN_NAME" -eq 1 ]]; then
+    TRAIN_CMD+=(--run_name "$RUN_NAME")
+  fi
+  if [[ ${#PASSTHROUGH_ARGS[@]} -gt 0 ]]; then
+    TRAIN_CMD+=("${PASSTHROUGH_ARGS[@]}")
+  fi
+}
+
+build_train_cmd
+
 if [[ "$MODE" == "nohup" || "$MODE" == "detach" ]]; then
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    printf '%q ' "${TRAIN_CMD[@]}"
+    echo
+    exit 0
+  fi
+
+  run_preflight_checks
+
   mkdir -p "$(dirname -- "$LOG_FILE")"
   touch "$LOG_FILE"
-  CHILD_ARGS=(--run --from-nohup --log-file "$LOG_FILE")
-  if [[ ${#FORWARD_ARGS[@]} -gt 0 ]]; then
-    CHILD_ARGS+=("${FORWARD_ARGS[@]}")
+
+  CHILD_ARGS=(
+    --run
+    --from-nohup
+    --log-file "$LOG_FILE"
+    --num-processes "$NUM_PROCESSES"
+    --port "$MAIN_PORT"
+    --ds-config "$DS_CONFIG"
+    --conda-activate "$CONDA_ACTIVATE"
+    --conda-env "$CONDA_ENV_NAME"
+  )
+  if [[ "$CONFIG_FROM_PRESET" -eq 1 ]]; then
+    CHILD_ARGS+=(--preset "$PRESET")
+  else
+    CHILD_ARGS+=(--config "$CONFIG_PATH")
   fi
+  if [[ "$FORWARD_RUN_NAME" -eq 1 ]]; then
+    CHILD_ARGS+=(--run-name "$RUN_NAME")
+  fi
+  if [[ ${#PASSTHROUGH_ARGS[@]} -gt 0 ]]; then
+    CHILD_ARGS+=("${PASSTHROUGH_ARGS[@]}")
+  fi
+
   nohup bash "$SCRIPT_PATH" "${CHILD_ARGS[@]}" >> "$LOG_FILE" 2>&1 &
   PID=$!
   echo "[INFO] RL started in background. pid=$PID"
@@ -479,110 +445,28 @@ if [[ "$MODE" == "nohup" || "$MODE" == "detach" ]]; then
   exit 0
 fi
 
-if [[ ! -f "$CONDA_ACTIVATE" ]]; then
-  echo "[ERROR] Conda activate script not found: $CONDA_ACTIVATE"
-  exit 1
-fi
-
-# shellcheck disable=SC1090
-source "$CONDA_ACTIVATE" "$CONDA_ENV_NAME"
-export CXX="${CONDA_PREFIX}/bin/x86_64-conda-linux-gnu-c++"
-
-export DISABLE_VERSION_CHECK=1
-export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1,2,3}"
-export HF_HUB_OFFLINE=1
-export TRANSFORMERS_OFFLINE=1
-export HF_DATASETS_OFFLINE=1
-unset HF_ENDPOINT || true
-export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-false}"
-export OMP_NUM_THREADS="${OMP_NUM_THREADS:-8}"
-export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
-export PYTHONPATH="${REPO_ROOT}:${PYTHONPATH:-}"
-
-if [[ "$DRY_RUN" -eq 1 ]]; then
-  echo "[INFO] Dry-run mode enabled."
-fi
-
-require_exists "$REPO_ROOT" "REPO_ROOT"
-cd "$REPO_ROOT"
-
-require_exists "$MODEL_PATH" "model path"
-require_file "${DATA_DIR}/train.json" "RL train dataset"
-require_file "${DATA_DIR}/valid.json" "RL valid dataset"
-require_file "${DATA_DIR}/test.json" "RL test dataset"
-require_file "$INDEX_PATH" "id2sid index file"
-require_file "$DS_CONFIG" "DeepSpeed config"
-require_file "${REPO_ROOT}/trl_trainer.py" "trl_trainer.py"
-
-if ! command -v accelerate >/dev/null 2>&1; then
-  echo "[ERROR] accelerate not found in PATH"
-  exit 1
-fi
-
-TRAIN_CMD=(
-  accelerate launch
-  --config_file "$DS_CONFIG"
-  --num_processes "$NUM_PROCESSES"
-  --main_process_port "$MAIN_PORT"
-  trl_trainer.py
-  --model "$MODEL_PATH"
-  --data_dir "$DATA_DIR"
-  --index_path "$INDEX_PATH"
-  --output_dir "$OUTPUT_DIR"
-  --num_beams "$NUM_BEAMS"
-  --sid_levels "$SID_LEVELS"
-  --per_device_train_batch_size "$PER_DEVICE_TRAIN_BSZ"
-  --per_device_eval_batch_size "$PER_DEVICE_EVAL_BSZ"
-  --gradient_accumulation_steps "$GRAD_ACC"
-  --num_train_epochs "$NUM_EPOCHS"
-  --learning_rate "$LEARNING_RATE"
-  --eval_step "$EVAL_STEP"
-  --eval_on_start "$EVAL_ON_START"
-  --max_completion_length "$MAX_COMPLETION_LENGTH"
-  --beta "$BETA"
-  --temperature "$TEMPERATURE"
-  --reward_mode "$REWARD_MODE"
-  --prefix_reward_normalize "$PREFIX_REWARD_NORMALIZE"
-  --probe_rule_with_zero_weight "$PROBE_RULE_ZERO_WEIGHT"
-  --token_level_prefix_advantage "$TOKEN_LEVEL_PREFIX_ADV"
-  --token_adv_total_token_normalize "$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE"
-  --token_level_ndcg_error_token_penalty "$TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY"
-  --save_total_limit "$SAVE_TOTAL_LIMIT"
-  --save_only_model true
-  --report_to "$REPORT_TO"
-  --resume_from_checkpoint "$RESUME_FROM_CHECKPOINT"
-)
-
 if [[ "$DRY_RUN" -eq 1 ]]; then
   printf '%q ' "${TRAIN_CMD[@]}"
   echo
   exit 0
 fi
 
+run_preflight_checks
+
+cd "$REPO_ROOT"
+
 mkdir -p "$(dirname -- "$LOG_FILE")"
 if [[ "$FROM_NOHUP" -eq 0 ]]; then
   exec > >(tee -a "$LOG_FILE") 2>&1
 fi
 
-echo "[INFO] CATEGORY=$CATEGORY"
-echo "[INFO] MODEL_PATH=$MODEL_PATH"
-echo "[INFO] DATA_DIR=$DATA_DIR"
-echo "[INFO] INDEX_PATH=$INDEX_PATH"
-echo "[INFO] OUTPUT_DIR=$OUTPUT_DIR"
+echo "[INFO] CONFIG_PATH=$CONFIG_PATH"
 echo "[INFO] DS_CONFIG=$DS_CONFIG"
 echo "[INFO] LOG_FILE=$LOG_FILE"
 echo "[INFO] CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
 echo "[INFO] NUM_PROCESSES=$NUM_PROCESSES"
 echo "[INFO] MAIN_PORT=$MAIN_PORT"
-echo "[INFO] RUN_NAME=$WANDB_RUN_NAME"
-echo "[INFO] RESUME_FROM_CHECKPOINT=$RESUME_FROM_CHECKPOINT"
-echo "[INFO] SID_LEVELS=$SID_LEVELS"
+echo "[INFO] RUN_NAME=${RUN_NAME:-<config>}"
 echo "[INFO] PRESET=$PRESET"
-echo "[INFO] REWARD_MODE=$REWARD_MODE"
-echo "[INFO] PREFIX_REWARD_NORMALIZE=$PREFIX_REWARD_NORMALIZE"
-echo "[INFO] PROBE_RULE_ZERO_WEIGHT=$PROBE_RULE_ZERO_WEIGHT"
-echo "[INFO] TOKEN_LEVEL_PREFIX_ADV=$TOKEN_LEVEL_PREFIX_ADV"
-echo "[INFO] TOKEN_ADV_TOTAL_TOKEN_NORMALIZE=$TOKEN_ADV_TOTAL_TOKEN_NORMALIZE"
-echo "[INFO] TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY=$TOKEN_LEVEL_NDCG_ERROR_TOKEN_PENALTY"
 
 "${TRAIN_CMD[@]}"

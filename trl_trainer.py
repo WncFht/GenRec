@@ -1,7 +1,8 @@
-import os
-from typing import Optional, Union
+import argparse
+import json
+from collections.abc import Callable
+from typing import Any, Optional, Union
 
-import fire
 from datasets import load_dataset
 from transformers import (
     AutoTokenizer,
@@ -10,11 +11,25 @@ from transformers.trainer_utils import get_last_checkpoint
 from trl import GRPOTrainer
 
 from cli_utils import coerce_bool_arg, format_typed_value
-from fixed_hint_utils import apply_fixed_hint_depth_to_example, load_fixed_hint_depth_map
 from fixed_hint_grpo_trainer import DynamicHintRuleOnlyGRPOTrainer, FixedHintRuleOnlyGRPOTrainer
+from fixed_hint_utils import apply_fixed_hint_depth_to_example, load_fixed_hint_depth_map
 from MIMIGenRec import MIMIGenRec, get_grpo_config
 from rewards.ranking_reward import build_reward_setup
+from rl_trainer_config import RLTrainerConfig
 from token_prefix_grpo_trainer import TokenPrefixGRPOTrainer
+from trl_trainer_runtime import (
+    build_logits_processor,
+    build_trainer,
+    build_trainer_mode_config,
+    build_training_args,
+    load_dataset_splits,
+    log_dataset_selection,
+    log_runtime_configuration,
+    parse_entrypoint_bool_args,
+    prepare_hint_datasets,
+    resolve_resume_checkpoint_path,
+    validate_mode_configuration,
+)
 from util import (
     build_constrained_logits_processor,
     build_fixed_hint_constrained_logits_processor,
@@ -23,87 +38,7 @@ from util import (
 )
 
 
-def _parse_task_names(raw_task_names) -> Optional[list[str]]:
-    if raw_task_names is None:
-        return None
-
-    raw_values = raw_task_names if isinstance(raw_task_names, (list, tuple)) else [raw_task_names]
-    task_names = []
-    for raw_value in raw_values:
-        task_names.extend(task_name.strip() for task_name in str(raw_value).split(",") if task_name.strip())
-    return task_names or None
-
-
-def _build_zero_hint_example(example: dict) -> dict:
-    return {
-        **example,
-        "oracle_hint_depth": 0,
-        "oracle_hint_text": "",
-        "oracle_hint_unsolved": False,
-    }
-
-
-def _attach_dynamic_hint_max_depth_override(example: dict, max_hint_depth_override: int) -> dict:
-    return {
-        **example,
-        "dynamic_hint_max_depth_override": int(max_hint_depth_override),
-    }
-
-
-def _filter_dataset_by_task_names(dataset, split_name: str, raw_task_names: Optional[str]):
-    requested_task_names = _parse_task_names(raw_task_names)
-    if not requested_task_names:
-        return (
-            dataset,
-            None,
-            sorted(
-                {
-                    str(example.get("extra_info", {}).get("task", "")).strip()
-                    for example in dataset
-                    if str(example.get("extra_info", {}).get("task", "")).strip()
-                }
-            ),
-        )
-
-    requested_task_name_set = set(requested_task_names)
-    available_task_names = set()
-    selected_indices: list[int] = []
-
-    for index, example in enumerate(dataset):
-        extra_info = example.get("extra_info")
-        if not isinstance(extra_info, dict):
-            raise ValueError(f"Missing extra_info.task in {split_name} split at index {index}.")
-        task_name = str(extra_info.get("task", "")).strip()
-        if not task_name:
-            raise ValueError(f"Missing extra_info.task in {split_name} split at index {index}.")
-        available_task_names.add(task_name)
-        if task_name in requested_task_name_set:
-            selected_indices.append(index)
-
-    if not available_task_names:
-        raise ValueError(
-            f"empty filtered {split_name} split after applying tasks {requested_task_names}; available tasks: []"
-        )
-
-    unknown_task_names = sorted(requested_task_name_set - available_task_names)
-    if unknown_task_names:
-        raise ValueError(
-            f"unknown {split_name} task names: {unknown_task_names}; available tasks: {sorted(available_task_names)}"
-        )
-    if not selected_indices:
-        raise ValueError(
-            f"empty filtered {split_name} split after applying tasks {requested_task_names}; "
-            f"available tasks: {sorted(available_task_names)}"
-        )
-
-    if hasattr(dataset, "select"):
-        filtered_dataset = dataset.select(selected_indices)
-    else:
-        filtered_dataset = dataset.__class__([dataset[index] for index in selected_indices])
-    return filtered_dataset, requested_task_names, sorted(available_task_names)
-
-
-def main(
+def run_training_kwargs(
     model: str = "saves/qwen2.5-0.5b/full/Industrial_and_Scientific-sft-dsz0",
     index_path: str = "data/Industrial_and_Scientific/Industrial_and_Scientific.index.json",
     sid_levels: int = -1,
@@ -175,167 +110,54 @@ def main(
         "eval_on_start": eval_on_start,
         "bf16": bf16,
     }
-    parsed_bool_args = {name: coerce_bool_arg(value, name) for name, value in raw_bool_args.items()}
-    save_only_model = parsed_bool_args["save_only_model"]
-    do_sample = parsed_bool_args["do_sample"]
-    prefix_reward_normalize = parsed_bool_args["prefix_reward_normalize"]
-    probe_rule_with_zero_weight = parsed_bool_args["probe_rule_with_zero_weight"]
-    token_level_prefix_advantage = parsed_bool_args["token_level_prefix_advantage"]
-    token_adv_total_token_normalize = parsed_bool_args["token_adv_total_token_normalize"]
-    token_level_ndcg_error_token_penalty = parsed_bool_args["token_level_ndcg_error_token_penalty"]
-    fixed_hint_apply_to_eval = parsed_bool_args["fixed_hint_apply_to_eval"]
-    dynamic_hint_apply_to_eval = parsed_bool_args["dynamic_hint_apply_to_eval"]
-    eval_on_start = parsed_bool_args["eval_on_start"]
-    bf16 = parsed_bool_args["bf16"]
-    dynamic_hint_enabled = dynamic_hint_max_depth is not None and int(dynamic_hint_max_depth) > 0
-    if dynamic_hint_max_depth is not None:
-        dynamic_hint_max_depth = int(dynamic_hint_max_depth)
+    parsed_bool_args = parse_entrypoint_bool_args(raw_bool_args, coerce_bool_arg_fn=coerce_bool_arg)
+    save_only_model = parsed_bool_args.save_only_model
+    do_sample = parsed_bool_args.do_sample
+    prefix_reward_normalize = parsed_bool_args.prefix_reward_normalize
+    probe_rule_with_zero_weight = parsed_bool_args.probe_rule_with_zero_weight
+    token_level_prefix_advantage = parsed_bool_args.token_level_prefix_advantage
+    token_adv_total_token_normalize = parsed_bool_args.token_adv_total_token_normalize
+    token_level_ndcg_error_token_penalty = parsed_bool_args.token_level_ndcg_error_token_penalty
+    fixed_hint_apply_to_eval = parsed_bool_args.fixed_hint_apply_to_eval
+    dynamic_hint_apply_to_eval = parsed_bool_args.dynamic_hint_apply_to_eval
+    eval_on_start = parsed_bool_args.eval_on_start
+    bf16 = parsed_bool_args.bf16
 
-    normalized_reward_mode = reward_mode.strip().lower()
-
-    if fixed_hint_depth_map_path is not None and dynamic_hint_enabled:
-        raise ValueError("fixed_hint_depth_map_path and dynamic_hint_max_depth cannot be enabled at the same time.")
-    if hint_ce_loss_coef and fixed_hint_depth_map_path is None and not dynamic_hint_enabled:
-        raise ValueError("hint_ce_loss_coef currently requires fixed_hint_depth_map_path or dynamic_hint_max_depth.")
-    if dynamic_hint_enabled and normalized_reward_mode not in {"rule_only", "ranking"}:
-        raise NotImplementedError(
-            "Dynamic hint cascade training currently supports reward_mode=rule_only or reward_mode=ranking only."
-        )
-
-    # load dataset
-    dataset = load_dataset(
-        "json",
-        data_files={
-            "train": f"{data_dir}/train.json",
-            "valid": f"{data_dir}/valid.json",
-            "test": f"{data_dir}/test.json",
-        },
-    )
-    train_dataset = dataset["train"]
-    eval_dataset = dataset["valid"]
-    test_dataset = dataset["test"]  # noqa: F841
-
-    train_dataset, resolved_train_task_names, train_available_task_names = _filter_dataset_by_task_names(
-        train_dataset,
-        split_name="train",
-        raw_task_names=train_task_names,
-    )
-    eval_dataset, resolved_eval_task_names, eval_available_task_names = _filter_dataset_by_task_names(
-        eval_dataset,
-        split_name="eval",
-        raw_task_names=eval_task_names,
+    mode_config = build_trainer_mode_config(reward_mode, dynamic_hint_max_depth)
+    dynamic_hint_max_depth = mode_config.dynamic_hint_max_depth
+    validate_mode_configuration(
+        mode_config,
+        fixed_hint_depth_map_path=fixed_hint_depth_map_path,
+        hint_ce_loss_coef=hint_ce_loss_coef,
     )
 
-    print_main_process(
-        f"[INFO] train_task_names={resolved_train_task_names}, "
-        f"train_available_tasks={train_available_task_names}, "
-        f"train_size={len(train_dataset)}"
+    train_split, eval_split, test_dataset = load_dataset_splits(
+        data_dir,
+        train_task_names=train_task_names,
+        eval_task_names=eval_task_names,
+        load_dataset_fn=load_dataset,
     )
-    print_main_process(
-        f"[INFO] eval_task_names={resolved_eval_task_names}, "
-        f"eval_available_tasks={eval_available_task_names}, "
-        f"eval_size={len(eval_dataset)}"
-    )
+    log_dataset_selection(train_split, eval_split, print_main_process_fn=print_main_process)
+    _ = test_dataset  # noqa: F841
 
     tokenizer = AutoTokenizer.from_pretrained(model)
-
-    if fixed_hint_depth_map_path is not None:
-        if normalized_reward_mode not in {"rule_only", "prefix_rule_only"}:
-            raise NotImplementedError(
-                "Fixed oracle hint-depth training currently supports reward_mode=rule_only or "
-                "reward_mode=prefix_rule_only only."
-            )
-
-        fixed_hint_map = load_fixed_hint_depth_map(fixed_hint_depth_map_path)
-        resolved_fixed_hint_task_names = _parse_task_names(fixed_hint_task_names)
-        if resolved_fixed_hint_task_names is not None:
-            unknown_fixed_hint_task_names = sorted(set(resolved_fixed_hint_task_names) - set(train_available_task_names))
-            if unknown_fixed_hint_task_names:
-                raise ValueError(
-                    "unknown fixed-hint task names: "
-                    f"{unknown_fixed_hint_task_names}; available tasks: {train_available_task_names}"
-                )
-            fixed_hint_task_name_set = set(resolved_fixed_hint_task_names)
-        else:
-            fixed_hint_task_name_set = None
-
-        def _inject_hint(example):
-            if fixed_hint_task_name_set is not None:
-                extra_info = example.get("extra_info")
-                if not isinstance(extra_info, dict):
-                    raise ValueError("Missing extra_info.task while applying fixed-hint task filter.")
-                task_name = str(extra_info.get("task", "")).strip()
-                if not task_name:
-                    raise ValueError("Missing extra_info.task while applying fixed-hint task filter.")
-                if task_name not in fixed_hint_task_name_set:
-                    return _build_zero_hint_example(example)
-            enriched = apply_fixed_hint_depth_to_example(
-                example,
-                fixed_hint_map,
-                cap_depth=fixed_hint_depth_cap,
-                unsolved_depth=fixed_hint_unsolved_depth,
-            )
-            return enriched
-
-        train_dataset = train_dataset.map(_inject_hint, desc="Inject fixed oracle hints into train dataset")
-        if fixed_hint_apply_to_eval:
-            eval_dataset = eval_dataset.map(_inject_hint, desc="Inject fixed oracle hints into eval dataset")
-        else:
-            eval_dataset = eval_dataset.map(_build_zero_hint_example, desc="Attach zero-depth fixed hint metadata to eval dataset")
-
-        train_hint_depths = train_dataset["oracle_hint_depth"]
-        hint_depth_hist = {depth: train_hint_depths.count(depth) for depth in sorted(set(train_hint_depths))}
-        print_main_process("[INFO] fixed_hint_generation_mode=mixed_single_generate")
-        print_main_process(f"[INFO] fixed_hint_depth_map_path={fixed_hint_depth_map_path}")
-        print_main_process(
-            f"[INFO] fixed_hint_depth_cap={fixed_hint_depth_cap!r}, fixed_hint_unsolved_depth={fixed_hint_unsolved_depth}"
-        )
-        print_main_process(f"[INFO] fixed_hint_task_names={resolved_fixed_hint_task_names}")
-        print_main_process(f"[INFO] train_oracle_hint_depth_hist={hint_depth_hist}")
-    elif dynamic_hint_enabled:
-        resolved_dynamic_hint_task_names = _parse_task_names(dynamic_hint_task_names)
-        if resolved_dynamic_hint_task_names is not None:
-            unknown_dynamic_hint_task_names = sorted(
-                set(resolved_dynamic_hint_task_names) - set(train_available_task_names)
-            )
-            if unknown_dynamic_hint_task_names:
-                raise ValueError(
-                    "unknown dynamic-hint task names: "
-                    f"{unknown_dynamic_hint_task_names}; available tasks: {train_available_task_names}"
-                )
-            dynamic_hint_task_name_set = set(resolved_dynamic_hint_task_names)
-
-            def _attach_dynamic_hint_metadata(example):
-                extra_info = example.get("extra_info")
-                if not isinstance(extra_info, dict):
-                    raise ValueError("Missing extra_info.task while applying dynamic-hint task filter.")
-                task_name = str(extra_info.get("task", "")).strip()
-                if not task_name:
-                    raise ValueError("Missing extra_info.task while applying dynamic-hint task filter.")
-                if task_name in dynamic_hint_task_name_set:
-                    return _attach_dynamic_hint_max_depth_override(example, dynamic_hint_max_depth)
-                return _attach_dynamic_hint_max_depth_override(example, 0)
-
-            train_dataset = train_dataset.map(
-                _attach_dynamic_hint_metadata,
-                desc="Attach dynamic hint task metadata to train dataset",
-            )
-            eval_dataset = eval_dataset.map(
-                _attach_dynamic_hint_metadata,
-                desc="Attach dynamic hint task metadata to eval dataset",
-            )
-            train_dynamic_hint_caps = train_dataset["dynamic_hint_max_depth_override"]
-            dynamic_hint_cap_hist = {
-                depth: train_dynamic_hint_caps.count(depth) for depth in sorted(set(train_dynamic_hint_caps))
-            }
-        else:
-            dynamic_hint_cap_hist = None
-        print_main_process("[INFO] dynamic_hint_generation_mode=cascade")
-        print_main_process(f"[INFO] dynamic_hint_max_depth={dynamic_hint_max_depth}")
-        print_main_process(f"[INFO] dynamic_hint_apply_to_eval={dynamic_hint_apply_to_eval}")
-        print_main_process(f"[INFO] dynamic_hint_task_names={resolved_dynamic_hint_task_names}")
-        if dynamic_hint_cap_hist is not None:
-            print_main_process(f"[INFO] train_dynamic_hint_max_depth_override_hist={dynamic_hint_cap_hist}")
+    hint_datasets = prepare_hint_datasets(
+        train_split,
+        eval_split,
+        mode_config=mode_config,
+        fixed_hint_depth_map_path=fixed_hint_depth_map_path,
+        fixed_hint_depth_cap=fixed_hint_depth_cap,
+        fixed_hint_unsolved_depth=fixed_hint_unsolved_depth,
+        fixed_hint_task_names=fixed_hint_task_names,
+        fixed_hint_apply_to_eval=fixed_hint_apply_to_eval,
+        dynamic_hint_apply_to_eval=dynamic_hint_apply_to_eval,
+        dynamic_hint_task_names=dynamic_hint_task_names,
+        load_fixed_hint_depth_map_fn=load_fixed_hint_depth_map,
+        apply_fixed_hint_depth_to_example_fn=apply_fixed_hint_depth_to_example,
+        print_main_process_fn=print_main_process,
+    )
+    train_dataset = hint_datasets.train_dataset
+    eval_dataset = hint_datasets.eval_dataset
 
     reward_funcs, reward_weights = build_reward_setup(
         reward_mode=reward_mode,
@@ -344,7 +166,7 @@ def main(
         probe_rule_with_zero_weight=probe_rule_with_zero_weight,
     )
 
-    grpo_config_kwargs = dict(
+    training_args = build_training_args(
         output_dir=output_dir,
         per_device_train_batch_size=per_device_train_batch_size,
         per_device_eval_batch_size=per_device_eval_batch_size,
@@ -352,7 +174,7 @@ def main(
         num_train_epochs=num_train_epochs,
         learning_rate=learning_rate,
         logging_steps=logging_steps,
-        eval_steps=eval_step,
+        eval_step=eval_step,
         eval_strategy=eval_strategy,
         eval_on_start=eval_on_start,
         save_strategy=save_strategy,
@@ -365,39 +187,26 @@ def main(
         lr_scheduler_type=lr_scheduler_type,
         max_completion_length=max_completion_length,
         beta=beta,
-        num_generations=num_beams,
+        num_beams=num_beams,
         bf16=bf16,
         deepspeed=deepspeed,
         report_to=report_to,
         run_name=run_name,
+        hint_ce_loss_coef=hint_ce_loss_coef,
+        reward_weights=reward_weights,
+        get_grpo_config_fn=get_grpo_config,
     )
-    if hint_ce_loss_coef:
-        # Hint CE now reuses the main loss forward's prompt-side logits.
-        # Keep activation checkpointing enabled, but force the non-reentrant
-        # implementation because the trainer/model stack already defaults to
-        # that mode elsewhere in this repo and it is the safer choice.
-        grpo_config_kwargs["gradient_checkpointing"] = True
-        grpo_config_kwargs["gradient_checkpointing_kwargs"] = {"use_reentrant": False}
-    if reward_weights is not None:
-        grpo_config_kwargs["reward_weights"] = reward_weights
-    training_args = get_grpo_config(**grpo_config_kwargs)
 
-    if fixed_hint_depth_map_path is not None or dynamic_hint_enabled:
-        logits_processor = build_fixed_hint_constrained_logits_processor(
-            index_path,
-            tokenizer,
-            prefix=prefix,
-            num_beams=num_beams,
-            sid_levels=sid_levels,
-        )
-    else:
-        logits_processor = build_constrained_logits_processor(
-            index_path,
-            tokenizer,
-            prefix=prefix,
-            num_beams=num_beams,
-            sid_levels=sid_levels,
-        )
+    logits_processor = build_logits_processor(
+        index_path=index_path,
+        tokenizer=tokenizer,
+        prefix=prefix,
+        num_beams=num_beams,
+        sid_levels=sid_levels,
+        use_fixed_hint_processor=fixed_hint_depth_map_path is not None or mode_config.dynamic_hint_enabled,
+        build_constrained_logits_processor_fn=build_constrained_logits_processor,
+        build_fixed_hint_constrained_logits_processor_fn=build_fixed_hint_constrained_logits_processor,
+    )
 
     model = MIMIGenRec.from_pretrained(
         model,
@@ -411,127 +220,241 @@ def main(
         do_sample=do_sample,
     )
 
-    print_main_process(
-        "[INFO] raw_bool_args="
-        + ", ".join(f"{name}={format_typed_value(value)}" for name, value in raw_bool_args.items())
-    )
-    print_main_process(
-        "[INFO] parsed_bool_args=" + ", ".join(f"{name}={value!r}" for name, value in parsed_bool_args.items())
-    )
-    print_main_process(
-        f"[INFO] reward_mode={reward_mode}, "
-        f"prefix_reward_normalize={prefix_reward_normalize}, "
-        f"probe_rule_with_zero_weight={probe_rule_with_zero_weight}, "
-        f"token_level_prefix_advantage={token_level_prefix_advantage}, "
-        f"token_adv_total_token_normalize={token_adv_total_token_normalize}, "
-        f"token_level_ndcg_error_token_penalty={token_level_ndcg_error_token_penalty}, "
-        f"fixed_hint_generation_mode={'mixed_single_generate' if fixed_hint_depth_map_path is not None else 'disabled'}, "
-        f"fixed_hint_depth_map_path={fixed_hint_depth_map_path}, "
-        f"fixed_hint_depth_cap={fixed_hint_depth_cap}, "
-        f"fixed_hint_unsolved_depth={fixed_hint_unsolved_depth}, "
-        f"fixed_hint_apply_to_eval={fixed_hint_apply_to_eval}, "
-        f"hint_ce_loss_coef={hint_ce_loss_coef}, "
-        f"dynamic_hint_generation_mode={'cascade' if dynamic_hint_enabled else 'disabled'}, "
-        f"dynamic_hint_max_depth={dynamic_hint_max_depth}, "
-        f"dynamic_hint_apply_to_eval={dynamic_hint_apply_to_eval}, "
-        f"save_only_model={save_only_model}, "
-        f"num_reward_funcs={len(reward_funcs)}, "
-        f"reward_weights={reward_weights}"
+    log_runtime_configuration(
+        raw_bool_args=raw_bool_args,
+        parsed_bool_args=parsed_bool_args,
+        reward_mode=reward_mode,
+        fixed_hint_depth_map_path=fixed_hint_depth_map_path,
+        fixed_hint_depth_cap=fixed_hint_depth_cap,
+        fixed_hint_unsolved_depth=fixed_hint_unsolved_depth,
+        hint_ce_loss_coef=hint_ce_loss_coef,
+        mode_config=mode_config,
+        save_only_model=save_only_model,
+        reward_funcs=reward_funcs,
+        reward_weights=reward_weights,
+        format_typed_value_fn=format_typed_value,
+        print_main_process_fn=print_main_process,
     )
 
-    if fixed_hint_depth_map_path is not None:
-        trainer = FixedHintRuleOnlyGRPOTrainer(
-            model=model,
-            args=training_args,
-            reward_funcs=reward_funcs,
-            train_dataset=train_dataset,
-            eval_dataset=eval_dataset,
-            hint_ce_loss_coef=hint_ce_loss_coef,
-        )
-    elif dynamic_hint_enabled:
-        trainer = DynamicHintRuleOnlyGRPOTrainer(
-            model=model,
-            args=training_args,
-            reward_funcs=reward_funcs,
-            train_dataset=train_dataset,
-            eval_dataset=eval_dataset,
-            hint_ce_loss_coef=hint_ce_loss_coef,
-            dynamic_hint_max_depth=dynamic_hint_max_depth,
-            dynamic_hint_apply_to_eval=dynamic_hint_apply_to_eval,
-        )
-    elif token_level_prefix_advantage:
-        trainer = TokenPrefixGRPOTrainer(
-            model=model,
-            args=training_args,
-            reward_funcs=reward_funcs,
-            train_dataset=train_dataset,
-            eval_dataset=eval_dataset,
-            prefix_reward_normalize=prefix_reward_normalize,
-            token_adv_total_token_normalize=token_adv_total_token_normalize,
-            token_level_ndcg_error_token_penalty=token_level_ndcg_error_token_penalty,
-        )
-    else:
-        trainer = GRPOTrainer(
-            model=model,
-            args=training_args,
-            reward_funcs=reward_funcs,
-            train_dataset=train_dataset,
-            eval_dataset=eval_dataset,
-        )
+    trainer = build_trainer(
+        fixed_hint_depth_map_path=fixed_hint_depth_map_path,
+        mode_config=mode_config,
+        token_level_prefix_advantage=token_level_prefix_advantage,
+        model=model,
+        training_args=training_args,
+        reward_funcs=reward_funcs,
+        train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
+        hint_ce_loss_coef=hint_ce_loss_coef,
+        dynamic_hint_apply_to_eval=dynamic_hint_apply_to_eval,
+        prefix_reward_normalize=prefix_reward_normalize,
+        token_adv_total_token_normalize=token_adv_total_token_normalize,
+        token_level_ndcg_error_token_penalty=token_level_ndcg_error_token_penalty,
+        fixed_hint_trainer_cls=FixedHintRuleOnlyGRPOTrainer,
+        dynamic_hint_trainer_cls=DynamicHintRuleOnlyGRPOTrainer,
+        token_prefix_trainer_cls=TokenPrefixGRPOTrainer,
+        base_trainer_cls=GRPOTrainer,
+    )
 
-    resolved_resume = resume_from_checkpoint
-    if isinstance(resolved_resume, str):
-        lowered = resolved_resume.strip().lower()
-        if lowered in {"", "none", "false"}:
-            resolved_resume = None
-        elif lowered == "auto":
-            resolved_resume = get_last_checkpoint(output_dir)
-            if resolved_resume is None:
-                print_main_process(f"[INFO] No checkpoint found under {output_dir}, start from scratch.")
-            else:
-                print_main_process(f"[INFO] Auto resume from checkpoint: {resolved_resume}")
+    resolved_resume = resolve_resume_checkpoint_path(
+        resume_from_checkpoint,
+        output_dir,
+        get_last_checkpoint_fn=get_last_checkpoint,
+        print_main_process_fn=print_main_process,
+    )
 
     if resolved_resume is not None:
-        if not os.path.isdir(resolved_resume):
-            raise FileNotFoundError(f"Checkpoint path not found: {resolved_resume}")
         trainer.train(resume_from_checkpoint=resolved_resume)
     else:
         trainer.train()
 
 
+def build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="GenRec RL trainer CLI.")
+    parser.add_argument("--config", help="Path to JSON / TOML / YAML config file.")
+    parser.add_argument(
+        "--set",
+        dest="override_items",
+        action="append",
+        default=[],
+        help="Arbitrary override in key=value or section.key=value form. Can be repeated.",
+    )
+    parser.add_argument("--print-config", action="store_true", help="Print resolved nested config and exit.")
+    parser.add_argument("--print-flat-kwargs", action="store_true", help="Print resolved trl_trainer kwargs and exit.")
+    parser.add_argument("--dry-run", action="store_true", help="Print config + kwargs without starting training.")
+    _add_cli_override_args(parser)
+    return parser
+
+
+def _add_cli_override_args(parser: argparse.ArgumentParser):
+    parser.add_argument("--model")
+    parser.add_argument("--data-dir", "--data_dir", dest="data_dir")
+    parser.add_argument("--index-path", "--index_path", dest="index_path")
+    parser.add_argument("--output-dir", "--output_dir", dest="output_dir")
+    parser.add_argument("--prefix")
+    parser.add_argument("--num-beams", "--num_beams", dest="num_beams")
+    parser.add_argument("--sid-levels", "--sid_levels", dest="sid_levels")
+    parser.add_argument("--reward-mode", "--reward_mode", dest="reward_mode")
+    parser.add_argument("--hint-mode", choices=["none", "fixed", "dynamic"])
+    parser.add_argument("--fixed-hint-depth-map-path", "--fixed_hint_depth_map_path", dest="fixed_hint_depth_map_path")
+    parser.add_argument("--fixed-hint-depth-cap", "--fixed_hint_depth_cap", dest="fixed_hint_depth_cap")
+    parser.add_argument("--fixed-hint-unsolved-depth", "--fixed_hint_unsolved_depth", dest="fixed_hint_unsolved_depth")
+    parser.add_argument("--fixed-hint-task-names", "--fixed_hint_task_names", dest="fixed_hint_task_names")
+    parser.add_argument("--fixed-hint-apply-to-eval", "--fixed_hint_apply_to_eval", dest="fixed_hint_apply_to_eval")
+    parser.add_argument("--dynamic-hint-max-depth", "--dynamic_hint_max_depth", dest="dynamic_hint_max_depth")
+    parser.add_argument(
+        "--dynamic-hint-apply-to-eval", "--dynamic_hint_apply_to_eval", dest="dynamic_hint_apply_to_eval"
+    )
+    parser.add_argument("--dynamic-hint-task-names", "--dynamic_hint_task_names", dest="dynamic_hint_task_names")
+    parser.add_argument("--hint-ce-loss-coef", "--hint_ce_loss_coef", dest="hint_ce_loss_coef")
+    parser.add_argument(
+        "--token-level-prefix-advantage",
+        "--token_level_prefix_advantage",
+        dest="token_level_prefix_advantage",
+    )
+    parser.add_argument(
+        "--token-adv-total-token-normalize",
+        "--token_adv_total_token_normalize",
+        dest="token_adv_total_token_normalize",
+    )
+    parser.add_argument(
+        "--token-level-ndcg-error-token-penalty",
+        "--token_level_ndcg_error_token_penalty",
+        dest="token_level_ndcg_error_token_penalty",
+    )
+    parser.add_argument("--prefix-reward-normalize", "--prefix_reward_normalize", dest="prefix_reward_normalize")
+    parser.add_argument(
+        "--probe-rule-with-zero-weight", "--probe_rule_with_zero_weight", dest="probe_rule_with_zero_weight"
+    )
+    parser.add_argument("--temperature")
+    parser.add_argument("--top-p", "--top_p", dest="top_p")
+    parser.add_argument("--top-k", "--top_k", dest="top_k")
+    parser.add_argument("--max-completion-length", "--max_completion_length", dest="max_completion_length")
+    parser.add_argument("--beta")
+    parser.add_argument("--repetition-penalty", "--repetition_penalty", dest="repetition_penalty")
+    parser.add_argument("--do-sample", "--do_sample", dest="do_sample")
+    parser.add_argument(
+        "--per-device-train-batch-size",
+        "--per_device_train_batch_size",
+        dest="per_device_train_batch_size",
+    )
+    parser.add_argument(
+        "--per-device-eval-batch-size",
+        "--per_device_eval_batch_size",
+        dest="per_device_eval_batch_size",
+    )
+    parser.add_argument(
+        "--gradient-accumulation-steps",
+        "--gradient_accumulation_steps",
+        dest="gradient_accumulation_steps",
+    )
+    parser.add_argument("--num-train-epochs", "--num_train_epochs", dest="num_train_epochs")
+    parser.add_argument("--learning-rate", "--learning_rate", dest="learning_rate")
+    parser.add_argument("--logging-steps", "--logging_steps", dest="logging_steps")
+    parser.add_argument("--eval-step", "--eval_step", dest="eval_step")
+    parser.add_argument("--eval-strategy", "--eval_strategy", dest="eval_strategy")
+    parser.add_argument("--eval-on-start", "--eval_on_start", dest="eval_on_start")
+    parser.add_argument("--save-strategy", "--save_strategy", dest="save_strategy")
+    parser.add_argument("--save-steps", "--save_steps", dest="save_steps")
+    parser.add_argument("--save-total-limit", "--save_total_limit", dest="save_total_limit")
+    parser.add_argument("--save-only-model", "--save_only_model", dest="save_only_model")
+    parser.add_argument("--warmup-ratio", "--warmup_ratio", dest="warmup_ratio")
+    parser.add_argument("--max-grad-norm", "--max_grad_norm", dest="max_grad_norm")
+    parser.add_argument("--optim")
+    parser.add_argument("--lr-scheduler-type", "--lr_scheduler_type", dest="lr_scheduler_type")
+    parser.add_argument("--bf16")
+    parser.add_argument("--deepspeed")
+    parser.add_argument("--report-to", "--report_to", dest="report_to")
+    parser.add_argument("--run-name", "--run_name", dest="run_name")
+    parser.add_argument("--resume-from-checkpoint", "--resume_from_checkpoint", dest="resume_from_checkpoint")
+    parser.add_argument("--train-task-names", "--train_task_names", dest="train_task_names")
+    parser.add_argument("--eval-task-names", "--eval_task_names", dest="eval_task_names")
+
+
+def _build_cli_overrides(args: argparse.Namespace) -> dict[str, Any]:
+    return {
+        "model": args.model,
+        "data_dir": args.data_dir,
+        "index_path": args.index_path,
+        "output_dir": args.output_dir,
+        "prefix": args.prefix,
+        "num_beams": args.num_beams,
+        "sid_levels": args.sid_levels,
+        "reward_mode": args.reward_mode,
+        "hint_mode": args.hint_mode,
+        "fixed_hint_depth_map_path": args.fixed_hint_depth_map_path,
+        "fixed_hint_depth_cap": args.fixed_hint_depth_cap,
+        "fixed_hint_unsolved_depth": args.fixed_hint_unsolved_depth,
+        "fixed_hint_task_names": args.fixed_hint_task_names,
+        "fixed_hint_apply_to_eval": args.fixed_hint_apply_to_eval,
+        "dynamic_hint_max_depth": args.dynamic_hint_max_depth,
+        "dynamic_hint_apply_to_eval": args.dynamic_hint_apply_to_eval,
+        "dynamic_hint_task_names": args.dynamic_hint_task_names,
+        "hint_ce_loss_coef": args.hint_ce_loss_coef,
+        "token_level_prefix_advantage": args.token_level_prefix_advantage,
+        "token_adv_total_token_normalize": args.token_adv_total_token_normalize,
+        "token_level_ndcg_error_token_penalty": args.token_level_ndcg_error_token_penalty,
+        "prefix_reward_normalize": args.prefix_reward_normalize,
+        "probe_rule_with_zero_weight": args.probe_rule_with_zero_weight,
+        "temperature": args.temperature,
+        "top_p": args.top_p,
+        "top_k": args.top_k,
+        "max_completion_length": args.max_completion_length,
+        "beta": args.beta,
+        "repetition_penalty": args.repetition_penalty,
+        "do_sample": args.do_sample,
+        "per_device_train_batch_size": args.per_device_train_batch_size,
+        "per_device_eval_batch_size": args.per_device_eval_batch_size,
+        "gradient_accumulation_steps": args.gradient_accumulation_steps,
+        "num_train_epochs": args.num_train_epochs,
+        "learning_rate": args.learning_rate,
+        "logging_steps": args.logging_steps,
+        "eval_step": args.eval_step,
+        "eval_strategy": args.eval_strategy,
+        "eval_on_start": args.eval_on_start,
+        "save_strategy": args.save_strategy,
+        "save_steps": args.save_steps,
+        "save_total_limit": args.save_total_limit,
+        "save_only_model": args.save_only_model,
+        "warmup_ratio": args.warmup_ratio,
+        "max_grad_norm": args.max_grad_norm,
+        "optim": args.optim,
+        "lr_scheduler_type": args.lr_scheduler_type,
+        "bf16": args.bf16,
+        "deepspeed": args.deepspeed,
+        "report_to": args.report_to,
+        "run_name": args.run_name,
+        "resume_from_checkpoint": args.resume_from_checkpoint,
+        "train_task_names": args.train_task_names,
+        "eval_task_names": args.eval_task_names,
+    }
+
+
+def main(
+    argv: list[str] | None = None,
+    *,
+    trl_main: Callable[..., Any] | None = None,
+    base_defaults: dict[str, Any] | None = None,
+) -> int:
+    parser = build_arg_parser()
+    args = parser.parse_args(argv)
+    config = RLTrainerConfig.from_sources(
+        config_path=args.config,
+        override_items=args.override_items,
+        cli_overrides=_build_cli_overrides(args),
+        trl_main=trl_main or run_training_kwargs,
+        base_defaults=base_defaults,
+    )
+    if args.print_config or args.dry_run:
+        print(json.dumps(config.to_nested_dict(), indent=2, ensure_ascii=False, sort_keys=True))
+    trl_kwargs = config.to_trl_kwargs()
+    if args.print_flat_kwargs or args.dry_run:
+        print(json.dumps(trl_kwargs, indent=2, ensure_ascii=False, sort_keys=True, default=str))
+    if args.print_config or args.print_flat_kwargs or args.dry_run:
+        return 0
+    (trl_main or run_training_kwargs)(**trl_kwargs)
+    return 0
+
+
 if __name__ == "__main__":
-    fire.Fire(main)
-
-
-# from datasets import load_dataset
-# from trl import GRPOTrainer
-
-# dataset = load_dataset("trl-lib/tldr", split="train")
-
-# # Dummy reward function: count the number of unique characters in the completions
-# def reward_num_unique_chars(completions, **kwargs):
-#     return [len(set(c)) for c in completions]
-
-# from trl.trainer.grpo_config import GRPOConfig
-# args = GRPOConfig(
-#     output_dir="rl_outputs/Qwen2.5-0.5B-Instruct-grpo",
-#     per_device_train_batch_size=2,
-#     per_device_eval_batch_size=2,
-#     num_train_epochs=1,
-#     learning_rate=5e-6,
-#     logging_steps=10,
-#     num_generations=2,
-#     top_k=50,
-#     top_p=1.0,
-#     max_completion_length=128,
-# )
-# from transformers import AutoModelForCausalLM
-# model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen2.5-0.5B-Instruct")
-
-# trainer = GRPOTrainer(
-#     model=model,
-#     reward_funcs=reward_num_unique_chars,
-#     train_dataset=dataset,
-#     args=args,
-# )
-# trainer.train()
+    raise SystemExit(main())

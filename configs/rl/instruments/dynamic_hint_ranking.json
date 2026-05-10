@@ -1,0 +1,23 @@
+{
+  "extends": "base_instruments.json",
+  "model_data": {
+    "output_dir": "rl_outputs/Instruments-grec-grpo-ranking-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft495"
+  },
+  "algorithm": {
+    "hint_mode": "dynamic",
+    "reward_mode": "ranking",
+    "prefix_reward_normalize": true,
+    "probe_rule_with_zero_weight": false,
+    "token_level_prefix_advantage": false,
+    "token_adv_total_token_normalize": false,
+    "token_level_ndcg_error_token_penalty": false,
+    "hint_ce_loss_coef": 0.0
+  },
+  "hint": {
+    "dynamic_hint_max_depth": 3,
+    "dynamic_hint_apply_to_eval": false
+  },
+  "runtime": {
+    "run_name": "instruments_grec_rl_ranking_dynamic_hint_cascade_qwen2_5_3b_qwen4b_4_256_from_ckpt495"
+  }
+}

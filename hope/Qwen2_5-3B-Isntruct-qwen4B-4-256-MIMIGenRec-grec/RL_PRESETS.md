@@ -21,12 +21,18 @@ bash Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl.sh --preset <name>
 
 ## Notes
 
+- Preset configs now carry the stable Instruments model/data/training defaults.
+- Use launcher flags mainly for runtime concerns such as `--port`, `--num-processes`, `--log-file`, or one-off `trl_trainer.py` overrides.
+- Common trainer overrides can still be applied with passthrough flags such as:
+  - `--output-dir ...`
+  - `--run-name ...`
+  - `--eval_on_start true|false`
+  - `--set optimization.save_total_limit=20`
 - You can still override any field explicitly, e.g.:
   - `--reward-mode ...`
   - `--token-level-prefix-adv true|false`
   - `--token-adv-total-token-normalize true|false`
   - `--token-level-ndcg-error-token-penalty true|false`
-- `rl.sh` now always passes reward-related args explicitly to `trl_trainer.py`.
 - All reward modes now log `rule_reward`; when a mode does not optimize it directly, it is attached as a zero-weight probe.
 - Checkpoints policy remains:
   - `--save_total_limit` default `10`

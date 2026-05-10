@@ -15,6 +15,12 @@ from unittest import mock
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TRL_TRAINER_PATH = REPO_ROOT / "trl_trainer.py"
+BASE_RL_SCRIPT = (
+    REPO_ROOT
+    / "hope"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
+    / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl.sh"
+)
 DYNAMIC_HINT_SCRIPT = (
     REPO_ROOT
     / "hope"
@@ -577,7 +583,7 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         module = _load_trl_trainer_module(grpo_kwargs)
 
         with self.assertRaises(StopAfterTrainerInit):
-            module.main(
+            module.run_training_kwargs(
                 model="dummy-model",
                 data_dir="dummy-data",
                 index_path="dummy-index",
@@ -598,7 +604,7 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         module = _load_trl_trainer_module(grpo_kwargs)
 
         with self.assertRaises(StopAfterTrainerInit):
-            module.main(
+            module.run_training_kwargs(
                 model="dummy-model",
                 data_dir="dummy-data",
                 index_path="dummy-index",
@@ -661,7 +667,7 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         )
 
         with self.assertRaises(StopAfterTrainerInit):
-            module.main(
+            module.run_training_kwargs(
                 model="dummy-model",
                 data_dir="dummy-data",
                 index_path="dummy-index",
@@ -727,7 +733,7 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         )
 
         with self.assertRaises(StopAfterTrainerInit):
-            module.main(
+            module.run_training_kwargs(
                 model="dummy-model",
                 data_dir="dummy-data",
                 index_path="dummy-index",
@@ -778,7 +784,7 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         module = _load_trl_trainer_module(grpo_kwargs, dataset_payload=dataset_payload)
 
         with self.assertRaisesRegex(ValueError, "unknown.*missing_task"):
-            module.main(
+            module.run_training_kwargs(
                 model="dummy-model",
                 data_dir="dummy-data",
                 index_path="dummy-index",
@@ -813,7 +819,7 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         module = _load_trl_trainer_module(grpo_kwargs, dataset_payload=dataset_payload)
 
         with self.assertRaisesRegex(ValueError, "empty filtered eval split"):
-            module.main(
+            module.run_training_kwargs(
                 model="dummy-model",
                 data_dir="dummy-data",
                 index_path="dummy-index",
@@ -873,7 +879,7 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         )
 
         with self.assertRaises(StopAfterTrainerInit):
-            module.main(
+            module.run_training_kwargs(
                 model="dummy-model",
                 data_dir="dummy-data",
                 index_path="dummy-index",
@@ -917,7 +923,7 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         module = _load_trl_trainer_module(grpo_kwargs, dataset_payload=dataset_payload)
 
         with self.assertRaisesRegex(ValueError, "unknown fixed-hint task names"):
-            module.main(
+            module.run_training_kwargs(
                 model="dummy-model",
                 data_dir="dummy-data",
                 index_path="dummy-index",
@@ -973,7 +979,7 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         )
 
         with self.assertRaises(StopAfterTrainerInit):
-            module.main(
+            module.run_training_kwargs(
                 model="dummy-model",
                 data_dir="dummy-data",
                 index_path="dummy-index",
@@ -1017,7 +1023,7 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         module = _load_trl_trainer_module(grpo_kwargs, dataset_payload=dataset_payload)
 
         with self.assertRaisesRegex(ValueError, "unknown dynamic-hint task names"):
-            module.main(
+            module.run_training_kwargs(
                 model="dummy-model",
                 data_dir="dummy-data",
                 index_path="dummy-index",
@@ -1042,8 +1048,9 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("--run_name", result.stdout)
-        self.assertIn("--per_device_train_batch_size 64", result.stdout)
-        self.assertIn("--per_device_eval_batch_size 64", result.stdout)
+        self.assertIn("--config /Users/fanghaotian/Desktop/src/GenRec/configs/rl/instruments/dynamic_hint_rule.json", result.stdout)
+        self.assertNotIn("--per_device_train_batch_size", result.stdout)
+        self.assertNotIn("--per_device_eval_batch_size", result.stdout)
         self.assertIn("--eval_on_start true", result.stdout)
 
     def test_dynamic_hint_ce_shell_dry_run_forwards_hint_ce_defaults(self):
@@ -1073,7 +1080,7 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         )
 
         with self.assertRaises(StopAfterTrainerInit):
-            module.main(
+            module.run_training_kwargs(
                 model="dummy-model",
                 data_dir="dummy-data",
                 index_path="dummy-index",
@@ -1225,6 +1232,50 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         self.assertIn("--dynamic_hint_max_depth 3", result.stdout)
         self.assertIn("--eval_on_start true", result.stdout)
 
+    def test_base_rl_shell_dry_run_uses_config_for_stable_training_defaults(self):
+        result = subprocess.run(
+            ["bash", str(BASE_RL_SCRIPT), "--dry-run"],
+            cwd=REPO_ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("--config /Users/fanghaotian/Desktop/src/GenRec/configs/rl/instruments/prefix_token.json", result.stdout)
+        self.assertIn(
+            "--run_name instruments_grec_rl_prefix_tokenadv_ndcg_rule0_qwen2_5_3b_qwen4b_4_256_from_ckpt495",
+            result.stdout,
+        )
+        self.assertNotIn("--num_beams", result.stdout)
+        self.assertNotIn("--per_device_train_batch_size", result.stdout)
+        self.assertNotIn("--save_total_limit", result.stdout)
+
+    def test_base_rl_shell_dry_run_preserves_standalone_passthrough_flags(self):
+        result = subprocess.run(
+            ["bash", str(BASE_RL_SCRIPT), "--run", "--print-config", "--dry-run"],
+            cwd=REPO_ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("--print-config", result.stdout)
+        self.assertNotIn("Conda activate script not found", result.stdout + result.stderr)
+
+    def test_base_rl_shell_missing_config_fails_before_background_launch(self):
+        result = subprocess.run(
+            ["bash", str(BASE_RL_SCRIPT), "--detach", "--config", "configs/rl/instruments/does-not-exist.json"],
+            cwd=REPO_ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Missing RL config", result.stdout + result.stderr)
+
     def test_analyze_beam_hint_shell_dry_run_defaults_to_beam_16_only(self):
         result = self._run_analyze_beam_hint_dry_run()
 
@@ -1258,7 +1309,7 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         module = _load_trl_trainer_module(grpo_kwargs, fixed_hint_trainer_kwargs)
 
         with self.assertRaises(StopAfterTrainerInit):
-            module.main(
+            module.run_training_kwargs(
                 model="dummy-model",
                 data_dir="dummy-data",
                 index_path="dummy-index",
@@ -1522,7 +1573,7 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         training_scripts = sorted(
             path
             for path in GREC_RL_SCRIPT_DIR.glob("*-rl*.sh")
-            if "analyze-rl-beam-hint" not in path.name and "hint-ce" not in path.name
+            if "analyze-rl-beam-hint" not in path.name and "hint-ce" not in path.name and path != BASE_RL_SCRIPT
         )
         self.assertTrue(training_scripts, msg="Expected grecc RL launcher scripts")
 
@@ -1547,7 +1598,7 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {"RANK": "1", "LOCAL_RANK": "1"}, clear=False):
             with redirect_stdout(stdout):
                 with self.assertRaises(StopAfterTrainerInit):
-                    module.main(
+                    module.run_training_kwargs(
                         model="dummy-model",
                         data_dir="dummy-data",
                         index_path="dummy-index",
@@ -1570,7 +1621,7 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         module = _load_trl_trainer_module(grpo_kwargs)
 
         with self.assertRaises(StopAfterTrainerInit):
-            module.main(
+            module.run_training_kwargs(
                 model="dummy-model",
                 data_dir="dummy-data",
                 index_path="dummy-index",
@@ -1588,7 +1639,7 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         module = _load_trl_trainer_module(grpo_kwargs)
 
         with self.assertRaises(StopAfterTrainerInit):
-            module.main(
+            module.run_training_kwargs(
                 model="dummy-model",
                 data_dir="dummy-data",
                 index_path="dummy-index",
