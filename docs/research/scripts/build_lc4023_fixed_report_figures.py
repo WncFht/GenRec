@@ -21,7 +21,7 @@ SERIES = [
         "key": "fixed",
         "label": "RL fixed-hint",
         "root": RESULTS_ROOT / "Instruments-grec-lc4023-fixed",
-        "max_step": 4008,
+        "max_step": 5006,
         "color": "#F28E2B",
         "marker": "o",
     },

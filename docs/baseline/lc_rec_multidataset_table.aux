@@ -9,11 +9,11 @@
 \@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces 当前 \texttt  {ins-lc4023-rule} 在 GenRec 统一评测口径下的最佳 checkpoint，对比 Instruments SFT 复现与论文 LC-Rec 主表。}}{1}{}\protected@file@percent }
 \newlabel{tab:lcrec-instruments-rule-rl-repro}{{3}{1}{}{table.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {1.3}Instruments 上的 fixed-hint RL 复现实测}{2}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces 当前 \texttt  {Instruments-grec-lc4023-fixed} 在 GenRec 统一评测口径下的 fixed-hint RL 结果。该 run 共 2 epoch、8 个评测点，best \texttt  {NDCG@10} 出现在 \texttt  {ckpt-3507}，最终收尾为 \texttt  {ckpt-4008}。}}{2}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces 当前 \texttt  {Instruments-grec-lc4023-fixed} 在 GenRec 统一评测口径下的 fixed-hint RL 结果。该 run 的完整训练长度也应按 \texttt  {5006 step = 2 epoch} 口径理解，但本地目前只同步到 \texttt  {ckpt-4008}；best \texttt  {NDCG@10} 出现在 \texttt  {ckpt-3507}。}}{2}{}\protected@file@percent }
 \newlabel{tab:lcrec-instruments-fixed-rl-repro}{{4}{2}{}{table.4}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Instruments 上 \texttt  {lc4023} 两条 RL 复现线的 epoch 曲线图。横轴统一按各自完整训练长度归一化到 2 epoch：fixed-hint 为 \texttt  {4008 step}，rule-only 为 \texttt  {5006 step}，虚线表示 \texttt  {SFT ckpt-4023}。}}{2}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Instruments 上 \texttt  {lc4023} 两条 RL 复现线的 epoch 曲线图。横轴统一按完整训练长度 \texttt  {5006 step = 2 epoch} 归一化；fixed-hint 当前只同步到 \texttt  {4008 step}，因此曲线在约 \texttt  {1.601 epoch} 处结束，虚线表示 \texttt  {SFT ckpt-4023}。}}{2}{}\protected@file@percent }
 \newlabel{fig:lcrec-instruments-lc4023-epoch-curves}{{1}{2}{}{figure.1}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces \texttt  {Instruments-grec-lc4023-fixed} 的逐 checkpoint 指标明细。epoch 由 \texttt  {step / 4008 * 2} 计算。}}{3}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces \texttt  {Instruments-grec-lc4023-fixed} 的逐 checkpoint 指标明细。epoch 由 \texttt  {step / 5006 * 2} 计算；也就是说这条线理论上的 \texttt  {2.0 epoch} 终点应在 \texttt  {5006 step}，当前本地仅同步到 \texttt  {4008 step}。}}{3}{}\protected@file@percent }
 \newlabel{tab:lcrec-instruments-fixed-rl-all-points}{{5}{3}{}{table.5}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces \texttt  {ins-lc4023-rule} 的逐 checkpoint 指标明细。epoch 由 \texttt  {step / 5006 * 2} 计算，因此最终 \texttt  {5006 step} 对应准确的 \texttt  {2.0 epoch}。当前本地同步到的第一个评测点是 \texttt  {2505 step}，所以曲线从约 \texttt  {1.001 epoch} 开始。}}{3}{}\protected@file@percent }
 \newlabel{tab:lcrec-instruments-rule-rl-all-points}{{6}{3}{}{table.6}{}}
