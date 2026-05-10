@@ -38,6 +38,13 @@ default_fixed_hint_model_id() {
   echo "$(sanitize_name "$base_name")"
 }
 
+default_fixed_hint_dataset_id() {
+  local data_dir="$1"
+  local parent_dir
+  parent_dir="$(basename "$(dirname "$data_dir")")"
+  echo "$(sanitize_name "$parent_dir")"
+}
+
 init_fixed_hint_artifact_paths() {
   local artifact_root="$1"
   local dataset_id="$2"

@@ -109,6 +109,8 @@ PYTHON_BIN="${PYTHON_BIN:-python}"
 
 # shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/_fixed_hint_artifacts.sh"
+# shellcheck disable=SC1091
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/_launcher_runtime.sh"
 
 DATA_VARIANT_DEFAULT="${DATA_VARIANT_DEFAULT:-Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47}"
 MODEL_PATH="${MODEL_PATH:-${REPO_ROOT}/saves/qwen2.5-3b/full/Instruments-grec-sft-qwen4B-4-256-dsz0/checkpoint-495}"
@@ -138,7 +140,7 @@ RESUME_FROM_CHECKPOINT="${RESUME_FROM_CHECKPOINT:-auto}"
 
 RUN_NAME="${RUN_NAME:-instruments_grec_rl_rule_only_fixed_hint_taskfix_b16_sid_hint_only_mixed_hint_ce005_ckpt495}"
 ANALYSIS_DIR_DEFAULT="${REPO_ROOT}/temp/rl_beam_hint/artifacts"
-ANALYSIS_DATASET_ID="instruments-grec-index-emb"
+ANALYSIS_DATASET_ID="$(default_fixed_hint_dataset_id "$DATA_DIR")"
 ANALYSIS_SCOPE_ID="sid-only"
 ANALYSIS_MODEL_ID="$(default_fixed_hint_model_id "$MODEL_PATH")"
 ANALYSIS_SUMMARY_PATH="${ANALYSIS_SUMMARY_PATH:-}"
@@ -486,19 +488,6 @@ ANALYZE_CMD=(
   --sid-levels "$SID_LEVELS"
   --cache-dir "$ANALYSIS_DIR_DEFAULT"
   --task-names "$ANALYSIS_TASK_NAMES"
-)
-
-EXPORT_CMD=(
-  "$PYTHON_BIN"
-  analyze_rl_beam_hint.py
-  --model-path "$MODEL_PATH"
-  --data-dir "$DATA_DIR"
-  --index-path "$INDEX_PATH"
-  --add-tokens-path "$ADD_TOKENS_PATH"
-  --beam-sizes "$BEAM_SIZE"
-  --reuse-summary-path "$ANALYSIS_SUMMARY_PATH"
-  --reuse-details-path "$ANALYSIS_DETAILS_PATH"
-  --task-names "$ANALYSIS_TASK_NAMES"
   --export-fixed-hint-depth-map-path "$FIXED_HINT_MAP_PATH"
   --export-fixed-hint-beam-size "$BEAM_SIZE"
   --export-fixed-hint-unsolved-depth "$UNSOLVED_DEPTH"
@@ -549,11 +538,7 @@ if [[ -n "$CAP_DEPTH" ]]; then
 fi
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
-  if [[ ! -f "$ANALYSIS_SUMMARY_PATH" || ! -f "$ANALYSIS_DETAILS_PATH" ]]; then
-    printf '%q ' "${ANALYZE_CMD[@]}"
-    echo
-  fi
-  printf '%q ' "${EXPORT_CMD[@]}"
+  printf '%q ' "${ANALYZE_CMD[@]}"
   echo
   printf '%q ' "${TRAIN_CMD[@]}"
   echo
@@ -609,37 +594,18 @@ echo "[INFO] ANALYSIS_TASK_NAMES=$ANALYSIS_TASK_NAMES"
 echo "[INFO] HINT_CE_LOSS_COEF=$HINT_CE_LOSS_COEF"
 echo "[INFO] LOG_FILE=$LOG_FILE"
 
-if [[ ! -f "$CONDA_ACTIVATE" ]]; then
-  echo "[ERROR] Conda activate script not found: $CONDA_ACTIVATE"
-  exit 1
-fi
-
-# shellcheck disable=SC1090
-if [[ "${CONDA_DEFAULT_ENV:-}" != "$CONDA_ENV_NAME" ]]; then
-  source "$CONDA_ACTIVATE" "$CONDA_ENV_NAME"
-fi
-if [[ -n "${CONDA_PREFIX:-}" && -x "${CONDA_PREFIX}/bin/x86_64-conda-linux-gnu-c++" ]]; then
-  export CXX="${CONDA_PREFIX}/bin/x86_64-conda-linux-gnu-c++"
-fi
-
-export DISABLE_VERSION_CHECK=1
-export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"
-export TRANSFORMERS_OFFLINE="${TRANSFORMERS_OFFLINE:-1}"
-export HF_DATASETS_OFFLINE="${HF_DATASETS_OFFLINE:-1}"
-unset HF_ENDPOINT || true
-export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-false}"
-export OMP_NUM_THREADS="${OMP_NUM_THREADS:-8}"
-export PYTHONPATH="${REPO_ROOT}:${PYTHONPATH:-}"
+activate_genrec_env "$CONDA_ACTIVATE" "$CONDA_ENV_NAME"
+setup_genrec_runtime_env "$REPO_ROOT"
+require_accelerate
 
 cd "$REPO_ROOT"
 
-if [[ ! -f "$ANALYSIS_SUMMARY_PATH" || ! -f "$ANALYSIS_DETAILS_PATH" ]]; then
-  echo "[INFO] sid-only-in-mixed hint analysis cache missing, generating summary/details first."
-  "${ANALYZE_CMD[@]}"
-fi
+set -x
+"${ANALYZE_CMD[@]}"
+set +x
 
 require_file "$ANALYSIS_SUMMARY_PATH" "analysis summary"
 require_file "$ANALYSIS_DETAILS_PATH" "analysis details"
+require_file "$FIXED_HINT_MAP_PATH" "fixed hint map"
 
-"${EXPORT_CMD[@]}"
 "${TRAIN_CMD[@]}"
