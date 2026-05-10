@@ -41,7 +41,7 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/_fixed_hint_artif
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/_launcher_runtime.sh"
 
 DATA_VARIANT_DEFAULT="Arts_grec_index"
-MODEL_PATH="${REPO_ROOT}/saves/qwen2.5-3b/full/Arts-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu"
+MODEL_PATH="${REPO_ROOT}/saves/qwen2.5-3b/full/Arts-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu/checkpoint-17268"
 DATA_DIR="${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/rl"
 INDEX_PATH="${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/id2sid.json"
 ADD_TOKENS_PATH="${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/new_tokens.json"

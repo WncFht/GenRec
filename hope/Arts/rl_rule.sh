@@ -4,7 +4,7 @@ set -eo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  bash rl_fixed_ce.sh [--ds-config <path>] [--dry-run]
+  bash rl_rule.sh [--ds-config <path>] [--dry-run]
 
   --ds-config <path>
   --dry-run
@@ -33,10 +33,7 @@ require_file() {
 CONDA_ACTIVATE="/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/conda/bin/activate"
 CONDA_ENV_NAME="genrec"
 REPO_ROOT="/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec"
-PYTHON_BIN="python"
 
-# shellcheck disable=SC1091
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/_fixed_hint_artifacts.sh"
 # shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/_launcher_runtime.sh"
 
@@ -44,8 +41,7 @@ DATA_VARIANT_DEFAULT="Arts_grec_index"
 MODEL_PATH="${REPO_ROOT}/saves/qwen2.5-3b/full/Arts-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu/checkpoint-17268"
 DATA_DIR="${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/rl"
 INDEX_PATH="${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/id2sid.json"
-ADD_TOKENS_PATH="${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/new_tokens.json"
-OUTPUT_DIR="${REPO_ROOT}/rl_outputs/Arts-grec-fixed-ce"
+OUTPUT_DIR="${REPO_ROOT}/rl_outputs/Arts-grec-rule"
 DS_CONFIG="${REPO_ROOT}/config/zero2.yaml"
 
 NUM_PROCESSES=4
@@ -58,42 +54,15 @@ GRAD_ACC=4
 NUM_EPOCHS=2
 LEARNING_RATE=1e-5
 EVAL_STEP=100
-EVAL_ON_START=false
+EVAL_ON_START=true
 MAX_COMPLETION_LENGTH=128
 BETA=1e-3
 TEMPERATURE=1.0
 SAVE_TOTAL_LIMIT=10
 REPORT_TO="wandb"
 RESUME_FROM_CHECKPOINT="auto"
-
-RUN_NAME="arts_grec_fixed_ce"
-ANALYSIS_DIR_DEFAULT="${REPO_ROOT}/temp/rl_beam_hint/artifacts"
-ANALYSIS_DATASET_ID="$(default_fixed_hint_dataset_id "$DATA_DIR")"
-ANALYSIS_TASK_NAMES=""
-ANALYSIS_SCOPE_ID="all"
-ANALYSIS_MODEL_ID="$(default_fixed_hint_model_id "$MODEL_PATH")"
-
-BEAM_SIZE=16
-UNSOLVED_DEPTH=3
-CAP_DEPTH=""
-HINT_CE_LOSS_COEF=0.001
-ANALYZE_HINT_DEPTH=1
-ANALYZE_MAX_HINT_DEPTH=3
-ANALYZE_BATCH_SIZE=8
-ANALYZE_MAX_PROMPT_LENGTH=512
-ANALYZE_MAX_NEW_TOKENS=128
-ANALYZE_REPETITION_PENALTY=1.0
+RUN_NAME="arts_grec_rule"
 DRY_RUN=0
-
-init_fixed_hint_artifact_paths \
-  "$ANALYSIS_DIR_DEFAULT" \
-  "$ANALYSIS_DATASET_ID" \
-  "$ANALYSIS_SCOPE_ID" \
-  "$ANALYSIS_MODEL_ID" \
-  "$BEAM_SIZE" \
-  "$ANALYZE_MAX_HINT_DEPTH" \
-  "$SID_LEVELS" \
-  "$UNSOLVED_DEPTH"
 
 export WANDB_PROJECT="MIMIGenRec-GRPO"
 export WANDB_MODE="offline"
@@ -124,29 +93,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 export WANDB_RUN_NAME="$RUN_NAME"
-
-ANALYZE_CMD=(
-  "$PYTHON_BIN"
-  analyze_rl_beam_hint.py
-  --model-path "$MODEL_PATH"
-  --data-dir "$DATA_DIR"
-  --index-path "$INDEX_PATH"
-  --add-tokens-path "$ADD_TOKENS_PATH"
-  --summary-path "$ANALYSIS_SUMMARY_PATH"
-  --details-path "$ANALYSIS_DETAILS_PATH"
-  --beam-sizes "$BEAM_SIZE"
-  --hint-depth "$ANALYZE_HINT_DEPTH"
-  --max-hint-depth "$ANALYZE_MAX_HINT_DEPTH"
-  --batch-size "$ANALYZE_BATCH_SIZE"
-  --max-prompt-length "$ANALYZE_MAX_PROMPT_LENGTH"
-  --max-new-tokens "$ANALYZE_MAX_NEW_TOKENS"
-  --repetition-penalty "$ANALYZE_REPETITION_PENALTY"
-  --sid-levels "$SID_LEVELS"
-  --cache-dir "$ANALYSIS_DIR_DEFAULT"
-  --export-fixed-hint-depth-map-path "$FIXED_HINT_MAP_PATH"
-  --export-fixed-hint-beam-size "$BEAM_SIZE"
-  --export-fixed-hint-unsolved-depth "$UNSOLVED_DEPTH"
-)
 
 LAUNCH_ARGS=(
   accelerate launch
@@ -190,13 +136,6 @@ REWARD_ARGS=(
   --token_level_prefix_advantage false
 )
 
-FIXED_HINT_ARGS=(
-  --fixed_hint_depth_map_path "$FIXED_HINT_MAP_PATH"
-  --fixed_hint_unsolved_depth "$UNSOLVED_DEPTH"
-  --fixed_hint_apply_to_eval false
-  --hint_ce_loss_coef "$HINT_CE_LOSS_COEF"
-)
-
 RUNTIME_ARGS=(
   --report_to "$REPORT_TO"
   --run_name "$RUN_NAME"
@@ -209,17 +148,10 @@ TRAIN_CMD=(
   "${GENERATION_ARGS[@]}"
   "${TRAINING_ARGS[@]}"
   "${REWARD_ARGS[@]}"
-  "${FIXED_HINT_ARGS[@]}"
   "${RUNTIME_ARGS[@]}"
 )
 
-if [[ -n "$CAP_DEPTH" ]]; then
-  TRAIN_CMD+=(--fixed_hint_depth_cap "$CAP_DEPTH")
-fi
-
 if [[ "$DRY_RUN" == "1" ]]; then
-  printf '%q ' "${ANALYZE_CMD[@]}"
-  echo
   printf '%q ' "${TRAIN_CMD[@]}"
   echo
   exit 0
@@ -231,28 +163,13 @@ require_file "${DATA_DIR}/train.json" "RL train dataset"
 require_file "${DATA_DIR}/valid.json" "RL valid dataset"
 require_file "${DATA_DIR}/test.json" "RL test dataset"
 require_file "$INDEX_PATH" "id2sid index file"
-require_file "$ADD_TOKENS_PATH" "new tokens file"
 require_file "$DS_CONFIG" "DeepSpeed config"
 require_file "${REPO_ROOT}/trl_trainer.py" "trl_trainer.py"
-require_file "${REPO_ROOT}/analyze_rl_beam_hint.py" "analyze_rl_beam_hint.py"
 
 activate_genrec_env "$CONDA_ACTIVATE" "$CONDA_ENV_NAME"
 setup_genrec_runtime_env "$REPO_ROOT"
 require_accelerate
 
-mkdir -p "$(dirname -- "$ANALYSIS_SUMMARY_PATH")"
-mkdir -p "$(dirname -- "$ANALYSIS_DETAILS_PATH")"
-mkdir -p "$(dirname -- "$FIXED_HINT_MAP_PATH")"
-
 cd "$REPO_ROOT"
-
-set -x
-"${ANALYZE_CMD[@]}"
-set +x
-
-require_file "$ANALYSIS_SUMMARY_PATH" "analysis summary"
-require_file "$ANALYSIS_DETAILS_PATH" "analysis details"
-require_file "$FIXED_HINT_MAP_PATH" "fixed hint map"
-
 set -x
 "${TRAIN_CMD[@]}"
