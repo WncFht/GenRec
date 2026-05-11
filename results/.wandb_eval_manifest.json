@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-08T12:05:13+00:00",
+  "generated_at": "2026-05-11T02:35:45+00:00",
   "results_root": "/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/results",
   "models": [
     {
@@ -632,6 +632,36 @@
       "wandb_entity": null,
       "wandb_run_id": "eval-682db208f827021171f1",
       "wandb_run_name": "Instruments-grec-hint-token-sft-fixed-b16-lr3e-4-sft495-eval"
+    },
+    {
+      "model_dir": "Instruments-grec-lc4023-fixed",
+      "dataset": "Instruments_grec_lc4023_fixed",
+      "cb_setting": "none",
+      "eval_split": "test",
+      "seed": 42,
+      "num_beams": 50,
+      "sid_levels": -1,
+      "num_train_epochs": null,
+      "wandb_group": null,
+      "wandb_project": "MIMIGenRec-Eval",
+      "wandb_entity": null,
+      "wandb_run_id": "eval-0e2314e3f7dd6ca41418",
+      "wandb_run_name": "Instruments-grec-lc4023-fixed-eval"
+    },
+    {
+      "model_dir": "Instruments-grec-lc4023-fixed-ce",
+      "dataset": "Instruments_grec_lc4023_fixed_ce",
+      "cb_setting": "none",
+      "eval_split": "test",
+      "seed": 42,
+      "num_beams": 50,
+      "sid_levels": -1,
+      "num_train_epochs": null,
+      "wandb_group": null,
+      "wandb_project": "MIMIGenRec-Eval",
+      "wandb_entity": null,
+      "wandb_run_id": "eval-1add1c5aa922ae5dca98",
+      "wandb_run_name": "Instruments-grec-lc4023-fixed-ce-eval"
     },
     {
       "model_dir": "Instruments-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu",
