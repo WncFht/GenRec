@@ -333,7 +333,7 @@ def build_main_table(resolved: list[dict[str, object]]) -> str:
     parts.append(r"Instruments 上当前 best \texttt{NDCG@10} 仍是 \texttt{GenRec(rule)} 的 \texttt{0.0960}；")
     parts.append(r"如果看 coverage，\texttt{GenRec(fixed + ce0.005)} 在当前 best 点达到 \texttt{HR@50=0.1985}。")
     parts.append(r"Games 上当前已经测出的最强线是 \texttt{GenRec(fixed)}，best 点为 \texttt{checkpoint-8752 / NDCG@10=0.0480 / HR@50=0.1972}。")
-    parts.append(r"Arts 当前仓库里只有 LC-Rec aligned SFT 的 GenRec 评测结果，还没有你这次想放进主表的 GenRec RL 变体，所以 Arts 先只放在附录。")
+    parts.append(r"Arts 这次没有纳入主表，因为当前你指定的目标方法里还没有对应的实测结果。")
     return "\n".join(parts) + "\n"
 
 
@@ -347,9 +347,6 @@ def appendix_run_specs() -> list[RunSpec]:
         RunSpec("Games", "GenRec (SFT)", "GenRec(sft)", model_dir="Games-grec-sft-qwen4B-4-256-dsz0"),
         RunSpec("Games", "GenRec (rule)", "GenRec(rule)", model_dir="Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft896"),
         RunSpec("Games", "GenRec (fixed)", "GenRec(fixed)", model_dir="Games-grec-grpo-rule-only-fixedhint-taskfix-b16-sft896"),
-        RunSpec("Instruments", "LC-Rec aligned SFT", "LC-Rec aligned SFT", model_dir="Instruments-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu"),
-        RunSpec("Games", "LC-Rec aligned SFT", "LC-Rec aligned SFT", model_dir="Games-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu"),
-        RunSpec("Arts", "LC-Rec aligned SFT", "LC-Rec aligned SFT", model_dir="Arts-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu"),
     ]
 
 
