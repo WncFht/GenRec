@@ -132,7 +132,7 @@ def main() -> None:
     handles, labels = axes[0, 0].get_legend_handles_labels()
     unique = dict(zip(labels, handles, strict=False))
     fig.legend(unique.values(), unique.keys(), loc="upper center", bbox_to_anchor=(0.5, 0.995), ncol=3, frameon=False)
-    fig.suptitle("Instruments LC4023 RL: Fixed Hint vs Rule-only", y=0.95)
+    fig.suptitle("Instruments LC4023 RL: HR@1/5/10, NDCG@5/10/50, HR@50", y=0.95)
     fig.tight_layout(rect=(0, 0, 1, 0.9))
     fig.savefig(ASSET_DIR / "lc4023_fixed_vs_rule_epoch_curves.png", dpi=180)
     plt.close(fig)
