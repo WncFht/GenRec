@@ -85,6 +85,18 @@
     }
   },
   "aliases": {
+    "Arts-grec-fixed": {
+      "dataset_variant": "Arts_grec_index",
+      "sources": [
+        "hope/Arts/rl_fixed.sh#output_dir"
+      ]
+    },
+    "Arts-grec-fixed-ce": {
+      "dataset_variant": "Arts_grec_index",
+      "sources": [
+        "hope/Arts/rl_fixed_ce.sh#output_dir"
+      ]
+    },
     "Arts-grec-lcrec-aligned-qwen2.5-3b-sft-qwen4B-4-256-dsz3-4gpu": {
       "dataset_variant": "Arts_grec_index",
       "sources": [
@@ -95,6 +107,12 @@
       "dataset_variant": "Arts_grec_index",
       "sources": [
         "examples/train_full/Arts/arts_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_lcrec_aligned_4gpu.yaml#yaml_output_dir"
+      ]
+    },
+    "Arts-grec-rule": {
+      "dataset_variant": "Arts_grec_index",
+      "sources": [
+        "hope/Arts/rl_rule.sh#output_dir"
       ]
     },
     "Games-grec-grpo-rule-only-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft896": {
@@ -451,6 +469,18 @@
         "hope/Instruments/rl_4023_fixed_ce.sh#output_dir_default"
       ]
     },
+    "Instruments-grec-lc4023-fixed-ce005": {
+      "dataset_variant": "Instruments_grec_index",
+      "sources": [
+        "hope/Instruments/rl_4023_fixed_ce005.sh#output_dir_default"
+      ]
+    },
+    "Instruments-grec-lc4023-ndcg": {
+      "dataset_variant": "Instruments_grec_index",
+      "sources": [
+        "hope/Instruments/rl_ndcg.sh#output_dir"
+      ]
+    },
     "Instruments-grec-lc4023-rule": {
       "dataset_variant": "Instruments_grec_index",
       "sources": [
@@ -565,6 +595,24 @@
         "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-mimionerec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-mimionerec-evaluate.sh#sft_root"
       ]
     },
+    "arts_grec_fixed": {
+      "dataset_variant": "Arts_grec_index",
+      "sources": [
+        "hope/Arts/rl_fixed.sh#run_name"
+      ]
+    },
+    "arts_grec_fixed_ce": {
+      "dataset_variant": "Arts_grec_index",
+      "sources": [
+        "hope/Arts/rl_fixed_ce.sh#run_name"
+      ]
+    },
+    "arts_grec_rule": {
+      "dataset_variant": "Arts_grec_index",
+      "sources": [
+        "hope/Arts/rl_rule.sh#run_name"
+      ]
+    },
     "games_grec_rl_rule_only_dynamic_hint_cascade_qwen2_5_3b_qwen4b_4_256_from_ckpt896": {
       "dataset_variant": "Games_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsGames",
       "sources": [
@@ -623,6 +671,18 @@
       "dataset_variant": "Instruments_grec_index",
       "sources": [
         "hope/Instruments/rl_4023_fixed_ce.sh#run_name_default"
+      ]
+    },
+    "instruments_grec_lc4023_fixed_ce005": {
+      "dataset_variant": "Instruments_grec_index",
+      "sources": [
+        "hope/Instruments/rl_4023_fixed_ce005.sh#run_name_default"
+      ]
+    },
+    "instruments_grec_lc4023_ndcg": {
+      "dataset_variant": "Instruments_grec_index",
+      "sources": [
+        "hope/Instruments/rl_ndcg.sh#run_name"
       ]
     },
     "instruments_grec_lc4023_rule": {
