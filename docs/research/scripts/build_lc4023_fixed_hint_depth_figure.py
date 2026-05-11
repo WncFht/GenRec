@@ -149,7 +149,7 @@ def plot_distribution_grid(plot_df: pd.DataFrame, out_path: Path) -> None:
             )
             bottoms = [bottom + value for bottom, value in zip(bottoms, values, strict=True)]
 
-        ax.set_title(SCOPE_LABELS[scope], pad=10, fontsize=16)
+        ax.set_title(SCOPE_LABELS[scope], pad=16, fontsize=16)
         ax.set_xticks(bar_positions, [VERSION_LABELS[name] for name in VERSION_ORDER])
         ax.set_ylim(0, 100)
         ax.grid(axis="y", alpha=0.22)
@@ -160,16 +160,17 @@ def plot_distribution_grid(plot_df: pd.DataFrame, out_path: Path) -> None:
             avg_depth = float(scope_df.loc[version, "avg_depth"])
             ax.text(
                 bar_positions[idx],
-                0.9,
+                101.1,
                 f"n={total:,}",
                 ha="center",
                 va="bottom",
                 fontsize=8.2,
                 color="#6B7280",
+                clip_on=False,
             )
             ax.text(
                 bar_positions[idx],
-                93.8,
+                91.8,
                 f"avg={avg_depth:.3f}",
                 ha="center",
                 va="top",
