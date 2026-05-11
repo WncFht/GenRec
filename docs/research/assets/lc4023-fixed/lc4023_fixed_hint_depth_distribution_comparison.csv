@@ -1,0 +1,4 @@
+scope,version,total,depth_0_count,depth_0_ratio,depth_1_count,depth_1_ratio,depth_2_count,depth_2_ratio,depth_3_count,depth_3_ratio,version_label,avg_depth,summary_path,version_order
+overall,legacy_index_only,106441,47937,0.4503621724711342,32907,0.3091571856709351,25348,0.2381413177253126,249,0.002339324132618,historical legacy index,0.7924577935194143,,0
+overall,correct_task_index,106441,33147,0.3114119559192416,36756,0.3453180635281517,36076,0.3389295478246164,462,0.0043404327279901,historical task+index,1.0361984573613547,,1
+overall,current_compact_index,160252,41137,0.25670194443751093,77474,0.48345106457329706,41548,0.2592666550183461,93,0.0005803359708459177,current compact index,1.003725382522527,/Users/fanghaotian/Desktop/src/GenRec/temp/rl_beam_hint/instruments_grec_lc4023_fixed_analysis_summary.json,2
