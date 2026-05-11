@@ -33,6 +33,14 @@ SERIES = [
         "color": "#9C755F",
         "marker": "s",
     },
+    {
+        "key": "fixed_ce",
+        "label": "RL fixed-hint + CE",
+        "root": RESULTS_ROOT / "Instruments-grec-lc4023-fixed-ce",
+        "max_step": 5006,
+        "color": "#4E79A7",
+        "marker": "^",
+    },
 ]
 
 METRICS = [
