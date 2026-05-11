@@ -2,24 +2,24 @@ scope,version,total,depth_0_count,depth_0_ratio,depth_1_count,depth_1_ratio,dept
 overall,correct_task_index,106441,33147,0.3114119559192416,36756,0.3453180635281517,36076,0.3389295478246164,462,0.0043404327279901,"historical
 task+index",1.0361984573613547,,0,0
 overall,legacy_index_only,106441,47937,0.4503621724711342,32907,0.3091571856709351,25348,0.2381413177253126,249,0.002339324132618,"historical
-legacy index",0.7924577935194143,,1,0
+legacy-index",0.7924577935194143,,1,0
 overall,current_compact_index,160252,41137,0.25670194443751093,77474,0.48345106457329706,41548,0.2592666550183461,93,0.0005803359708459177,"current
-compact index",1.003725382522527,/Users/fanghaotian/Desktop/src/GenRec/temp/rl_beam_hint/instruments_grec_lc4023_fixed_20260508_022709_beam16_hint_map.json,2,0
+compact-index",1.003725382522527,/Users/fanghaotian/Desktop/src/GenRec/temp/rl_beam_hint/instruments_grec_lc4023_fixed_20260508_022709_beam16_hint_map.json,2,0
 sid,correct_task_index,84890,23983,0.2825185534220756,33144,0.3904346801743432,27469,0.323583460949464,294,0.003463305454117,"historical
 task+index",1.0479915184356223,,0,1
 sid,legacy_index_only,84890,30089,0.3544469313228884,30208,0.3558487454352692,24344,0.2867711155613146,249,0.0029332076805277,"historical
-legacy index",0.9381905995994816,,1,1
+legacy-index",0.9381905995994816,,1,1
 sid,current_compact_index,131837,32361,0.2454621995342734,69704,0.5287134871090816,29717,0.22540713153363623,55,0.0004171818230087153,"current
-compact index",0.9807792956453802,/Users/fanghaotian/Desktop/src/GenRec/temp/rl_beam_hint/instruments_grec_lc4023_fixed_20260508_022709_beam16_hint_map.json,2,1
+compact-index",0.9807792956453802,/Users/fanghaotian/Desktop/src/GenRec/temp/rl_beam_hint/instruments_grec_lc4023_fixed_20260508_022709_beam16_hint_map.json,2,1
 hisTitle2sid,correct_task_index,10000,869,0.0869,3007,0.3007,6046,0.6046,78,0.0078,"historical
 task+index",1.5333,,0,2
 hisTitle2sid,legacy_index_only,10000,8504,0.8504,1117,0.1117,379,0.0379,0,0.0,"historical
-legacy index",0.1875,,1,2
+legacy-index",0.1875,,1,2
 hisTitle2sid,current_compact_index,10000,543,0.0543,5531,0.5531,3914,0.3914,12,0.0012,"current
-compact index",1.3395,/Users/fanghaotian/Desktop/src/GenRec/temp/rl_beam_hint/instruments_grec_lc4023_fixed_20260508_022709_beam16_hint_map.json,2,2
+compact-index",1.3395,/Users/fanghaotian/Desktop/src/GenRec/temp/rl_beam_hint/instruments_grec_lc4023_fixed_20260508_022709_beam16_hint_map.json,2,2
 title_desc2sid,correct_task_index,11551,8295,0.7181196433209246,605,0.0523764176261795,2561,0.2217124058523071,90,0.0077915332005886,"historical
 task+index",0.5191758289325594,,0,3
 title_desc2sid,legacy_index_only,11551,9344,0.8089342914033417,1582,0.1369578391481257,625,0.0541078694485325,0,0.0,"historical
-legacy index",0.2451735780451907,,1,3
+legacy-index",0.2451735780451907,,1,3
 title_desc2sid,current_compact_index,18415,8233,0.44708118381754003,2239,0.12158566386098289,7917,0.42992125984251967,26,0.0014118924789573717,"current
-compact index",0.9856638609828944,/Users/fanghaotian/Desktop/src/GenRec/temp/rl_beam_hint/instruments_grec_lc4023_fixed_20260508_022709_beam16_hint_map.json,2,3
+compact-index",0.9856638609828944,/Users/fanghaotian/Desktop/src/GenRec/temp/rl_beam_hint/instruments_grec_lc4023_fixed_20260508_022709_beam16_hint_map.json,2,3

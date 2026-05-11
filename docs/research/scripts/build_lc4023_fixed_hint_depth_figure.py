@@ -43,10 +43,10 @@ DEPTH_COLUMNS = [
 
 SCOPE_ORDER = ["overall", "sid", "hisTitle2sid", "title_desc2sid"]
 SCOPE_LABELS = {
-    "overall": "overall",
-    "sid": "sid",
-    "hisTitle2sid": "hisTitle2sid",
-    "title_desc2sid": "title_desc2sid",
+    "overall": "Overall",
+    "sid": "SID",
+    "hisTitle2sid": "HisTitle2SID",
+    "title_desc2sid": "TitleDesc2SID",
 }
 SCOPE_TO_TASK = {
     "sid": "task1_sid_sft",
@@ -56,8 +56,8 @@ SCOPE_TO_TASK = {
 VERSION_ORDER = ["correct_task_index", "legacy_index_only", "current_compact_index"]
 VERSION_LABELS = {
     "correct_task_index": "historical\ntask+index",
-    "legacy_index_only": "historical\nlegacy index",
-    "current_compact_index": "current\ncompact index",
+    "legacy_index_only": "historical\nlegacy-index",
+    "current_compact_index": "current\ncompact-index",
 }
 
 
@@ -149,18 +149,27 @@ def plot_distribution_grid(plot_df: pd.DataFrame, out_path: Path) -> None:
             )
             bottoms = [bottom + value for bottom, value in zip(bottoms, values, strict=True)]
 
-        ax.set_title(SCOPE_LABELS[scope])
+        ax.set_title(SCOPE_LABELS[scope], pad=10, fontsize=16)
         ax.set_xticks(bar_positions, [VERSION_LABELS[name] for name in VERSION_ORDER])
         ax.set_ylim(0, 100)
         ax.grid(axis="y", alpha=0.22)
+        ax.tick_params(axis="x", labelsize=9)
 
         for idx, version in enumerate(VERSION_ORDER):
             total = int(scope_df.loc[version, "total"])
             avg_depth = float(scope_df.loc[version, "avg_depth"])
-            ax.text(bar_positions[idx], 101.0, f"n={total:,}", ha="center", va="bottom", fontsize=8.5)
             ax.text(
                 bar_positions[idx],
-                96.0,
+                0.9,
+                f"n={total:,}",
+                ha="center",
+                va="bottom",
+                fontsize=8.2,
+                color="#6B7280",
+            )
+            ax.text(
+                bar_positions[idx],
+                93.8,
                 f"avg={avg_depth:.3f}",
                 ha="center",
                 va="top",
@@ -172,9 +181,9 @@ def plot_distribution_grid(plot_df: pd.DataFrame, out_path: Path) -> None:
     axes[0, 0].set_ylabel("Share of samples (%)")
     axes[1, 0].set_ylabel("Share of samples (%)")
     handles, labels = axes[0, 0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 0.995), ncol=4, frameon=False)
-    fig.suptitle("LC4023 Fixed-Hint Depth Distribution: Historical Figure 7 vs Current Compact Index", y=0.955)
-    fig.tight_layout(rect=(0, 0, 1, 0.91))
+    fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 0.985), ncol=4, frameon=False)
+    fig.suptitle("LC4023 Fixed-Hint Depth Distribution\nHistorical vs Current Compact Index", y=0.94)
+    fig.tight_layout(rect=(0, 0, 1, 0.89))
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=180)
     plt.close(fig)
