@@ -44,6 +44,9 @@ SERIES = [
 ]
 
 METRICS = [
+    ("HR@1", "HR@1"),
+    ("HR@5", "HR@5"),
+    ("NDCG@5", "NDCG@5"),
     ("NDCG@10", "NDCG@10"),
     ("HR@10", "HR@10"),
     ("NDCG@50", "NDCG@50"),
@@ -102,8 +105,9 @@ def main() -> None:
     table_df = build_checkpoint_table()
     table_df.to_csv(ASSET_DIR / "lc4023_checkpoint_metrics.csv", index=False)
 
-    fig, axes = plt.subplots(2, 2, figsize=(10.8, 7.8), sharex=True)
-    for ax, (metric, title) in zip(axes.flat, METRICS, strict=True):
+    fig, axes = plt.subplots(4, 2, figsize=(11.2, 13.6), sharex=True)
+    axes_flat = list(axes.flat)
+    for ax, (metric, title) in zip(axes_flat, METRICS):
         for series, points in series_points:
             ax.plot(
                 points["epoch"],
@@ -120,6 +124,10 @@ def main() -> None:
         ax.set_ylabel(metric)
         ax.set_xlim(0.0, 2.0)
         ax.grid(alpha=0.22)
+
+    unused_axes = axes_flat[len(METRICS):]
+    for ax in unused_axes:
+        ax.axis("off")
 
     handles, labels = axes[0, 0].get_legend_handles_labels()
     unique = dict(zip(labels, handles, strict=False))
