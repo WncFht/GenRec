@@ -334,7 +334,10 @@ def load_dataset_manifest_entries(data_root: Path) -> dict[str, Any]:
             parts = Path(file_name).parts
             if not parts:
                 continue
-            variant = parts[0]
+            if parts[0] == "LC-Rec" and len(parts) >= 2 and is_supported_variant(parts[1]):
+                variant = f"{parts[1]}_lcrec"
+            else:
+                variant = parts[0]
             manifest["_dataset_keys"][entry_name] = variant
             dataset_entry = manifest["_dataset_meta"].setdefault(variant, {})
             if entry_name.endswith("_train"):

@@ -24,6 +24,293 @@ MASTER_TEX = BASELINE_DIR / "genrec-baseline.tex"
 
 METRICS = ["HR@1", "HR@5", "HR@10", "HR@20", "HR@50", "NDCG@5", "NDCG@10", "NDCG@20", "NDCG@50"]
 
+PAPER_REFERENCE_METHODS = [
+    "GRU4Rec",
+    "BERT4Rec",
+    "SASRec",
+    "FDSA",
+    r"S$^3$-Rec",
+    "VQ-Rec",
+    "MISSRec",
+    "P5-CID",
+    "VIP5",
+    "TIGER",
+    "MQL4GRec",
+]
+
+PAPER_REFERENCE_ROWS: list[tuple[str, list[tuple[str, dict[str, float | str]]]]] = [
+    (
+        "Instruments",
+        [
+            (
+                "HR@1",
+                {
+                    "GRU4Rec": 0.0566,
+                    "BERT4Rec": 0.0450,
+                    "SASRec": 0.0318,
+                    "FDSA": 0.0530,
+                    r"S$^3$-Rec": 0.0339,
+                    "VQ-Rec": 0.0502,
+                    "MISSRec": 0.0723,
+                    "P5-CID": 0.0512,
+                    "VIP5": 0.0737,
+                    "TIGER": 0.0754,
+                    "MQL4GRec": 0.0833,
+                    "Improv.": "+10.48\\%",
+                },
+            ),
+            (
+                "HR@5",
+                {
+                    "GRU4Rec": 0.0975,
+                    "BERT4Rec": 0.0856,
+                    "SASRec": 0.0946,
+                    "FDSA": 0.0987,
+                    r"S$^3$-Rec": 0.0937,
+                    "VQ-Rec": 0.1062,
+                    "MISSRec": 0.1089,
+                    "P5-CID": 0.0839,
+                    "VIP5": 0.0892,
+                    "TIGER": 0.1007,
+                    "MQL4GRec": 0.1115,
+                    "Improv.": "+2.39\\%",
+                },
+            ),
+            (
+                "HR@10",
+                {
+                    "GRU4Rec": 0.1207,
+                    "BERT4Rec": 0.1081,
+                    "SASRec": 0.1233,
+                    "FDSA": 0.1249,
+                    r"S$^3$-Rec": 0.1123,
+                    "VQ-Rec": 0.1357,
+                    "MISSRec": 0.1361,
+                    "P5-CID": 0.1119,
+                    "VIP5": 0.1071,
+                    "TIGER": 0.1221,
+                    "MQL4GRec": 0.1375,
+                    "Improv.": "+1.03\\%",
+                },
+            ),
+            (
+                "NDCG@5",
+                {
+                    "GRU4Rec": 0.0783,
+                    "BERT4Rec": 0.0667,
+                    "SASRec": 0.0654,
+                    "FDSA": 0.0775,
+                    r"S$^3$-Rec": 0.0693,
+                    "VQ-Rec": 0.0796,
+                    "MISSRec": 0.0797,
+                    "P5-CID": 0.0678,
+                    "VIP5": 0.0815,
+                    "TIGER": 0.0882,
+                    "MQL4GRec": 0.0977,
+                    "Improv.": "+10.77\\%",
+                },
+            ),
+            (
+                "NDCG@10",
+                {
+                    "GRU4Rec": 0.0857,
+                    "BERT4Rec": 0.0739,
+                    "SASRec": 0.0746,
+                    "FDSA": 0.0859,
+                    r"S$^3$-Rec": 0.0743,
+                    "VQ-Rec": 0.0891,
+                    "MISSRec": 0.0880,
+                    "P5-CID": 0.0704,
+                    "VIP5": 0.0872,
+                    "TIGER": 0.0950,
+                    "MQL4GRec": 0.1060,
+                    "Improv.": "+11.58\\%",
+                },
+            ),
+        ],
+    ),
+    (
+        "Arts",
+        [
+            (
+                "HR@1",
+                {
+                    "GRU4Rec": 0.0365,
+                    "BERT4Rec": 0.0289,
+                    "SASRec": 0.0212,
+                    "FDSA": 0.0380,
+                    r"S$^3$-Rec": 0.0172,
+                    "VQ-Rec": 0.0408,
+                    "MISSRec": 0.0479,
+                    "P5-CID": 0.0421,
+                    "VIP5": 0.0474,
+                    "TIGER": 0.0532,
+                    "MQL4GRec": 0.0672,
+                    "Improv.": "+26.32\\%",
+                },
+            ),
+            (
+                "HR@5",
+                {
+                    "GRU4Rec": 0.0817,
+                    "BERT4Rec": 0.0697,
+                    "SASRec": 0.0951,
+                    "FDSA": 0.0832,
+                    r"S$^3$-Rec": 0.0739,
+                    "VQ-Rec": 0.1038,
+                    "MISSRec": 0.1021,
+                    "P5-CID": 0.0713,
+                    "VIP5": 0.0704,
+                    "TIGER": 0.0894,
+                    "MQL4GRec": 0.1037,
+                    "Improv.": "-",
+                },
+            ),
+            (
+                "HR@10",
+                {
+                    "GRU4Rec": 0.1088,
+                    "BERT4Rec": 0.0922,
+                    "SASRec": 0.1250,
+                    "FDSA": 0.1190,
+                    r"S$^3$-Rec": 0.1030,
+                    "VQ-Rec": 0.1386,
+                    "MISSRec": 0.1321,
+                    "P5-CID": 0.0994,
+                    "VIP5": 0.0859,
+                    "TIGER": 0.1167,
+                    "MQL4GRec": 0.1327,
+                    "Improv.": "-",
+                },
+            ),
+            (
+                "NDCG@5",
+                {
+                    "GRU4Rec": 0.0602,
+                    "BERT4Rec": 0.0502,
+                    "SASRec": 0.0610,
+                    "FDSA": 0.0583,
+                    r"S$^3$-Rec": 0.0511,
+                    "VQ-Rec": 0.0732,
+                    "MISSRec": 0.0699,
+                    "P5-CID": 0.0607,
+                    "VIP5": 0.0586,
+                    "TIGER": 0.0718,
+                    "MQL4GRec": 0.0857,
+                    "Improv.": "+17.08\\%",
+                },
+            ),
+            (
+                "NDCG@10",
+                {
+                    "GRU4Rec": 0.0690,
+                    "BERT4Rec": 0.0575,
+                    "SASRec": 0.0706,
+                    "FDSA": 0.0695,
+                    r"S$^3$-Rec": 0.0630,
+                    "VQ-Rec": 0.0844,
+                    "MISSRec": 0.0815,
+                    "P5-CID": 0.0662,
+                    "VIP5": 0.0635,
+                    "TIGER": 0.0806,
+                    "MQL4GRec": 0.0950,
+                    "Improv.": "+12.56\\%",
+                },
+            ),
+        ],
+    ),
+    (
+        "Games",
+        [
+            (
+                "HR@1",
+                {
+                    "GRU4Rec": 0.0140,
+                    "BERT4Rec": 0.0115,
+                    "SASRec": 0.0069,
+                    "FDSA": 0.0163,
+                    r"S$^3$-Rec": 0.0136,
+                    "VQ-Rec": 0.0075,
+                    "MISSRec": 0.0201,
+                    "P5-CID": 0.0169,
+                    "VIP5": 0.0173,
+                    "TIGER": 0.0166,
+                    "MQL4GRec": 0.0203,
+                    "Improv.": "+1.00\\%",
+                },
+            ),
+            (
+                "HR@5",
+                {
+                    "GRU4Rec": 0.0544,
+                    "BERT4Rec": 0.0426,
+                    "SASRec": 0.0587,
+                    "FDSA": 0.0614,
+                    r"S$^3$-Rec": 0.0527,
+                    "VQ-Rec": 0.0408,
+                    "MISSRec": 0.0674,
+                    "P5-CID": 0.0532,
+                    "VIP5": 0.0480,
+                    "TIGER": 0.0523,
+                    "MQL4GRec": 0.0637,
+                    "Improv.": "-",
+                },
+            ),
+            (
+                "HR@10",
+                {
+                    "GRU4Rec": 0.0895,
+                    "BERT4Rec": 0.0725,
+                    "SASRec": 0.0985,
+                    "FDSA": 0.0988,
+                    r"S$^3$-Rec": 0.0903,
+                    "VQ-Rec": 0.0679,
+                    "MISSRec": 0.1048,
+                    "P5-CID": 0.0824,
+                    "VIP5": 0.0758,
+                    "TIGER": 0.0857,
+                    "MQL4GRec": 0.1033,
+                    "Improv.": "-",
+                },
+            ),
+            (
+                "NDCG@5",
+                {
+                    "GRU4Rec": 0.0341,
+                    "BERT4Rec": 0.0270,
+                    "SASRec": 0.0333,
+                    "FDSA": 0.0389,
+                    r"S$^3$-Rec": 0.0351,
+                    "VQ-Rec": 0.0242,
+                    "MISSRec": 0.0385,
+                    "P5-CID": 0.0331,
+                    "VIP5": 0.0328,
+                    "TIGER": 0.0345,
+                    "MQL4GRec": 0.0421,
+                    "Improv.": "+8.23\\%",
+                },
+            ),
+            (
+                "NDCG@10",
+                {
+                    "GRU4Rec": 0.0453,
+                    "BERT4Rec": 0.0366,
+                    "SASRec": 0.0461,
+                    "FDSA": 0.0509,
+                    r"S$^3$-Rec": 0.0468,
+                    "VQ-Rec": 0.0329,
+                    "MISSRec": 0.0499,
+                    "P5-CID": 0.0454,
+                    "VIP5": 0.0418,
+                    "TIGER": 0.0453,
+                    "MQL4GRec": 0.0548,
+                    "Improv.": "+7.66\\%",
+                },
+            ),
+        ],
+    ),
+]
+
 
 @dataclass
 class RunSpec:
@@ -37,31 +324,58 @@ class RunSpec:
 
 
 RUN_SPECS: list[RunSpec] = [
-    RunSpec("Instruments", "Caser", "Caser", pending=True, note="pending"),
-    RunSpec("Instruments", "GRU4Rec", "GRU4Rec", pending=True, note="pending"),
-    RunSpec("Instruments", "BERT4Rec", "BERT4Rec", pending=True, note="pending"),
-    RunSpec("Instruments", "SASRec", "SASRec", pending=True, note="pending"),
-    RunSpec("Instruments", "TIGER", "TIGER", pending=True, note="pending"),
+    RunSpec("Instruments", "Caser", "Caser", model_dir="Instruments-caser-pytorch/checkpoint-best"),
+    RunSpec("Instruments", "GRU4Rec", "GRU4Rec", model_dir="Instruments-gru4rec-pytorch-official/checkpoint-best"),
+    RunSpec("Instruments", "BERT4Rec", "BERT4Rec", model_dir="Instruments-bert4rec-recsys23/checkpoint-best"),
+    RunSpec("Instruments", "SASRec", "SASRec", model_dir="Instruments-sasrec-recsys23/checkpoint-best"),
+    RunSpec("Instruments", "TIGER", "TIGER", model_dir="Instruments-tiger-grec-h50-reverse/checkpoint-best"),
     RunSpec("Instruments", "GenRec (SFT)", "GenRec(sft)", model_dir="Instruments-grec-sft-qwen4B-4-256-dsz0"),
-    RunSpec("Instruments", "GenRec (rule)", "GenRec(rule)", model_dir="Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495"),
-    RunSpec("Instruments", "GenRec (ranking)", "GenRec(ranking)", model_dir="Instruments-grec-grpo-qwen2.5-3b-qwen4B-4-256-from-sft495"),
-    RunSpec("Instruments", "GenRec (fixed)", "GenRec(fixed)", model_dir="Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495"),
-    RunSpec("Instruments", "GenRec (fixed + ce0.005)", "GenRec(fixed + ce0.005)", model_dir="Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-3-sft495"),
-    RunSpec("Games", "Caser", "Caser", pending=True, note="pending"),
-    RunSpec("Games", "GRU4Rec", "GRU4Rec", pending=True, note="pending"),
-    RunSpec("Games", "BERT4Rec", "BERT4Rec", pending=True, note="pending"),
-    RunSpec("Games", "SASRec", "SASRec", pending=True, note="pending"),
-    RunSpec("Games", "TIGER", "TIGER", pending=True, note="pending"),
+    RunSpec(
+        "Instruments",
+        "GenRec (rule)",
+        "GenRec(rule)",
+        model_dir="Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495",
+    ),
+    RunSpec(
+        "Instruments",
+        "GenRec (ranking)",
+        "GenRec(ranking)",
+        model_dir="Instruments-grec-grpo-qwen2.5-3b-qwen4B-4-256-from-sft495",
+    ),
+    RunSpec(
+        "Instruments",
+        "GenRec (fixed)",
+        "GenRec(fixed)",
+        model_dir="Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
+    ),
+    RunSpec(
+        "Instruments",
+        "GenRec (fixed + ce0.005)",
+        "GenRec(fixed + ce0.005)",
+        model_dir="Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-3-sft495",
+    ),
+    RunSpec("Games", "Caser", "Caser", model_dir="Games-caser-pytorch/checkpoint-best"),
+    RunSpec("Games", "GRU4Rec", "GRU4Rec", model_dir="Games-gru4rec-pytorch-official/checkpoint-best"),
+    RunSpec("Games", "BERT4Rec", "BERT4Rec", model_dir="Games-bert4rec-recsys23/checkpoint-best"),
+    RunSpec("Games", "SASRec", "SASRec", model_dir="Games-sasrec-recsys23/checkpoint-best"),
+    RunSpec("Games", "TIGER", "TIGER", model_dir="Games-tiger-grec-h50-reverse/checkpoint-best"),
     RunSpec("Games", "GenRec (SFT)", "GenRec(sft)", model_dir="Games-grec-sft-qwen4B-4-256-dsz0"),
-    RunSpec("Games", "GenRec (rule)", "GenRec(rule)", model_dir="Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft896"),
+    RunSpec(
+        "Games",
+        "GenRec (rule)",
+        "GenRec(rule)",
+        model_dir="Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft896",
+    ),
     RunSpec("Games", "GenRec (ranking)", "GenRec(ranking)", pending=True, note="not measured"),
-    RunSpec("Games", "GenRec (fixed)", "GenRec(fixed)", model_dir="Games-grec-grpo-rule-only-fixedhint-taskfix-b16-sft896"),
+    RunSpec(
+        "Games", "GenRec (fixed)", "GenRec(fixed)", model_dir="Games-grec-grpo-rule-only-fixedhint-taskfix-b16-sft896"
+    ),
     RunSpec("Games", "GenRec (fixed + ce0.005)", "GenRec(fixed + ce0.005)", pending=True, note="not measured"),
-    RunSpec("Arts", "Caser", "Caser", pending=True, note="pending"),
-    RunSpec("Arts", "GRU4Rec", "GRU4Rec", pending=True, note="pending"),
-    RunSpec("Arts", "BERT4Rec", "BERT4Rec", pending=True, note="pending"),
-    RunSpec("Arts", "SASRec", "SASRec", pending=True, note="pending"),
-    RunSpec("Arts", "TIGER", "TIGER", pending=True, note="pending"),
+    RunSpec("Arts", "Caser", "Caser", model_dir="Arts-caser-pytorch/checkpoint-best"),
+    RunSpec("Arts", "GRU4Rec", "GRU4Rec", model_dir="Arts-gru4rec-pytorch-official/checkpoint-best"),
+    RunSpec("Arts", "BERT4Rec", "BERT4Rec", model_dir="Arts-bert4rec-recsys23/checkpoint-best"),
+    RunSpec("Arts", "SASRec", "SASRec", model_dir="Arts-sasrec-recsys23/checkpoint-best"),
+    RunSpec("Arts", "TIGER", "TIGER", model_dir="Arts-tiger-grec-h50-reverse/checkpoint-best"),
     RunSpec("Arts", "GenRec (SFT)", "GenRec(sft)", pending=True, note="not measured"),
     RunSpec("Arts", "GenRec (rule)", "GenRec(rule)", pending=True, note="not measured"),
     RunSpec("Arts", "GenRec (ranking)", "GenRec(ranking)", pending=True, note="not measured"),
@@ -78,7 +392,7 @@ def load_csv_rows(path: Path) -> list[dict[str, str]]:
 def checkpoint_step(name: str) -> int:
     match = re.search(r"checkpoint-(\d+)", name)
     if not match:
-        raise ValueError(f"Bad checkpoint name: {name}")
+        return -1
     return int(match.group(1))
 
 
@@ -102,6 +416,9 @@ def collect_metrics_dir(model_dir: str) -> list[tuple[str, dict[str, float]]]:
     root = RESULTS_DIR / model_dir
     if not root.exists():
         return []
+    direct_metrics_path = root / "metrics.json"
+    if direct_metrics_path.exists():
+        return [(root.name, read_metrics_json(direct_metrics_path))]
     entries: list[tuple[str, dict[str, float]]] = []
     for ckpt_dir in sorted(root.glob("checkpoint-*"), key=lambda p: checkpoint_step(p.name)):
         metrics_path = ckpt_dir / "metrics.json"
@@ -155,29 +472,26 @@ def maybe_value(metrics: dict[str, float], key: str) -> float | None:
     return value
 
 
-def resolve_run(spec: RunSpec, instruments_best: list[dict[str, str]], games_sft_best: list[dict[str, str]], games_rl_best: list[dict[str, str]]) -> dict[str, object]:
+def resolve_run(
+    spec: RunSpec,
+    instruments_best: list[dict[str, str]],
+    games_sft_best: list[dict[str, str]],
+    games_rl_best: list[dict[str, str]],
+) -> dict[str, object]:
     if spec.pending:
         return {"spec": spec, "status": "pending", "best_checkpoint": None, "metrics": {}}
 
     if spec.dataset == "Instruments":
-        if spec.model_dir == "Instruments-grec-sft-qwen4B-4-256-dsz0":
-            entries = collect_metrics_dir(spec.model_dir)
-            best = select_best(entries)
-        elif spec.model_dir in {
-            "Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495",
-            "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
-            "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-3-sft495",
-        }:
-            entries = collect_metrics_dir(spec.model_dir)
-            best = select_best(entries)
-        elif spec.model_dir == "Instruments-grec-grpo-qwen2.5-3b-qwen4B-4-256-from-sft495":
+        if spec.model_dir is not None:
             entries = collect_metrics_dir(spec.model_dir)
             best = select_best(entries)
         else:
-            entries = []
             best = None
     elif spec.dataset == "Games":
-        if spec.model_dir == "Games-grec-sft-qwen4B-4-256-dsz0":
+        if spec.model_dir == "Games-tiger-grec-h50-reverse/checkpoint-best":
+            entries = collect_metrics_dir(spec.model_dir)
+            best = select_best(entries)
+        elif spec.model_dir == "Games-grec-sft-qwen4B-4-256-dsz0":
             found = lookup_best_from_csv(spec.model_dir, games_sft_best)
             if found is None:
                 entries = collect_metrics_dir(spec.model_dir)
@@ -185,6 +499,9 @@ def resolve_run(spec: RunSpec, instruments_best: list[dict[str, str]], games_sft
             else:
                 ckpt, metrics = found
                 best = (ckpt, {**metrics, **read_metrics_json(RESULTS_DIR / spec.model_dir / ckpt / "metrics.json")})
+        elif spec.model_dir is not None:
+            entries = collect_metrics_dir(spec.model_dir)
+            best = select_best(entries)
         else:
             found = lookup_best_from_csv(spec.model_dir or "", games_rl_best)
             if found is None:
@@ -192,10 +509,19 @@ def resolve_run(spec: RunSpec, instruments_best: list[dict[str, str]], games_sft
                 best = select_best(entries)
             else:
                 ckpt, metrics = found
-                best = (ckpt, {**metrics, **read_metrics_json(RESULTS_DIR / (spec.model_dir or "") / ckpt / "metrics.json")})
+                best = (
+                    ckpt,
+                    {**metrics, **read_metrics_json(RESULTS_DIR / (spec.model_dir or "") / ckpt / "metrics.json")},
+                )
     elif spec.dataset == "Arts":
-        if spec.model_dir is None and spec.column_name == "GenRec(sft)":
+        if spec.model_dir == "Arts-tiger-grec-h50-reverse/checkpoint-best":
+            entries = collect_metrics_dir(spec.model_dir)
+            best = select_best(entries)
+        elif spec.model_dir is None and spec.column_name == "GenRec(sft)":
             best = build_arts_sft_best()
+        elif spec.model_dir is not None:
+            entries = collect_metrics_dir(spec.model_dir)
+            best = select_best(entries)
         else:
             best = None
     else:
@@ -217,7 +543,12 @@ def best_highlights(dataset_rows: list[dict[str, object]], metric: str) -> tuple
         return set(), set()
     best_value = max(v for _, v in measured)
     best_cols = {c for c, v in measured if abs(v - best_value) < 1e-12}
-    baseline_candidates = [item for item in measured if item[0] not in {"GenRec(sft)", "GenRec(rule)", "GenRec(ranking)", "GenRec(fixed)", "GenRec(fixed + ce0.005)"}]
+    baseline_candidates = [
+        item
+        for item in measured
+        if item[0]
+        not in {"GenRec(sft)", "GenRec(rule)", "GenRec(ranking)", "GenRec(fixed)", "GenRec(fixed + ce0.005)"}
+    ]
     if not baseline_candidates:
         return best_cols, set()
     baseline_best_value = max(v for _, v in baseline_candidates)
@@ -237,23 +568,15 @@ def render_cell(col_name: str, metric: str, row: dict[str, object], best_cols: s
 
 
 def dataset_has_measured_requested_method(dataset_rows: list[dict[str, object]]) -> bool:
-    requested_cols = {
-        "GenRec(sft)",
-        "GenRec(rule)",
-        "GenRec(ranking)",
-        "GenRec(fixed)",
-        "GenRec(fixed + ce0.005)",
-    }
     for row in dataset_rows:
-        spec: RunSpec = row["spec"]  # type: ignore[assignment]
-        if spec.column_name in requested_cols and row["status"] == "ok":
+        if row["status"] == "ok":
             return True
     return False
 
 
 def build_main_table(resolved: list[dict[str, object]]) -> str:
     visible_datasets = []
-    for dataset in ["Instruments", "Games", "Arts"]:
+    for dataset in ["Instruments", "Arts", "Games"]:
         dataset_rows = [row for row in resolved if row["spec"].dataset == dataset]  # type: ignore[attr-defined]
         if dataset_has_measured_requested_method(dataset_rows):
             visible_datasets.append(dataset)
@@ -271,7 +594,9 @@ def build_main_table(resolved: list[dict[str, object]]) -> str:
     parts.append(r"\resizebox{\textwidth}{!}{%")
     parts.append(r"\begin{tabular}{llcccccccccc}")
     parts.append(r"\toprule")
-    parts.append(r"Dataset & Metric & Caser & GRU4Rec & BERT4Rec & SASRec & TIGER & GenRec(sft) & GenRec(rule) & GenRec(ranking) & GenRec(fixed) & GenRec(fixed + ce0.005) \\")
+    parts.append(
+        r"Dataset & Metric & Caser & GRU4Rec & BERT4Rec & SASRec & TIGER & GenRec(sft) & GenRec(rule) & GenRec(ranking) & GenRec(fixed) & GenRec(fixed + ce0.005) \\"
+    )
     parts.append(r"\midrule")
 
     for dataset_idx, dataset in enumerate(visible_datasets):
@@ -279,7 +604,18 @@ def build_main_table(resolved: list[dict[str, object]]) -> str:
         for idx, metric in enumerate(METRICS):
             best_cols, _ = best_highlights(dataset_rows, metric)
             cells = []
-            for col in ["Caser", "GRU4Rec", "BERT4Rec", "SASRec", "TIGER", "GenRec(sft)", "GenRec(rule)", "GenRec(ranking)", "GenRec(fixed)", "GenRec(fixed + ce0.005)"]:
+            for col in [
+                "Caser",
+                "GRU4Rec",
+                "BERT4Rec",
+                "SASRec",
+                "TIGER",
+                "GenRec(sft)",
+                "GenRec(rule)",
+                "GenRec(ranking)",
+                "GenRec(fixed)",
+                "GenRec(fixed + ce0.005)",
+            ]:
                 row = next(row for row in dataset_rows if row["spec"].column_name == col)  # type: ignore[attr-defined]
                 cells.append(render_cell(col, metric, row, best_cols))
             prefix = dataset if idx == 0 else ""
@@ -290,7 +626,9 @@ def build_main_table(resolved: list[dict[str, object]]) -> str:
     parts.append(r"\bottomrule")
     parts.append(r"\end{tabular}%")
     parts.append(r"}")
-    parts.append(r"\caption{GenRec index 口径下当前已测结果的主表。主表只展示当前至少有一条已测目标方法的数据集；因此本轮先保留 Instruments 与 Games。当前仓库中尚未找到与本表同口径的 Caser / GRU4Rec / BERT4Rec / SASRec / TIGER 实测结果，这些列先保留为占位，避免混入 LC-Rec 论文原表的异口径数字。所有 GenRec 变体若存在多个 checkpoint，统一按 NDCG@10 选 best。}")
+    parts.append(
+        r"\caption{GenRec index 口径下当前已测结果的主表。主表展示当前至少已有一条实测方法的数据集。当前已从 \texttt{results/*-caser-pytorch/checkpoint-best}、\texttt{results/*-gru4rec-pytorch-official/checkpoint-best}、\texttt{results/*-bert4rec-recsys23/checkpoint-best}、\texttt{results/*-sasrec-recsys23/checkpoint-best} 与 \texttt{results/*-tiger-grec-h50-reverse/checkpoint-best} 补入当前已同步回仓库的五类 baseline 实测结果。所有 GenRec 变体若存在多个 checkpoint，统一按 NDCG@10 选 best。}"
+    )
     parts.append(r"\label{tab:genrec-index-main}")
     parts.append(r"\end{table}")
     parts.append("")
@@ -313,12 +651,17 @@ def build_main_table(resolved: list[dict[str, object]]) -> str:
             spec: RunSpec = row["spec"]  # type: ignore[assignment]
             metrics: dict[str, float] = row["metrics"]  # type: ignore[assignment]
             cells = [fmt_metric(maybe_value(metrics, metric)) for metric in METRICS]
-            parts.append(" & ".join([
-                dataset if idx == 0 else "",
-                spec.label.replace("GenRec ", "GenRec "),
-                fmt_texttt(row["best_checkpoint"]),  # type: ignore[arg-type]
-                *cells,
-            ]) + r" \\")
+            parts.append(
+                " & ".join(
+                    [
+                        dataset if idx == 0 else "",
+                        spec.label.replace("GenRec ", "GenRec "),
+                        fmt_texttt(row["best_checkpoint"]),  # type: ignore[arg-type]
+                        *cells,
+                    ]
+                )
+                + r" \\"
+            )
         if dataset_idx != len(visible_datasets) - 1:
             parts.append(r"\midrule")
     parts.append(r"\bottomrule")
@@ -329,24 +672,77 @@ def build_main_table(resolved: list[dict[str, object]]) -> str:
     parts.append(r"\end{table}")
     parts.append("")
 
-    parts.append(r"\paragraph{Readout.} 本轮主表只纳入当前仓库里已经能追溯到 \texttt{GenRec index} 统一评测口径的结果。")
-    parts.append(r"Instruments 上当前 best \texttt{NDCG@10} 仍是 \texttt{GenRec(rule)} 的 \texttt{0.0960}；")
+    parts.append(
+        r"\paragraph{Readout.} 本轮主表只纳入当前仓库里已经能追溯到 \texttt{GenRec index} 统一评测口径的结果。"
+    )
+    parts.append(
+        r"Instruments 上补入 Caser / GRU4Rec 后，当前 overall best \texttt{NDCG@10} 仍是 \texttt{BERT4Rec} 的 \texttt{0.0988}；\texttt{GRU4Rec} 已达到 \texttt{NDCG@10=0.0962, HR@50=0.2068}，略高于 \texttt{GenRec(rule)} 的 \texttt{0.0960}。\texttt{Caser} 当前为 \texttt{NDCG@10=0.0591, HR@50=0.1593}。"
+    )
     parts.append(r"如果看 coverage，\texttt{GenRec(fixed + ce0.005)} 在当前 best 点达到 \texttt{HR@50=0.1985}。")
-    parts.append(r"Games 上当前已经测出的最强线是 \texttt{GenRec(fixed)}，best 点为 \texttt{checkpoint-8752 / NDCG@10=0.0480 / HR@50=0.1972}。")
-    parts.append(r"Arts 这次没有纳入主表，因为当前你指定的目标方法里还没有对应的实测结果。")
+    parts.append(
+        r"Arts 现在五条 baseline 已全部补齐；当前 best 仍是 \texttt{BERT4Rec}，\texttt{NDCG@10=0.0869, HR@50=0.2113}。新补入的 \texttt{GRU4Rec} 达到 \texttt{NDCG@10=0.0804, HR@50=0.1884}，介于 \texttt{TIGER} 的 \texttt{0.0849} 与 \texttt{SASRec} 的 \texttt{0.0736} 之间，明显高于 \texttt{Caser} 的 \texttt{0.0387}。"
+    )
+    parts.append(
+        r"Games 现在五条 baseline 也已补齐；当前 overall best 仍是 \texttt{BERT4Rec}，\texttt{NDCG@10=0.0526, HR@50=0.2350}。新补入的 \texttt{GRU4Rec} 达到 \texttt{NDCG@10=0.0484, HR@50=0.2161}，略高于 \texttt{GenRec(fixed)} 的 \texttt{0.0480}，也明显高于 \texttt{TIGER} 的 \texttt{0.0439} 与 \texttt{Caser} 的 \texttt{0.0286}。"
+    )
     return "\n".join(parts) + "\n"
 
 
 def appendix_run_specs() -> list[RunSpec]:
     return [
+        RunSpec("Instruments", "Caser", "Caser", model_dir="Instruments-caser-pytorch/checkpoint-best"),
+        RunSpec("Instruments", "GRU4Rec", "GRU4Rec", model_dir="Instruments-gru4rec-pytorch-official/checkpoint-best"),
+        RunSpec("Instruments", "BERT4Rec", "BERT4Rec", model_dir="Instruments-bert4rec-recsys23/checkpoint-best"),
+        RunSpec("Instruments", "SASRec", "SASRec", model_dir="Instruments-sasrec-recsys23/checkpoint-best"),
+        RunSpec("Instruments", "TIGER", "TIGER", model_dir="Instruments-tiger-grec-h50-reverse/checkpoint-best"),
         RunSpec("Instruments", "GenRec (SFT)", "GenRec(sft)", model_dir="Instruments-grec-sft-qwen4B-4-256-dsz0"),
-        RunSpec("Instruments", "GenRec (rule)", "GenRec(rule)", model_dir="Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495"),
-        RunSpec("Instruments", "GenRec (ranking)", "GenRec(ranking)", model_dir="Instruments-grec-grpo-qwen2.5-3b-qwen4B-4-256-from-sft495"),
-        RunSpec("Instruments", "GenRec (fixed)", "GenRec(fixed)", model_dir="Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495"),
-        RunSpec("Instruments", "GenRec (fixed + ce0.005)", "GenRec(fixed + ce0.005)", model_dir="Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-3-sft495"),
+        RunSpec(
+            "Instruments",
+            "GenRec (rule)",
+            "GenRec(rule)",
+            model_dir="Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495",
+        ),
+        RunSpec(
+            "Instruments",
+            "GenRec (ranking)",
+            "GenRec(ranking)",
+            model_dir="Instruments-grec-grpo-qwen2.5-3b-qwen4B-4-256-from-sft495",
+        ),
+        RunSpec(
+            "Instruments",
+            "GenRec (fixed)",
+            "GenRec(fixed)",
+            model_dir="Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
+        ),
+        RunSpec(
+            "Instruments",
+            "GenRec (fixed + ce0.005)",
+            "GenRec(fixed + ce0.005)",
+            model_dir="Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-3-sft495",
+        ),
+        RunSpec("Games", "Caser", "Caser", model_dir="Games-caser-pytorch/checkpoint-best"),
+        RunSpec("Games", "GRU4Rec", "GRU4Rec", model_dir="Games-gru4rec-pytorch-official/checkpoint-best"),
+        RunSpec("Games", "BERT4Rec", "BERT4Rec", model_dir="Games-bert4rec-recsys23/checkpoint-best"),
+        RunSpec("Games", "SASRec", "SASRec", model_dir="Games-sasrec-recsys23/checkpoint-best"),
+        RunSpec("Games", "TIGER", "TIGER", model_dir="Games-tiger-grec-h50-reverse/checkpoint-best"),
         RunSpec("Games", "GenRec (SFT)", "GenRec(sft)", model_dir="Games-grec-sft-qwen4B-4-256-dsz0"),
-        RunSpec("Games", "GenRec (rule)", "GenRec(rule)", model_dir="Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft896"),
-        RunSpec("Games", "GenRec (fixed)", "GenRec(fixed)", model_dir="Games-grec-grpo-rule-only-fixedhint-taskfix-b16-sft896"),
+        RunSpec(
+            "Games",
+            "GenRec (rule)",
+            "GenRec(rule)",
+            model_dir="Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft896",
+        ),
+        RunSpec(
+            "Games",
+            "GenRec (fixed)",
+            "GenRec(fixed)",
+            model_dir="Games-grec-grpo-rule-only-fixedhint-taskfix-b16-sft896",
+        ),
+        RunSpec("Arts", "Caser", "Caser", model_dir="Arts-caser-pytorch/checkpoint-best"),
+        RunSpec("Arts", "GRU4Rec", "GRU4Rec", model_dir="Arts-gru4rec-pytorch-official/checkpoint-best"),
+        RunSpec("Arts", "BERT4Rec", "BERT4Rec", model_dir="Arts-bert4rec-recsys23/checkpoint-best"),
+        RunSpec("Arts", "SASRec", "SASRec", model_dir="Arts-sasrec-recsys23/checkpoint-best"),
+        RunSpec("Arts", "TIGER", "TIGER", model_dir="Arts-tiger-grec-h50-reverse/checkpoint-best"),
     ]
 
 
@@ -359,7 +755,7 @@ def render_appendix_table(spec: RunSpec) -> str:
     safe_label = re.sub(r"[^a-z0-9]+", "-", f"{spec.dataset}-{spec.label}".lower()).strip("-")
     parts.append(rf"\subsection{{{spec.dataset}: {spec.label}}}")
     parts.append("")
-    parts.append(rf"\begin{{table}}[H]")
+    parts.append(r"\begin{table}[H]")
     parts.append(r"\centering")
     parts.append(r"\scriptsize")
     parts.append(r"\setlength{\tabcolsep}{3.5pt}")
@@ -375,8 +771,67 @@ def render_appendix_table(spec: RunSpec) -> str:
     parts.append(r"\bottomrule")
     parts.append(r"\end{tabular}%")
     parts.append(r"}")
-    parts.append(rf"\caption{{{spec.dataset} 上 \texttt{{{(spec.model_dir or '').replace('_', r'\_')}}} 的完整 checkpoint 指标。}}")
+    parts.append(
+        rf"\caption{{{spec.dataset} 上 \texttt{{{(spec.model_dir or '').replace('_', r'\_')}}} 的完整 checkpoint 指标。}}"
+    )
     parts.append(rf"\label{{tab:appendix-{safe_label}}}")
+    parts.append(r"\end{table}")
+    parts.append("")
+    return "\n".join(parts)
+
+
+def format_reference_value(value: float, is_best: bool, is_second: bool) -> str:
+    text = fmt_metric(value)
+    if is_best:
+        return r"\textbf{" + text + "}"
+    if is_second:
+        return r"\underline{" + text + "}"
+    return text
+
+
+def build_paper_reference_table() -> str:
+    parts: list[str] = []
+    parts.append(r"\subsection{Paper Reference Table}")
+    parts.append("")
+    parts.append(r"\begin{table}[H]")
+    parts.append(r"\centering")
+    parts.append(r"\scriptsize")
+    parts.append(r"\setlength{\tabcolsep}{3pt}")
+    parts.append(r"\renewcommand{\arraystretch}{1.06}")
+    parts.append(r"\resizebox{\textwidth}{!}{%")
+    parts.append(r"\begin{tabular}{ll" + "c" * len(PAPER_REFERENCE_METHODS) + r"c}")
+    parts.append(r"\toprule")
+    parts.append("Dataset & Metrics & " + " & ".join(PAPER_REFERENCE_METHODS) + r" & Improv. \\")
+    parts.append(r"\midrule")
+
+    for dataset_idx, (dataset, rows) in enumerate(PAPER_REFERENCE_ROWS):
+        for row_idx, (metric, values) in enumerate(rows):
+            metric_values = {method: float(values[method]) for method in PAPER_REFERENCE_METHODS}
+            sorted_unique = sorted(set(metric_values.values()), reverse=True)
+            best_value = sorted_unique[0]
+            second_value = sorted_unique[1] if len(sorted_unique) > 1 else None
+            rendered = []
+            for method in PAPER_REFERENCE_METHODS:
+                value = metric_values[method]
+                rendered.append(
+                    format_reference_value(
+                        value,
+                        abs(value - best_value) < 1e-12,
+                        second_value is not None and abs(value - second_value) < 1e-12,
+                    )
+                )
+            prefix = dataset if row_idx == 0 else ""
+            parts.append(" & ".join([prefix, metric, *rendered, str(values["Improv."])]) + r" \\")
+        if dataset_idx != len(PAPER_REFERENCE_ROWS) - 1:
+            parts.append(r"\midrule")
+
+    parts.append(r"\bottomrule")
+    parts.append(r"\end{tabular}%")
+    parts.append(r"}")
+    parts.append(
+        r"\caption{Performance comparison of different methods on the three datasets. The best and second-best performances are indicated in bold and underlined font, respectively.}"
+    )
+    parts.append(r"\label{tab:appendix-paper-reference-mql4grec}")
     parts.append(r"\end{table}")
     parts.append("")
     return "\n".join(parts)
@@ -385,9 +840,14 @@ def render_appendix_table(spec: RunSpec) -> str:
 def build_appendix() -> str:
     parts: list[str] = []
     parts.append(r"\appendix")
-    parts.append(r"\section{Full Checkpoint Tables}")
+    parts.append(r"\section{Supplementary Tables}")
     parts.append("")
-    parts.append(r"本附录按结果目录逐条展开当前已经同步回仓库的完整 checkpoint 指标，方便后续继续补充主表、做 early-stop 对照，或替换 best 选点。")
+    parts.append(
+        r"本附录先放一张论文参考主表，随后按结果目录逐条展开当前已经同步回仓库的完整 checkpoint 指标，方便后续继续补充主表、做 early-stop 对照，或替换 best 选点。"
+    )
+    parts.append("")
+    parts.append(build_paper_reference_table())
+    parts.append(r"\subsection{Full Checkpoint Tables}")
     parts.append("")
     for spec in appendix_run_specs():
         table = render_appendix_table(spec)

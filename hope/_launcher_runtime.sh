@@ -42,3 +42,28 @@ require_accelerate() {
     exit 1
   fi
 }
+
+resolve_data_variant_dir() {
+  local repo_root="$1"
+  local data_variant="$2"
+  local primary_dir="${repo_root}/data/${data_variant}"
+  local lcrec_dir="${repo_root}/data/LC-Rec/${data_variant}"
+  local lcrec_suffix="_lcrec"
+  local lcrec_variant_base=""
+
+  if [[ "$data_variant" == *"${lcrec_suffix}" ]]; then
+    lcrec_variant_base="${data_variant%${lcrec_suffix}}"
+    lcrec_dir="${repo_root}/data/LC-Rec/${lcrec_variant_base}"
+  fi
+
+  if [[ -d "$primary_dir" ]]; then
+    echo "$primary_dir"
+    return 0
+  fi
+  if [[ -d "$lcrec_dir" ]]; then
+    echo "$lcrec_dir"
+    return 0
+  fi
+
+  echo "$primary_dir"
+}

@@ -1,19 +1,12 @@
 {
   "version": 1,
   "datasets": {
-    "Arts_grec_index": {
+    "Arts_grec_index_lcrec": {
       "category": "Arts_grec",
-      "test_data_path": "Arts_grec_index/sft/test.json",
-      "index_path": "Arts_grec_index/id2sid.json",
-      "train_entry": "Arts_grec_index_train",
-      "valid_entry": "Arts_grec_index_valid"
-    },
-    "Games_grec_index": {
-      "category": "Games_grec",
-      "test_data_path": "Games_grec_index/sft/test.json",
-      "index_path": "Games_grec_index/id2sid.json",
-      "train_entry": "Games_grec_index_train",
-      "valid_entry": "Games_grec_index_valid"
+      "test_data_path": "LC-Rec/Arts_grec_index/sft/test.json",
+      "index_path": "LC-Rec/Arts_grec_index/id2sid.json",
+      "train_entry": "Arts_grec_index_lcrec_train",
+      "valid_entry": "Arts_grec_index_lcrec_valid"
     },
     "Games_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsGames": {
       "category": "Games_grec",
@@ -21,6 +14,13 @@
       "index_path": "Games_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsGames/id2sid.json",
       "train_entry": "Games_grec_index_emb_qwen3_embedding_4B_rq4_cb256_256_256_256_dsGames_train",
       "valid_entry": "Games_grec_index_emb_qwen3_embedding_4B_rq4_cb256_256_256_256_dsGames_valid"
+    },
+    "Games_grec_index_lcrec": {
+      "category": "Games_grec",
+      "test_data_path": "LC-Rec/Games_grec_index/sft/test.json",
+      "index_path": "LC-Rec/Games_grec_index/id2sid.json",
+      "train_entry": "Games_grec_index_lcrec_train",
+      "valid_entry": "Games_grec_index_lcrec_valid"
     },
     "Industrial_and_Scientific": {
       "category": "Industrial_and_Scientific",
@@ -71,6 +71,13 @@
       "train_entry": "Instruments_grec_index_emb_qwen3_embedding_4B_rq4_cb64_64_64_64_dsInstruments_ridFeb_10_2026_06_04_11_train",
       "valid_entry": "Instruments_grec_index_emb_qwen3_embedding_4B_rq4_cb64_64_64_64_dsInstruments_ridFeb_10_2026_06_04_11_valid"
     },
+    "Instruments_grec_index_lcrec": {
+      "category": "Instruments_grec",
+      "test_data_path": "LC-Rec/Instruments_grec_index/sft/test.json",
+      "index_path": "LC-Rec/Instruments_grec_index/id2sid.json",
+      "train_entry": "Instruments_grec_index_lcrec_train",
+      "valid_entry": "Instruments_grec_index_lcrec_valid"
+    },
     "Instruments_grec_rlsidonly_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47": {
       "category": "Instruments_grec_rlsidonly",
       "test_data_path": "Instruments_grec_rlsidonly_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47/sft/test.json",
@@ -86,31 +93,31 @@
   },
   "aliases": {
     "Arts-grec-fixed": {
-      "dataset_variant": "Arts_grec_index",
+      "dataset_variant": "Arts_grec_index_lcrec",
       "sources": [
         "hope/Arts/rl_fixed.sh#output_dir"
       ]
     },
     "Arts-grec-fixed-ce": {
-      "dataset_variant": "Arts_grec_index",
+      "dataset_variant": "Arts_grec_index_lcrec",
       "sources": [
         "hope/Arts/rl_fixed_ce.sh#output_dir"
       ]
     },
     "Arts-grec-lcrec-aligned-qwen2.5-3b-sft-qwen4B-4-256-dsz3-4gpu": {
-      "dataset_variant": "Arts_grec_index",
+      "dataset_variant": "Arts_grec_index_lcrec",
       "sources": [
         "examples/train_full/Arts/arts_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_lcrec_aligned_4gpu.yaml#yaml_run_name"
       ]
     },
     "Arts-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu": {
-      "dataset_variant": "Arts_grec_index",
+      "dataset_variant": "Arts_grec_index_lcrec",
       "sources": [
         "examples/train_full/Arts/arts_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_lcrec_aligned_4gpu.yaml#yaml_output_dir"
       ]
     },
     "Arts-grec-rule": {
-      "dataset_variant": "Arts_grec_index",
+      "dataset_variant": "Arts_grec_index_lcrec",
       "sources": [
         "hope/Arts/rl_rule.sh#output_dir"
       ]
@@ -134,13 +141,13 @@
       ]
     },
     "Games-grec-lcrec-aligned-qwen2.5-3b-sft-qwen4B-4-256-dsz3-4gpu": {
-      "dataset_variant": "Games_grec_index",
+      "dataset_variant": "Games_grec_index_lcrec",
       "sources": [
         "examples/train_full/Games/games_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_lcrec_aligned_4gpu.yaml#yaml_run_name"
       ]
     },
     "Games-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu": {
-      "dataset_variant": "Games_grec_index",
+      "dataset_variant": "Games_grec_index_lcrec",
       "sources": [
         "examples/train_full/Games/games_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_lcrec_aligned_4gpu.yaml#yaml_output_dir"
       ]
@@ -289,46 +296,65 @@
         "examples/train_full/Industrial_and_Scientific/industry_rec_full_sft_minimind2_small_dsz3.yaml#yaml_output_dir"
       ]
     },
+    "Instruments-grec-genrec-aligned-qwen2.5-3b-sft-qwen4B-4-256-dsz3-8gpu": {
+      "dataset_variant": "Instruments_grec_index",
+      "sources": [
+        "examples/train_full/Instruments/instruments_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_genrec_aligned_8gpu.yaml#yaml_run_name"
+      ]
+    },
+    "Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu": {
+      "dataset_variant": "Instruments_grec_index",
+      "sources": [
+        "examples/train_full/Instruments/instruments_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_genrec_aligned_8gpu.yaml#yaml_output_dir"
+      ]
+    },
     "Instruments-grec-grpo-prefix-seq-only-fixbool-rerun-qwen2.5-3b-qwen4B-4-256-from-sft495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix-seq-only.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix-seq-only.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-prefix-seq-only.sh#output_dir"
       ]
     },
     "Instruments-grec-grpo-prefix-seq-only-fixedhint-taskfix-b16-sid-only-sft495": {
       "dataset_variant": "Instruments_grec_rlsidonly_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix-seq-only-fixed-hint-sid-only.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix-seq-only-fixed-hint-sid-only.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-prefix-seq-only-fixed-hint-sid-only.sh#output_dir"
       ]
     },
     "Instruments-grec-grpo-prefix-token-only-totalnorm-qwen2.5-3b-qwen4B-4-256-from-sft495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix-token-only.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix-token-only.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-prefix-token-only.sh#output_dir"
       ]
     },
     "Instruments-grec-grpo-prefix-tokenadv-ndcg-rule0-qwen2.5-3b-qwen4B-4-256-from-sft495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix-token.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix-token.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-prefix-token.sh#output_dir"
       ]
     },
     "Instruments-grec-grpo-prefix-tokenadv-totalnorm-errtok-ndcg-rule0-qwen2.5-3b-qwen4B-4-256-from-sft495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix-token-totalnorm-errtok.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix-token-totalnorm-errtok.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-prefix-token-totalnorm-errtok.sh#output_dir"
       ]
     },
     "Instruments-grec-grpo-prefix-tokenadv-totalnorm-ndcg-rule0-qwen2.5-3b-qwen4B-4-256-from-sft495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix-token-totalnorm.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix-token-totalnorm.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-prefix-token-totalnorm.sh#output_dir"
       ]
     },
     "Instruments-grec-grpo-prefixonly-ndcg-rule0-qwen2.5-3b-qwen4B-4-256-from-sft495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-prefix.sh#output_dir"
       ]
     },
     "Instruments-grec-grpo-qwen2.5-3b-qwen4B-4-128-from-sft495": {
@@ -340,7 +366,8 @@
     "Instruments-grec-grpo-qwen2.5-3b-qwen4B-4-256-from-sft495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl.sh#output_dir"
       ]
     },
     "Instruments-grec-grpo-qwen2.5-3b-qwen4B-4-32-from-sft495": {
@@ -364,149 +391,166 @@
     "Instruments-grec-grpo-ranking-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-ranking-dynamic-hint.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-ranking-dynamic-hint.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-ranking-dynamic-hint.sh#output_dir"
       ]
     },
     "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-hintce005-qwen2.5-3b-qwen4B-4-256-from-sft495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-ce.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-ce.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-dynamic-hint-ce.sh#output_dir"
       ]
     },
     "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-dynamic-hint.sh#output_dir"
       ]
     },
     "Instruments-grec-grpo-rule-only-dynamic-hint-max1-qwen2.5-3b-qwen4B-4-256-from-sft495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-max1.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-max1.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-dynamic-hint-max1.sh#output_dir"
       ]
     },
     "Instruments-grec-grpo-rule-only-dynamic-hint-sid-hint-only-mixed-qwen2.5-3b-qwen4B-4-256-from-sft495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-hint-only-mixed.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-hint-only-mixed.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-dynamic-hint-sid-hint-only-mixed.sh#output_dir"
       ]
     },
     "Instruments-grec-grpo-rule-only-dynamic-hint-sid-only-qwen2.5-3b-qwen4B-4-256-from-sft495": {
       "dataset_variant": "Instruments_grec_rlsidonly_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-only.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-only.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-dynamic-hint-sid-only.sh#output_dir"
       ]
     },
     "Instruments-grec-grpo-rule-only-dynamic-hint-sid-title-desc-qwen2.5-3b-qwen4B-4-256-from-sft495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-title-desc.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-title-desc.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-dynamic-hint-sid-title-desc.sh#output_dir"
       ]
     },
     "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-sft495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-ce.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-ce.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-fixed-hint-ce.sh#output_dir"
       ]
     },
     "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-fixed-hint.sh#output_dir"
       ]
     },
     "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-hint-only-mixed-hintce005-sft495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-hint-only-mixed-hint-ce.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-hint-only-mixed-hint-ce.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-fixed-hint-sid-hint-only-mixed-hint-ce.sh#output_dir"
       ]
     },
     "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-hint-only-mixed-sft495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-hint-only-mixed.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-hint-only-mixed.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-fixed-hint-sid-hint-only-mixed.sh#output_dir"
       ]
     },
     "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495": {
       "dataset_variant": "Instruments_grec_rlsidonly_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-only.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-only.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-fixed-hint-sid-only.sh#output_dir"
       ]
     },
     "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-title-desc-sft495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-title-desc.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-title-desc.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-fixed-hint-sid-title-desc.sh#output_dir"
       ]
     },
     "Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only.sh#output_dir"
       ]
     },
     "Instruments-grec-hint-token-sft-dynamic-b16-lr3e-4-sft495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-hint-token-sft-dynamic.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-hint-token-sft-dynamic.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/hint-token-sft-dynamic.sh#output_dir"
       ]
     },
     "Instruments-grec-hint-token-sft-fixed-b16-lr3e-4-sft495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-hint-token-sft-fixed.sh#output_dir"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-hint-token-sft-fixed.sh#output_dir",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/hint-token-sft-fixed.sh#output_dir"
       ]
     },
     "Instruments-grec-lc4023-fixed": {
-      "dataset_variant": "Instruments_grec_index",
+      "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
-        "hope/Instruments/rl_4023_fixed.sh#output_dir_default"
+        "hope/Instruments/rl_4023_fixed.sh#output_dir"
       ]
     },
     "Instruments-grec-lc4023-fixed-ce": {
-      "dataset_variant": "Instruments_grec_index",
+      "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
-        "hope/Instruments/rl_4023_fixed_ce.sh#output_dir_default"
+        "hope/Instruments/rl_4023_fixed_ce.sh#output_dir"
       ]
     },
     "Instruments-grec-lc4023-fixed-ce005": {
-      "dataset_variant": "Instruments_grec_index",
+      "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
-        "hope/Instruments/rl_4023_fixed_ce005.sh#output_dir_default"
+        "hope/Instruments/rl_4023_fixed_ce005.sh#output_dir"
       ]
     },
     "Instruments-grec-lc4023-ndcg": {
-      "dataset_variant": "Instruments_grec_index",
+      "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
         "hope/Instruments/rl_ndcg.sh#output_dir"
       ]
     },
     "Instruments-grec-lc4023-rule": {
-      "dataset_variant": "Instruments_grec_index",
+      "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
-        "hope/Instruments/rl_4023_rule.sh#output_dir_default"
+        "hope/Instruments/rl_4023_rule.sh#output_dir",
+        "hope/Instruments/rl_rule.sh#output_dir"
       ]
     },
     "Instruments-grec-lcrec-aligned-qwen2.5-3b-sft-qwen4B-4-256-dsz3": {
-      "dataset_variant": "Instruments_grec_index",
+      "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
         "examples/train_full/Instruments/instruments_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_lcrec_aligned.yaml#yaml_run_name"
       ]
     },
     "Instruments-grec-lcrec-aligned-qwen2.5-3b-sft-qwen4B-4-256-dsz3-4gpu": {
-      "dataset_variant": "Instruments_grec_index",
+      "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
         "examples/train_full/Instruments/instruments_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_lcrec_aligned_4gpu.yaml#yaml_run_name"
       ]
     },
     "Instruments-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3": {
-      "dataset_variant": "Instruments_grec_index",
+      "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
         "examples/train_full/Instruments/instruments_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_lcrec_aligned.yaml#yaml_output_dir"
       ]
     },
     "Instruments-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu": {
-      "dataset_variant": "Instruments_grec_index",
+      "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
         "examples/train_full/Instruments/instruments_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_lcrec_aligned_4gpu.yaml#yaml_output_dir"
       ]
@@ -552,7 +596,8 @@
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
         "examples/train_full/Instruments/instruments_rec_full_sft_3b_dsz0_qwen4b_4_256_grec.yaml#yaml_output_dir",
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-evaluate.sh#sft_root"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-evaluate.sh#sft_root",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/evaluate.sh#sft_root"
       ]
     },
     "Instruments-grec-sft-qwen4B-4-32-dsz0": {
@@ -596,19 +641,19 @@
       ]
     },
     "arts_grec_fixed": {
-      "dataset_variant": "Arts_grec_index",
+      "dataset_variant": "Arts_grec_index_lcrec",
       "sources": [
         "hope/Arts/rl_fixed.sh#run_name"
       ]
     },
     "arts_grec_fixed_ce": {
-      "dataset_variant": "Arts_grec_index",
+      "dataset_variant": "Arts_grec_index_lcrec",
       "sources": [
         "hope/Arts/rl_fixed_ce.sh#run_name"
       ]
     },
     "arts_grec_rule": {
-      "dataset_variant": "Arts_grec_index",
+      "dataset_variant": "Arts_grec_index_lcrec",
       "sources": [
         "hope/Arts/rl_rule.sh#run_name"
       ]
@@ -626,19 +671,19 @@
       ]
     },
     "ins-lc4023-fixed": {
-      "dataset_variant": "Instruments_grec_index",
+      "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
         "eval_profile_overrides.json#manual_override"
       ]
     },
     "ins-lc4023-fixed-ce": {
-      "dataset_variant": "Instruments_grec_index",
+      "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
         "eval_profile_overrides.json#manual_override"
       ]
     },
     "ins-lc4023-rule": {
-      "dataset_variant": "Instruments_grec_index",
+      "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
         "eval_profile_overrides.json#manual_override"
       ]
@@ -646,133 +691,158 @@
     "instruments_grec_beam_hint_qwen2_5_3b_qwen4b_4_256_ckpt495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-analyze-rl-beam-hint.sh#run_name"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-analyze-rl-beam-hint.sh#run_name",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/analyze-rl-beam-hint.sh#run_name"
       ]
     },
     "instruments_grec_hint_token_sft_dynamic_b16_lr3e_4_ckpt495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-hint-token-sft-dynamic.sh#run_name"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-hint-token-sft-dynamic.sh#run_name",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/hint-token-sft-dynamic.sh#run_name"
       ]
     },
     "instruments_grec_hint_token_sft_fixed_b16_lr3e_4_ckpt495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-hint-token-sft-fixed.sh#run_name"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-hint-token-sft-fixed.sh#run_name",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/hint-token-sft-fixed.sh#run_name"
       ]
     },
     "instruments_grec_lc4023_fixed": {
-      "dataset_variant": "Instruments_grec_index",
+      "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
-        "hope/Instruments/rl_4023_fixed.sh#run_name_default"
+        "hope/Instruments/rl_4023_fixed.sh#run_name"
       ]
     },
     "instruments_grec_lc4023_fixed_ce": {
-      "dataset_variant": "Instruments_grec_index",
+      "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
-        "hope/Instruments/rl_4023_fixed_ce.sh#run_name_default"
+        "hope/Instruments/rl_4023_fixed_ce.sh#run_name"
       ]
     },
     "instruments_grec_lc4023_fixed_ce005": {
-      "dataset_variant": "Instruments_grec_index",
+      "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
-        "hope/Instruments/rl_4023_fixed_ce005.sh#run_name_default"
+        "hope/Instruments/rl_4023_fixed_ce005.sh#run_name"
       ]
     },
     "instruments_grec_lc4023_ndcg": {
-      "dataset_variant": "Instruments_grec_index",
+      "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
         "hope/Instruments/rl_ndcg.sh#run_name"
       ]
     },
     "instruments_grec_lc4023_rule": {
-      "dataset_variant": "Instruments_grec_index",
+      "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
-        "hope/Instruments/rl_4023_rule.sh#run_name_default"
+        "hope/Instruments/rl_4023_rule.sh#run_name",
+        "hope/Instruments/rl_rule.sh#run_name"
       ]
     },
     "instruments_grec_rl_prefix_seq_only_fixed_hint_taskfix_b16_sid_only_ckpt495": {
       "dataset_variant": "Instruments_grec_rlsidonly_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix-seq-only-fixed-hint-sid-only.sh#run_name"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix-seq-only-fixed-hint-sid-only.sh#run_name",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-prefix-seq-only-fixed-hint-sid-only.sh#run_name"
       ]
     },
     "instruments_grec_rl_ranking_dynamic_hint_cascade_qwen2_5_3b_qwen4b_4_256_from_ckpt495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-ranking-dynamic-hint.sh#run_name"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-ranking-dynamic-hint.sh#run_name",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-ranking-dynamic-hint.sh#run_name"
       ]
     },
     "instruments_grec_rl_rule_only_dynamic_hint_cascade_reward_gather_fix_hint_ce005_qwen2_5_3b_qwen4b_4_256_from_ckpt495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-ce.sh#run_name"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-ce.sh#run_name",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-dynamic-hint-ce.sh#run_name"
       ]
     },
     "instruments_grec_rl_rule_only_dynamic_hint_cascade_reward_gather_fix_qwen2_5_3b_qwen4b_4_256_from_ckpt495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint.sh#run_name"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint.sh#run_name",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-dynamic-hint.sh#run_name"
       ]
     },
     "instruments_grec_rl_rule_only_dynamic_hint_max1_qwen2_5_3b_qwen4b_4_256_from_ckpt495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-max1.sh#run_name"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-max1.sh#run_name",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-dynamic-hint-max1.sh#run_name"
       ]
     },
     "instruments_grec_rl_rule_only_dynamic_hint_sid_hint_only_mixed_qwen2_5_3b_qwen4b_4_256_from_ckpt495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-hint-only-mixed.sh#run_name"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-hint-only-mixed.sh#run_name",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-dynamic-hint-sid-hint-only-mixed.sh#run_name"
       ]
     },
     "instruments_grec_rl_rule_only_dynamic_hint_sid_only_qwen2_5_3b_qwen4b_4_256_from_ckpt495": {
       "dataset_variant": "Instruments_grec_rlsidonly_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-only.sh#run_name"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-only.sh#run_name",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-dynamic-hint-sid-only.sh#run_name"
       ]
     },
     "instruments_grec_rl_rule_only_dynamic_hint_sid_title_desc_qwen2_5_3b_qwen4b_4_256_from_ckpt495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-title-desc.sh#run_name"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-sid-title-desc.sh#run_name",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-dynamic-hint-sid-title-desc.sh#run_name"
       ]
     },
     "instruments_grec_rl_rule_only_fixed_hint_taskfix_b16_ckpt495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint.sh#run_name"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint.sh#run_name",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-fixed-hint.sh#run_name"
       ]
     },
     "instruments_grec_rl_rule_only_fixed_hint_taskfix_b16_hint_ce_ckpt495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-ce.sh#run_name"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-ce.sh#run_name",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-fixed-hint-ce.sh#run_name"
       ]
     },
     "instruments_grec_rl_rule_only_fixed_hint_taskfix_b16_sid_hint_only_mixed_ckpt495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-hint-only-mixed.sh#run_name"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-hint-only-mixed.sh#run_name",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-fixed-hint-sid-hint-only-mixed.sh#run_name"
       ]
     },
     "instruments_grec_rl_rule_only_fixed_hint_taskfix_b16_sid_hint_only_mixed_hint_ce005_ckpt495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-hint-only-mixed-hint-ce.sh#run_name"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-hint-only-mixed-hint-ce.sh#run_name",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-fixed-hint-sid-hint-only-mixed-hint-ce.sh#run_name"
       ]
     },
     "instruments_grec_rl_rule_only_fixed_hint_taskfix_b16_sid_only_ckpt495": {
       "dataset_variant": "Instruments_grec_rlsidonly_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-only.sh#run_name"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-only.sh#run_name",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-fixed-hint-sid-only.sh#run_name"
       ]
     },
     "instruments_grec_rl_rule_only_fixed_hint_taskfix_b16_sid_title_desc_ckpt495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
-        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-title-desc.sh#run_name"
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-sid-title-desc.sh#run_name",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only-fixed-hint-sid-title-desc.sh#run_name"
+      ]
+    },
+    "instruments_grec_rl_rule_only_rerun_quietlog_qwen2_5_3b_qwen4b_4_256_from_ckpt495": {
+      "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
+      "sources": [
+        "hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only.sh#run_name",
+        "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/rl-rule-only.sh#run_name"
       ]
     }
   }

@@ -40,11 +40,12 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/_fixed_hint_artif
 # shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/_launcher_runtime.sh"
 
-DATA_VARIANT_DEFAULT="Instruments_grec_index"
+DATA_VARIANT_DEFAULT="Instruments_grec_index_lcrec"
+DATA_VARIANT_DIR="$(resolve_data_variant_dir "$REPO_ROOT" "$DATA_VARIANT_DEFAULT")"
 MODEL_PATH="${REPO_ROOT}/saves/qwen2.5-3b/full/Instruments-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu/checkpoint-4023"
-DATA_DIR="${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/rl"
-INDEX_PATH="${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/id2sid.json"
-ADD_TOKENS_PATH="${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/new_tokens.json"
+DATA_DIR="${DATA_VARIANT_DIR}/rl"
+INDEX_PATH="${DATA_VARIANT_DIR}/id2sid.json"
+ADD_TOKENS_PATH="${DATA_VARIANT_DIR}/new_tokens.json"
 OUTPUT_DIR="${REPO_ROOT}/rl_outputs/Instruments-grec-lc4023-fixed"
 DS_CONFIG="${REPO_ROOT}/config/zero2.yaml"
 

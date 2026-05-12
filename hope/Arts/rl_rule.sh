@@ -37,10 +37,11 @@ REPO_ROOT="/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/
 # shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/_launcher_runtime.sh"
 
-DATA_VARIANT_DEFAULT="Arts_grec_index"
+DATA_VARIANT_DEFAULT="Arts_grec_index_lcrec"
+DATA_VARIANT_DIR="$(resolve_data_variant_dir "$REPO_ROOT" "$DATA_VARIANT_DEFAULT")"
 MODEL_PATH="${REPO_ROOT}/saves/qwen2.5-3b/full/Arts-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu/checkpoint-17268"
-DATA_DIR="${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/rl"
-INDEX_PATH="${REPO_ROOT}/data/${DATA_VARIANT_DEFAULT}/id2sid.json"
+DATA_DIR="${DATA_VARIANT_DIR}/rl"
+INDEX_PATH="${DATA_VARIANT_DIR}/id2sid.json"
 OUTPUT_DIR="${REPO_ROOT}/rl_outputs/Arts-grec-rule"
 DS_CONFIG="${REPO_ROOT}/config/zero2.yaml"
 

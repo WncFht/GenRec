@@ -89,6 +89,24 @@
       "system": "system"
     }
   },
+  "Games_grec_index_lcrec_train": {
+    "file_name": "LC-Rec/Games_grec_index/sft/train.json",
+    "columns": {
+      "prompt": "instruction",
+      "query": "input",
+      "response": "output",
+      "system": "system"
+    }
+  },
+  "Games_grec_index_lcrec_valid": {
+    "file_name": "LC-Rec/Games_grec_index/sft/valid.json",
+    "columns": {
+      "prompt": "instruction",
+      "query": "input",
+      "response": "output",
+      "system": "system"
+    }
+  },
   "Arts_grec_index_train": {
     "file_name": "Arts_grec_index/sft/train.json",
     "columns": {
@@ -100,6 +118,24 @@
   },
   "Arts_grec_index_valid": {
     "file_name": "Arts_grec_index/sft/valid.json",
+    "columns": {
+      "prompt": "instruction",
+      "query": "input",
+      "response": "output",
+      "system": "system"
+    }
+  },
+  "Arts_grec_index_lcrec_train": {
+    "file_name": "LC-Rec/Arts_grec_index/sft/train.json",
+    "columns": {
+      "prompt": "instruction",
+      "query": "input",
+      "response": "output",
+      "system": "system"
+    }
+  },
+  "Arts_grec_index_lcrec_valid": {
+    "file_name": "LC-Rec/Arts_grec_index/sft/valid.json",
     "columns": {
       "prompt": "instruction",
       "query": "input",
@@ -226,6 +262,24 @@
   },
   "Instruments_grec_index_valid": {
     "file_name": "Instruments_grec_index/sft/valid.json",
+    "columns": {
+      "prompt": "instruction",
+      "query": "input",
+      "response": "output",
+      "system": "system"
+    }
+  },
+  "Instruments_grec_index_lcrec_train": {
+    "file_name": "LC-Rec/Instruments_grec_index/sft/train.json",
+    "columns": {
+      "prompt": "instruction",
+      "query": "input",
+      "response": "output",
+      "system": "system"
+    }
+  },
+  "Instruments_grec_index_lcrec_valid": {
+    "file_name": "LC-Rec/Instruments_grec_index/sft/valid.json",
     "columns": {
       "prompt": "instruction",
       "query": "input",

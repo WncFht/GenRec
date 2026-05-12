@@ -5,8 +5,22 @@
     "Instruments"
   ],
   "aliases": {
-    "ins-lc4023-fixed": "Instruments_grec_index",
-    "ins-lc4023-fixed-ce": "Instruments_grec_index",
-    "ins-lc4023-rule": "Instruments_grec_index"
+    "ins-lc4023-fixed": "Instruments_grec_index_lcrec",
+    "ins-lc4023-fixed-ce": "Instruments_grec_index_lcrec",
+    "ins-lc4023-rule": "Instruments_grec_index_lcrec"
+  },
+  "dataset_overrides": {
+    "Arts_grec_index_lcrec": {
+      "test_data_path": "LC-Rec/Arts_grec_index/sft/test.json",
+      "index_path": "LC-Rec/Arts_grec_index/id2sid.json"
+    },
+    "Games_grec_index_lcrec": {
+      "test_data_path": "LC-Rec/Games_grec_index/sft/test.json",
+      "index_path": "LC-Rec/Games_grec_index/id2sid.json"
+    },
+    "Instruments_grec_index_lcrec": {
+      "test_data_path": "LC-Rec/Instruments_grec_index/sft/test.json",
+      "index_path": "LC-Rec/Instruments_grec_index/id2sid.json"
+    }
   }
 }
