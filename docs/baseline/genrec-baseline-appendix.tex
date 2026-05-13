@@ -39,6 +39,54 @@ Games & HR@1 & 0.0140 & 0.0115 & 0.0069 & 0.0163 & 0.0136 & 0.0075 & \underline{
 \label{tab:appendix-paper-reference-mql4grec}
 \end{table}
 
+\subsection{Original GenRec(sft)-Based Table}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.08}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llccccccccccc}
+\toprule
+Dataset & Metric & Caser & GRU4Rec & BERT4Rec & SASRec & TIGER & LC-Rec & GenRec(sft) & GenRec(rule) & GenRec(ranking) & GenRec(fixed) & GenRec(fixed + ce0.005) \\
+\midrule
+Instruments & HR@1 & 0.0422 & 0.0784 & 0.0709 & 0.0597 & 0.0756 & \textbf{0.0830} & 0.0588 & 0.0788 & 0.0808 & 0.0722 & 0.0764 \\
+ & HR@5 & 0.0645 & 0.1017 & 0.0996 & 0.0871 & 0.0996 & \textbf{0.1102} & 0.0932 & 0.1027 & 0.1002 & 0.1014 & 0.1009 \\
+ & HR@10 & 0.0825 & 0.1203 & 0.1193 & 0.1082 & 0.1207 & \textbf{0.1311} & 0.1094 & 0.1179 & 0.1145 & 0.1189 & 0.1180 \\
+ & HR@20 & 0.1097 & 0.1478 & 0.1512 & 0.1393 & 0.1533 & \textbf{0.1597} & 0.1344 & 0.1373 & 0.1337 & 0.1447 & 0.1435 \\
+ & HR@50 & 0.1593 & 0.2068 & 0.2073 & 0.2011 & 0.2097 & \textbf{0.2195} & 0.1844 & 0.1681 & 0.1696 & 0.1941 & 0.1985 \\
+ & NDCG@5 & 0.0533 & 0.0902 & 0.0855 & 0.0737 & 0.0878 & \textbf{0.0967} & 0.0771 & 0.0911 & 0.0906 & 0.0875 & 0.0890 \\
+ & NDCG@10 & 0.0591 & 0.0962 & 0.0918 & 0.0805 & 0.0945 & \textbf{0.1033} & 0.0823 & 0.0960 & 0.0952 & 0.0931 & 0.0945 \\
+ & NDCG@20 & 0.0659 & 0.1031 & 0.0999 & 0.0883 & 0.1028 & \textbf{0.1105} & 0.0886 & 0.1009 & 0.1000 & 0.0995 & 0.1009 \\
+ & NDCG@50 & 0.0757 & 0.1148 & 0.1109 & 0.1005 & 0.1139 & \textbf{0.1223} & 0.0985 & 0.1070 & 0.1071 & 0.1094 & 0.1118 \\
+\midrule
+Arts & HR@1 & 0.0274 & \textbf{0.0599} & 0.0523 & 0.0500 & 0.0596 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & HR@5 & 0.0421 & 0.0870 & 0.0862 & 0.0828 & \textbf{0.0923} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & HR@10 & 0.0547 & 0.1071 & 0.1090 & 0.1044 & \textbf{0.1191} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & HR@20 & 0.0745 & 0.1350 & 0.1394 & 0.1348 & \textbf{0.1527} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & HR@50 & 0.1103 & 0.1884 & 0.1965 & 0.1903 & \textbf{0.2125} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & NDCG@5 & 0.0347 & 0.0739 & 0.0696 & 0.0666 & \textbf{0.0763} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & NDCG@10 & 0.0387 & 0.0804 & 0.0769 & 0.0736 & \textbf{0.0849} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & NDCG@20 & 0.0437 & 0.0874 & 0.0845 & 0.0812 & \textbf{0.0934} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & NDCG@50 & 0.0508 & 0.0979 & 0.0958 & 0.0922 & \textbf{0.1052} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+\midrule
+Games & HR@1 & 0.0102 & 0.0204 & 0.0200 & 0.0155 & 0.0163 & \textemdash & 0.0168 & 0.0206 & \textemdash & \textbf{0.0210} & \textemdash \\
+ & HR@5 & 0.0334 & 0.0570 & \textbf{0.0578} & 0.0463 & 0.0521 & \textemdash & 0.0503 & 0.0544 & \textemdash & 0.0555 & \textemdash \\
+ & HR@10 & 0.0546 & 0.0869 & \textbf{0.0889} & 0.0726 & 0.0831 & \textemdash & 0.0804 & 0.0825 & \textemdash & 0.0857 & \textemdash \\
+ & HR@20 & 0.0876 & 0.1312 & \textbf{0.1352} & 0.1098 & 0.1301 & \textemdash & 0.1215 & 0.1186 & \textemdash & 0.1273 & \textemdash \\
+ & HR@50 & 0.1517 & 0.2161 & \textbf{0.2188} & 0.1862 & 0.2171 & \textemdash & 0.1998 & 0.1815 & \textemdash & 0.1972 & \textemdash \\
+ & NDCG@5 & 0.0218 & 0.0389 & \textbf{0.0390} & 0.0310 & 0.0340 & \textemdash & 0.0336 & 0.0377 & \textemdash & 0.0383 & \textemdash \\
+ & NDCG@10 & 0.0286 & 0.0484 & \textbf{0.0490} & 0.0394 & 0.0440 & \textemdash & 0.0433 & 0.0467 & \textemdash & 0.0480 & \textemdash \\
+ & NDCG@20 & 0.0369 & 0.0596 & \textbf{0.0607} & 0.0487 & 0.0558 & \textemdash & 0.0536 & 0.0558 & \textemdash & 0.0584 & \textemdash \\
+ & NDCG@50 & 0.0496 & 0.0763 & \textbf{0.0772} & 0.0638 & 0.0731 & \textemdash & 0.0691 & 0.0683 & \textemdash & 0.0723 & \textemdash \\
+\bottomrule
+\end{tabular}%
+}
+\caption{原始 GenRec(sft) 基座下的结果总表。该表从正文移至附录，用于和第一页展示的 LC-Rec 对齐 RL 结果区分。}
+\label{tab:genrec-index-original-appendix}
+\end{table}
+
 \subsection{Full Checkpoint Tables}
 
 \subsection{Instruments: Caser}
@@ -182,6 +230,27 @@ Checkpoint & HR@1 & HR@5 & HR@10 & HR@20 & HR@50 & NDCG@5 & NDCG@10 & NDCG@20 & 
 }
 \caption{Instruments 上 \texttt{Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu} 的完整 checkpoint 指标。}
 \label{tab:appendix-instruments-lc-rec}
+\end{table}
+
+\subsection{Instruments: GenRec aligned rule}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.05}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{cccccccccc}
+\toprule
+Checkpoint & HR@1 & HR@5 & HR@10 & HR@20 & HR@50 & NDCG@5 & NDCG@10 & NDCG@20 & NDCG@50 \\
+\midrule
+\texttt{checkpoint-333} & 0.0818 & 0.1024 & 0.1201 & 0.1430 & 0.1848 & 0.0921 & 0.0978 & 0.1035 & 0.1118 \\
+\texttt{checkpoint-666} & 0.0837 & 0.1058 & 0.1232 & 0.1447 & 0.1903 & 0.0951 & 0.1007 & 0.1061 & 0.1150 \\
+\bottomrule
+\end{tabular}%
+}
+\caption{Instruments 上 \texttt{Instruments-grec-genrec-aligned-rule} 的完整 checkpoint 指标。}
+\label{tab:appendix-instruments-genrec-aligned-rule}
 \end{table}
 
 \subsection{Instruments: GenRec (SFT)}
@@ -433,7 +502,7 @@ Checkpoint & HR@1 & HR@5 & HR@10 & HR@20 & HR@50 & NDCG@5 & NDCG@10 & NDCG@20 & 
 \toprule
 Checkpoint & HR@1 & HR@5 & HR@10 & HR@20 & HR@50 & NDCG@5 & NDCG@10 & NDCG@20 & NDCG@50 \\
 \midrule
-\texttt{checkpoint-best} & 0.0011 & 0.0068 & 0.0113 & 0.0177 & 0.0309 & 0.0038 & 0.0052 & 0.0069 & 0.0095 \\
+\texttt{checkpoint-best} & 0.0163 & 0.0521 & 0.0831 & 0.1301 & 0.2171 & 0.0340 & 0.0440 & 0.0558 & 0.0731 \\
 \bottomrule
 \end{tabular}%
 }

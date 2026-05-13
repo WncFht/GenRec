@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-12T20:08:27+00:00",
+  "generated_at": "2026-05-13T08:26:32+00:00",
   "results_root": "/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/results",
   "models": [
     {
@@ -152,6 +152,21 @@
       "wandb_entity": null,
       "wandb_run_id": "eval-c0ada1e63f43880d887f",
       "wandb_run_name": "Industrial_and_Scientific-sft-dsz0-4gpu-eq8-eval"
+    },
+    {
+      "model_dir": "Instruments-grec-genrec-aligned-rule",
+      "dataset": "Instruments_grec_genrec_aligned_rule",
+      "cb_setting": "none",
+      "eval_split": "test",
+      "seed": 42,
+      "num_beams": 50,
+      "sid_levels": -1,
+      "num_train_epochs": null,
+      "wandb_group": null,
+      "wandb_project": "MIMIGenRec-Eval",
+      "wandb_entity": null,
+      "wandb_run_id": "eval-68dd9455219af3af7bdf",
+      "wandb_run_name": "Instruments-grec-genrec-aligned-rule-eval"
     },
     {
       "model_dir": "Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu",
