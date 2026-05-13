@@ -14,6 +14,6 @@ export MAIN_PORT="${MAIN_PORT:-29516}"
 export GRAD_ACC="${GRAD_ACC:-2}"
 export DEFAULT_CUDA_VISIBLE_DEVICES="${DEFAULT_CUDA_VISIBLE_DEVICES:-0,1,2,3,4,5,6,7}"
 export FIXED_HINT_ENABLED="${FIXED_HINT_ENABLED:-true}"
-export HINT_CE_LOSS_COEF="${HINT_CE_LOSS_COEF:-0.001}"
+export HINT_CE_LOSS_COEF="${HINT_CE_LOSS_COEF:-0.005}"
 
 exec bash "${REPO_ROOT}/hope/_canonical_rl_launcher.sh" "$@"

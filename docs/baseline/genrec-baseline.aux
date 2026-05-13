@@ -1,7 +1,7 @@
 \relax 
 \@writefile{toc}{\contentsline {section}{\numberline {1}GenRec Index Baseline Tables}{1}{}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {1.1}Main Table}{1}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces GenRec index 口径下当前已测结果的主表。第一页优先展示 LC-Rec 对齐 SFT 基座下的 RL / SFT 结果，并与当前已同步回仓库的 baseline 以及 Instruments 上的 LC-Rec 对照放在同一张表里。原始 GenRec(sft) 基座下的对应总表已移到附录。RecSys23 版 BERT4Rec 只保留在附录中作参考。所有 GenRec 变体若存在多个 checkpoint，统一按 NDCG@10 选 best。}}{1}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces GenRec index 口径下当前已测结果的主表。当前第一页仅纳入已经按该口径完成实测的结果：Instruments 上 \texttt  {LC-Rec} 与 \texttt  {GenRec(sft)} 共享同一条 \texttt  {genrec-aligned-sft} 结果，\texttt  {GenRec(rule)} 使用 \texttt  {Instruments-grec-genrec-aligned-rule}；其余尚未跑出的列暂保留为空。原始旧版 GenRec(sft) 基座总表移到附录，RecSys23 版 BERT4Rec 只保留在附录中作参考。所有 GenRec 变体若存在多个 checkpoint，统一按 NDCG@10 选 best。}}{1}{}\protected@file@percent }
 \newlabel{tab:genrec-index-main}{{1}{1}{}{table.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {1.2}Best Checkpoint Summary}{2}{}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces 当前主表中所有已测方法的 best checkpoint 汇总。}}{2}{}\protected@file@percent }
@@ -36,76 +36,67 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.10}Instruments: LC-Rec}{5}{}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces Instruments 上 \texttt  {Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu} 的完整 checkpoint 指标。}}{5}{}\protected@file@percent }
 \newlabel{tab:appendix-instruments-lc-rec}{{11}{5}{}{table.11}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.11}Instruments: GenRec (SFT)}{5}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {12}{\ignorespaces Instruments 上 \texttt  {Instruments-grec-sft-qwen4B-4-256-dsz0} 的完整 checkpoint 指标。}}{5}{}\protected@file@percent }
-\newlabel{tab:appendix-instruments-genrec-sft}{{12}{5}{}{table.12}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.12}Instruments: GenRec (rule)}{5}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {13}{\ignorespaces Instruments 上 \texttt  {Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495} 的完整 checkpoint 指标。}}{5}{}\protected@file@percent }
-\newlabel{tab:appendix-instruments-genrec-rule}{{13}{5}{}{table.13}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.13}Instruments: GenRec (ranking)}{6}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {14}{\ignorespaces Instruments 上 \texttt  {Instruments-grec-grpo-qwen2.5-3b-qwen4B-4-256-from-sft495} 的完整 checkpoint 指标。}}{6}{}\protected@file@percent }
-\newlabel{tab:appendix-instruments-genrec-ranking}{{14}{6}{}{table.14}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.14}Instruments: GenRec (fixed)}{6}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {15}{\ignorespaces Instruments 上 \texttt  {Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495} 的完整 checkpoint 指标。}}{6}{}\protected@file@percent }
-\newlabel{tab:appendix-instruments-genrec-fixed}{{15}{6}{}{table.15}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.15}Instruments: GenRec (fixed + ce0.005)}{7}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {16}{\ignorespaces Instruments 上 \texttt  {Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-3-sft495} 的完整 checkpoint 指标。}}{7}{}\protected@file@percent }
-\newlabel{tab:appendix-instruments-genrec-fixed-ce0-005}{{16}{7}{}{table.16}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.16}Games: Caser}{7}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {17}{\ignorespaces Games 上 \texttt  {Games-caser-pytorch/checkpoint-best} 的完整 checkpoint 指标。}}{7}{}\protected@file@percent }
-\newlabel{tab:appendix-games-caser}{{17}{7}{}{table.17}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.17}Games: GRU4Rec}{7}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {18}{\ignorespaces Games 上 \texttt  {Games-gru4rec-pytorch-official/checkpoint-best} 的完整 checkpoint 指标。}}{7}{}\protected@file@percent }
-\newlabel{tab:appendix-games-gru4rec}{{18}{7}{}{table.18}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.18}Games: BERT4Rec (RecSys23)}{7}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {19}{\ignorespaces Games 上 \texttt  {Games-bert4rec-recsys23/checkpoint-best} 的完整 checkpoint 指标。}}{7}{}\protected@file@percent }
-\newlabel{tab:appendix-games-bert4rec-recsys23}{{19}{7}{}{table.19}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.19}Games: BERT4Rec}{7}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {20}{\ignorespaces Games 上 \texttt  {Games-bert4rec-vanilla/checkpoint-best} 的完整 checkpoint 指标。}}{7}{}\protected@file@percent }
-\newlabel{tab:appendix-games-bert4rec}{{20}{7}{}{table.20}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.20}Games: SASRec}{8}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {21}{\ignorespaces Games 上 \texttt  {Games-sasrec-recsys23/checkpoint-best} 的完整 checkpoint 指标。}}{8}{}\protected@file@percent }
-\newlabel{tab:appendix-games-sasrec}{{21}{8}{}{table.21}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.21}Games: TIGER}{8}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {22}{\ignorespaces Games 上 \texttt  {Games-tiger-grec-h50-reverse/checkpoint-best} 的完整 checkpoint 指标。}}{8}{}\protected@file@percent }
-\newlabel{tab:appendix-games-tiger}{{22}{8}{}{table.22}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.22}Games: GenRec (SFT)}{8}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {23}{\ignorespaces Games 上 \texttt  {Games-grec-sft-qwen4B-4-256-dsz0} 的完整 checkpoint 指标。}}{8}{}\protected@file@percent }
-\newlabel{tab:appendix-games-genrec-sft}{{23}{8}{}{table.23}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.23}Games: GenRec (rule)}{8}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {24}{\ignorespaces Games 上 \texttt  {Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft896} 的完整 checkpoint 指标。}}{8}{}\protected@file@percent }
-\newlabel{tab:appendix-games-genrec-rule}{{24}{8}{}{table.24}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.24}Games: GenRec (fixed)}{9}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {25}{\ignorespaces Games 上 \texttt  {Games-grec-grpo-rule-only-fixedhint-taskfix-b16-sft896} 的完整 checkpoint 指标。}}{9}{}\protected@file@percent }
-\newlabel{tab:appendix-games-genrec-fixed}{{25}{9}{}{table.25}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.25}Arts: Caser}{9}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {26}{\ignorespaces Arts 上 \texttt  {Arts-caser-pytorch/checkpoint-best} 的完整 checkpoint 指标。}}{9}{}\protected@file@percent }
-\newlabel{tab:appendix-arts-caser}{{26}{9}{}{table.26}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.26}Arts: GRU4Rec}{9}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {27}{\ignorespaces Arts 上 \texttt  {Arts-gru4rec-pytorch-official/checkpoint-best} 的完整 checkpoint 指标。}}{9}{}\protected@file@percent }
-\newlabel{tab:appendix-arts-gru4rec}{{27}{9}{}{table.27}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.27}Arts: BERT4Rec (RecSys23)}{9}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {28}{\ignorespaces Arts 上 \texttt  {Arts-bert4rec-recsys23/checkpoint-best} 的完整 checkpoint 指标。}}{9}{}\protected@file@percent }
-\newlabel{tab:appendix-arts-bert4rec-recsys23}{{28}{9}{}{table.28}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.28}Arts: BERT4Rec}{9}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {29}{\ignorespaces Arts 上 \texttt  {Arts-bert4rec-vanilla/checkpoint-best} 的完整 checkpoint 指标。}}{9}{}\protected@file@percent }
-\newlabel{tab:appendix-arts-bert4rec}{{29}{9}{}{table.29}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.29}Arts: SASRec}{10}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {30}{\ignorespaces Arts 上 \texttt  {Arts-sasrec-recsys23/checkpoint-best} 的完整 checkpoint 指标。}}{10}{}\protected@file@percent }
-\newlabel{tab:appendix-arts-sasrec}{{30}{10}{}{table.30}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.30}Arts: TIGER}{10}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {31}{\ignorespaces Arts 上 \texttt  {Arts-tiger-grec-h50-reverse/checkpoint-best} 的完整 checkpoint 指标。}}{10}{}\protected@file@percent }
-\newlabel{tab:appendix-arts-tiger}{{31}{10}{}{table.31}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.31}Arts: LC-Rec aligned SFT}{10}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {32}{\ignorespaces Arts 上 \texttt  {Arts-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu} 的完整 checkpoint 指标。}}{10}{}\protected@file@percent }
-\newlabel{tab:appendix-arts-lc-rec-aligned-sft}{{32}{10}{}{table.32}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.32}Arts: LC-Rec rule}{10}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {33}{\ignorespaces Arts 上 \texttt  {Arts-grec-rule} 的完整 checkpoint 指标。}}{10}{}\protected@file@percent }
-\newlabel{tab:appendix-arts-lc-rec-rule}{{33}{10}{}{table.33}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.33}Arts: LC-Rec fixed}{10}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {34}{\ignorespaces Arts 上 \texttt  {Arts-grec-fixed} 的完整 checkpoint 指标。}}{10}{}\protected@file@percent }
-\newlabel{tab:appendix-arts-lc-rec-fixed}{{34}{10}{}{table.34}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.34}Games: LC-Rec aligned SFT}{11}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {35}{\ignorespaces Games 上 \texttt  {Games-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu} 的完整 checkpoint 指标。}}{11}{}\protected@file@percent }
-\newlabel{tab:appendix-games-lc-rec-aligned-sft}{{35}{11}{}{table.35}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.11}Instruments: GenRec aligned rule}{5}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {12}{\ignorespaces Instruments 上 \texttt  {Instruments-grec-genrec-aligned-rule} 的完整 checkpoint 指标。}}{5}{}\protected@file@percent }
+\newlabel{tab:appendix-instruments-genrec-aligned-rule}{{12}{5}{}{table.12}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.12}Instruments: GenRec (SFT)}{5}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {13}{\ignorespaces Instruments 上 \texttt  {Instruments-grec-sft-qwen4B-4-256-dsz0} 的完整 checkpoint 指标。}}{5}{}\protected@file@percent }
+\newlabel{tab:appendix-instruments-genrec-sft}{{13}{5}{}{table.13}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.13}Instruments: GenRec (rule)}{6}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {14}{\ignorespaces Instruments 上 \texttt  {Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495} 的完整 checkpoint 指标。}}{6}{}\protected@file@percent }
+\newlabel{tab:appendix-instruments-genrec-rule}{{14}{6}{}{table.14}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.14}Instruments: GenRec (ranking)}{6}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {15}{\ignorespaces Instruments 上 \texttt  {Instruments-grec-grpo-qwen2.5-3b-qwen4B-4-256-from-sft495} 的完整 checkpoint 指标。}}{6}{}\protected@file@percent }
+\newlabel{tab:appendix-instruments-genrec-ranking}{{15}{6}{}{table.15}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.15}Instruments: GenRec (fixed)}{7}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {16}{\ignorespaces Instruments 上 \texttt  {Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495} 的完整 checkpoint 指标。}}{7}{}\protected@file@percent }
+\newlabel{tab:appendix-instruments-genrec-fixed}{{16}{7}{}{table.16}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.16}Instruments: GenRec (fixed + ce0.005)}{7}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {17}{\ignorespaces Instruments 上 \texttt  {Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-3-sft495} 的完整 checkpoint 指标。}}{7}{}\protected@file@percent }
+\newlabel{tab:appendix-instruments-genrec-fixed-ce0-005}{{17}{7}{}{table.17}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.17}Games: Caser}{7}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {18}{\ignorespaces Games 上 \texttt  {Games-caser-pytorch/checkpoint-best} 的完整 checkpoint 指标。}}{7}{}\protected@file@percent }
+\newlabel{tab:appendix-games-caser}{{18}{7}{}{table.18}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.18}Games: GRU4Rec}{8}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {19}{\ignorespaces Games 上 \texttt  {Games-gru4rec-pytorch-official/checkpoint-best} 的完整 checkpoint 指标。}}{8}{}\protected@file@percent }
+\newlabel{tab:appendix-games-gru4rec}{{19}{8}{}{table.19}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.19}Games: BERT4Rec (RecSys23)}{8}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {20}{\ignorespaces Games 上 \texttt  {Games-bert4rec-recsys23/checkpoint-best} 的完整 checkpoint 指标。}}{8}{}\protected@file@percent }
+\newlabel{tab:appendix-games-bert4rec-recsys23}{{20}{8}{}{table.20}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.20}Games: BERT4Rec}{8}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {21}{\ignorespaces Games 上 \texttt  {Games-bert4rec-vanilla/checkpoint-best} 的完整 checkpoint 指标。}}{8}{}\protected@file@percent }
+\newlabel{tab:appendix-games-bert4rec}{{21}{8}{}{table.21}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.21}Games: SASRec}{8}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {22}{\ignorespaces Games 上 \texttt  {Games-sasrec-recsys23/checkpoint-best} 的完整 checkpoint 指标。}}{8}{}\protected@file@percent }
+\newlabel{tab:appendix-games-sasrec}{{22}{8}{}{table.22}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.22}Games: TIGER}{8}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {23}{\ignorespaces Games 上 \texttt  {Games-tiger-grec-h50-reverse/checkpoint-best} 的完整 checkpoint 指标。}}{8}{}\protected@file@percent }
+\newlabel{tab:appendix-games-tiger}{{23}{8}{}{table.23}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.23}Games: GenRec (SFT)}{9}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {24}{\ignorespaces Games 上 \texttt  {Games-grec-sft-qwen4B-4-256-dsz0} 的完整 checkpoint 指标。}}{9}{}\protected@file@percent }
+\newlabel{tab:appendix-games-genrec-sft}{{24}{9}{}{table.24}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.24}Games: GenRec (rule)}{9}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {25}{\ignorespaces Games 上 \texttt  {Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft896} 的完整 checkpoint 指标。}}{9}{}\protected@file@percent }
+\newlabel{tab:appendix-games-genrec-rule}{{25}{9}{}{table.25}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.25}Games: GenRec (fixed)}{10}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {26}{\ignorespaces Games 上 \texttt  {Games-grec-grpo-rule-only-fixedhint-taskfix-b16-sft896} 的完整 checkpoint 指标。}}{10}{}\protected@file@percent }
+\newlabel{tab:appendix-games-genrec-fixed}{{26}{10}{}{table.26}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.26}Arts: Caser}{10}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {27}{\ignorespaces Arts 上 \texttt  {Arts-caser-pytorch/checkpoint-best} 的完整 checkpoint 指标。}}{10}{}\protected@file@percent }
+\newlabel{tab:appendix-arts-caser}{{27}{10}{}{table.27}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.27}Arts: GRU4Rec}{10}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {28}{\ignorespaces Arts 上 \texttt  {Arts-gru4rec-pytorch-official/checkpoint-best} 的完整 checkpoint 指标。}}{10}{}\protected@file@percent }
+\newlabel{tab:appendix-arts-gru4rec}{{28}{10}{}{table.28}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.28}Arts: BERT4Rec (RecSys23)}{10}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {29}{\ignorespaces Arts 上 \texttt  {Arts-bert4rec-recsys23/checkpoint-best} 的完整 checkpoint 指标。}}{10}{}\protected@file@percent }
+\newlabel{tab:appendix-arts-bert4rec-recsys23}{{29}{10}{}{table.29}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.29}Arts: BERT4Rec}{10}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {30}{\ignorespaces Arts 上 \texttt  {Arts-bert4rec-vanilla/checkpoint-best} 的完整 checkpoint 指标。}}{10}{}\protected@file@percent }
+\newlabel{tab:appendix-arts-bert4rec}{{30}{10}{}{table.30}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.30}Arts: SASRec}{11}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {31}{\ignorespaces Arts 上 \texttt  {Arts-sasrec-recsys23/checkpoint-best} 的完整 checkpoint 指标。}}{11}{}\protected@file@percent }
+\newlabel{tab:appendix-arts-sasrec}{{31}{11}{}{table.31}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.31}Arts: TIGER}{11}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {32}{\ignorespaces Arts 上 \texttt  {Arts-tiger-grec-h50-reverse/checkpoint-best} 的完整 checkpoint 指标。}}{11}{}\protected@file@percent }
+\newlabel{tab:appendix-arts-tiger}{{32}{11}{}{table.32}{}}
 \gdef \@abspage@last{11}

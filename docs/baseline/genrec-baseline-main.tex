@@ -12,15 +12,15 @@
 \toprule
 Dataset & Metric & Caser & GRU4Rec & BERT4Rec & SASRec & TIGER & LC-Rec & GenRec(sft) & GenRec(rule) & GenRec(ranking) & GenRec(fixed) & GenRec(fixed + ce0.005) \\
 \midrule
-Instruments & HR@1 & 0.0422 & 0.0784 & 0.0709 & 0.0597 & 0.0756 & 0.0830 & 0.0830 & \textbf{0.0837} & \textemdash & \textemdash & \textemdash \\
- & HR@5 & 0.0645 & 0.1017 & 0.0996 & 0.0871 & 0.0996 & \textbf{0.1102} & \textbf{0.1102} & 0.1058 & \textemdash & \textemdash & \textemdash \\
- & HR@10 & 0.0825 & 0.1203 & 0.1193 & 0.1082 & 0.1207 & \textbf{0.1311} & \textbf{0.1311} & 0.1232 & \textemdash & \textemdash & \textemdash \\
- & HR@20 & 0.1097 & 0.1478 & 0.1512 & 0.1393 & 0.1533 & \textbf{0.1597} & \textbf{0.1597} & 0.1447 & \textemdash & \textemdash & \textemdash \\
- & HR@50 & 0.1593 & 0.2068 & 0.2073 & 0.2011 & 0.2097 & \textbf{0.2195} & \textbf{0.2195} & 0.1903 & \textemdash & \textemdash & \textemdash \\
- & NDCG@5 & 0.0533 & 0.0902 & 0.0855 & 0.0737 & 0.0878 & \textbf{0.0967} & \textbf{0.0967} & 0.0951 & \textemdash & \textemdash & \textemdash \\
- & NDCG@10 & 0.0591 & 0.0962 & 0.0918 & 0.0805 & 0.0945 & \textbf{0.1033} & \textbf{0.1033} & 0.1007 & \textemdash & \textemdash & \textemdash \\
- & NDCG@20 & 0.0659 & 0.1031 & 0.0999 & 0.0883 & 0.1028 & \textbf{0.1105} & \textbf{0.1105} & 0.1061 & \textemdash & \textemdash & \textemdash \\
- & NDCG@50 & 0.0757 & 0.1148 & 0.1109 & 0.1005 & 0.1139 & \textbf{0.1223} & \textbf{0.1223} & 0.1150 & \textemdash & \textemdash & \textemdash \\
+Instruments & HR@1 & 0.0422 & 0.0784 & 0.0709 & 0.0597 & 0.0756 & 0.0830 & 0.0830 & \textbf{0.0853} & \textemdash & \textemdash & \textemdash \\
+ & HR@5 & 0.0645 & 0.1017 & 0.0996 & 0.0871 & 0.0996 & \textbf{0.1102} & \textbf{0.1102} & 0.1101 & \textemdash & \textemdash & \textemdash \\
+ & HR@10 & 0.0825 & 0.1203 & 0.1193 & 0.1082 & 0.1207 & \textbf{0.1311} & \textbf{0.1311} & 0.1279 & \textemdash & \textemdash & \textemdash \\
+ & HR@20 & 0.1097 & 0.1478 & 0.1512 & 0.1393 & 0.1533 & \textbf{0.1597} & \textbf{0.1597} & 0.1493 & \textemdash & \textemdash & \textemdash \\
+ & HR@50 & 0.1593 & 0.2068 & 0.2073 & 0.2011 & 0.2097 & \textbf{0.2195} & \textbf{0.2195} & 0.1878 & \textemdash & \textemdash & \textemdash \\
+ & NDCG@5 & 0.0533 & 0.0902 & 0.0855 & 0.0737 & 0.0878 & 0.0967 & 0.0967 & \textbf{0.0978} & \textemdash & \textemdash & \textemdash \\
+ & NDCG@10 & 0.0591 & 0.0962 & 0.0918 & 0.0805 & 0.0945 & 0.1033 & 0.1033 & \textbf{0.1035} & \textemdash & \textemdash & \textemdash \\
+ & NDCG@20 & 0.0659 & 0.1031 & 0.0999 & 0.0883 & 0.1028 & \textbf{0.1105} & \textbf{0.1105} & 0.1088 & \textemdash & \textemdash & \textemdash \\
+ & NDCG@50 & 0.0757 & 0.1148 & 0.1109 & 0.1005 & 0.1139 & \textbf{0.1223} & \textbf{0.1223} & 0.1164 & \textemdash & \textemdash & \textemdash \\
 \midrule
 Arts & HR@1 & 0.0274 & \textbf{0.0599} & 0.0523 & 0.0500 & 0.0596 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
  & HR@5 & 0.0421 & 0.0870 & 0.0862 & 0.0828 & \textbf{0.0923} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
@@ -32,15 +32,15 @@ Arts & HR@1 & 0.0274 & \textbf{0.0599} & 0.0523 & 0.0500 & 0.0596 & \textemdash 
  & NDCG@20 & 0.0437 & 0.0874 & 0.0845 & 0.0812 & \textbf{0.0934} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
  & NDCG@50 & 0.0508 & 0.0979 & 0.0958 & 0.0922 & \textbf{0.1052} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
 \midrule
-Games & HR@1 & 0.0102 & \textbf{0.0204} & 0.0200 & 0.0155 & 0.0163 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
- & HR@5 & 0.0334 & 0.0570 & \textbf{0.0578} & 0.0463 & 0.0521 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
- & HR@10 & 0.0546 & 0.0869 & \textbf{0.0889} & 0.0726 & 0.0831 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
- & HR@20 & 0.0876 & 0.1312 & \textbf{0.1352} & 0.1098 & 0.1301 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
- & HR@50 & 0.1517 & 0.2161 & \textbf{0.2188} & 0.1862 & 0.2171 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
- & NDCG@5 & 0.0218 & 0.0389 & \textbf{0.0390} & 0.0310 & 0.0340 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
- & NDCG@10 & 0.0286 & 0.0484 & \textbf{0.0490} & 0.0394 & 0.0440 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
- & NDCG@20 & 0.0369 & 0.0596 & \textbf{0.0607} & 0.0487 & 0.0558 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
- & NDCG@50 & 0.0496 & 0.0763 & \textbf{0.0772} & 0.0638 & 0.0731 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+Games & HR@1 & 0.0102 & \textbf{0.0204} & 0.0200 & 0.0155 & 0.0177 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & HR@5 & 0.0334 & 0.0570 & \textbf{0.0578} & 0.0463 & 0.0535 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & HR@10 & 0.0546 & 0.0869 & \textbf{0.0889} & 0.0726 & 0.0857 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & HR@20 & 0.0876 & 0.1312 & \textbf{0.1352} & 0.1098 & 0.1340 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & HR@50 & 0.1517 & 0.2161 & 0.2188 & 0.1862 & \textbf{0.2229} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & NDCG@5 & 0.0218 & 0.0389 & \textbf{0.0390} & 0.0310 & 0.0356 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & NDCG@10 & 0.0286 & 0.0484 & \textbf{0.0490} & 0.0394 & 0.0459 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & NDCG@20 & 0.0369 & 0.0596 & \textbf{0.0607} & 0.0487 & 0.0580 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & NDCG@50 & 0.0496 & 0.0763 & \textbf{0.0772} & 0.0638 & 0.0757 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
 \bottomrule
 \end{tabular}%
 }
@@ -67,7 +67,7 @@ Instruments & Caser & \texttt{checkpoint-best} & 0.0422 & 0.0645 & 0.0825 & 0.10
  & TIGER & \texttt{checkpoint-best} & 0.0756 & 0.0996 & 0.1207 & 0.1533 & 0.2097 & 0.0878 & 0.0945 & 0.1028 & 0.1139 \\
  & LC-Rec & \texttt{checkpoint-2751} & 0.0830 & 0.1102 & 0.1311 & 0.1597 & 0.2195 & 0.0967 & 0.1033 & 0.1105 & 0.1223 \\
  & GenRec (SFT) & \texttt{checkpoint-2751} & 0.0830 & 0.1102 & 0.1311 & 0.1597 & 0.2195 & 0.0967 & 0.1033 & 0.1105 & 0.1223 \\
- & GenRec (rule) & \texttt{checkpoint-666} & 0.0837 & 0.1058 & 0.1232 & 0.1447 & 0.1903 & 0.0951 & 0.1007 & 0.1061 & 0.1150 \\
+ & GenRec (rule) & \texttt{checkpoint-1665} & 0.0853 & 0.1101 & 0.1279 & 0.1493 & 0.1878 & 0.0978 & 0.1035 & 0.1088 & 0.1164 \\
 \midrule
 Arts & Caser & \texttt{checkpoint-best} & 0.0274 & 0.0421 & 0.0547 & 0.0745 & 0.1103 & 0.0347 & 0.0387 & 0.0437 & 0.0508 \\
  & GRU4Rec & \texttt{checkpoint-best} & 0.0599 & 0.0870 & 0.1071 & 0.1350 & 0.1884 & 0.0739 & 0.0804 & 0.0874 & 0.0979 \\
@@ -79,7 +79,7 @@ Games & Caser & \texttt{checkpoint-best} & 0.0102 & 0.0334 & 0.0546 & 0.0876 & 0
  & GRU4Rec & \texttt{checkpoint-best} & 0.0204 & 0.0570 & 0.0869 & 0.1312 & 0.2161 & 0.0389 & 0.0484 & 0.0596 & 0.0763 \\
  & BERT4Rec & \texttt{checkpoint-best} & 0.0200 & 0.0578 & 0.0889 & 0.1352 & 0.2188 & 0.0390 & 0.0490 & 0.0607 & 0.0772 \\
  & SASRec & \texttt{checkpoint-best} & 0.0155 & 0.0463 & 0.0726 & 0.1098 & 0.1862 & 0.0310 & 0.0394 & 0.0487 & 0.0638 \\
- & TIGER & \texttt{checkpoint-best} & 0.0163 & 0.0521 & 0.0831 & 0.1301 & 0.2171 & 0.0340 & 0.0440 & 0.0558 & 0.0731 \\
+ & TIGER & \texttt{checkpoint-best} & 0.0177 & 0.0535 & 0.0857 & 0.1340 & 0.2229 & 0.0356 & 0.0459 & 0.0580 & 0.0757 \\
 \bottomrule
 \end{tabular}%
 }
