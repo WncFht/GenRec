@@ -52,6 +52,11 @@ require_transformers_payload() {
   fi
 }
 
+path_exists() {
+  local path="$1"
+  [[ -n "$path" && -e "$path" ]]
+}
+
 resolve_model_payload_dir() {
   local path="$1"
   local checkpoint_best="$path/checkpoint-best"
@@ -90,7 +95,7 @@ REPO_ROOT="${REPO_ROOT:-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar
 PYTHON_BIN="${PYTHON_BIN:-python}"
 DATA_VARIANT_DEFAULT="${DATA_VARIANT_DEFAULT:-}"
 MODEL_PATH="${MODEL_PATH:-}"
-DS_CONFIG="${DS_CONFIG:-${REPO_ROOT}/config/zero2.yaml}"
+DS_CONFIG="${DS_CONFIG:-${REPO_ROOT}/config/zero3.yaml}"
 DEFAULT_CUDA_VISIBLE_DEVICES="${DEFAULT_CUDA_VISIBLE_DEVICES:-0,1,2,3}"
 
 NUM_PROCESSES="${NUM_PROCESSES:-4}"
@@ -116,6 +121,7 @@ REWARD_MODE="${REWARD_MODE:-rule_only}"
 FIXED_HINT_ENABLED="${FIXED_HINT_ENABLED:-false}"
 FIXED_HINT_APPLY_TO_EVAL="${FIXED_HINT_APPLY_TO_EVAL:-false}"
 HINT_CE_LOSS_COEF="${HINT_CE_LOSS_COEF:-0.0}"
+FORCE_REANALYZE="${FORCE_REANALYZE:-false}"
 BEAM_SIZE="${BEAM_SIZE:-16}"
 UNSOLVED_DEPTH="${UNSOLVED_DEPTH:-3}"
 CAP_DEPTH="${CAP_DEPTH:-}"
@@ -248,7 +254,27 @@ TRAIN_CMD=(
 )
 
 ANALYZE_CMD=()
+ANALYSIS_STATUS="disabled"
+ANALYSIS_HAVE_SUMMARY=0
+ANALYSIS_HAVE_DETAILS=0
+ANALYSIS_HAVE_MAP=0
 if is_true "$FIXED_HINT_ENABLED"; then
+  if path_exists "$ANALYSIS_SUMMARY_PATH"; then
+    ANALYSIS_HAVE_SUMMARY=1
+  fi
+  if path_exists "$ANALYSIS_DETAILS_PATH"; then
+    ANALYSIS_HAVE_DETAILS=1
+  fi
+  if path_exists "$FIXED_HINT_MAP_PATH"; then
+    ANALYSIS_HAVE_MAP=1
+  fi
+
+  if ! is_true "$FORCE_REANALYZE" && [[ "$ANALYSIS_HAVE_SUMMARY" == "1" && "$ANALYSIS_HAVE_DETAILS" == "1" && "$ANALYSIS_HAVE_MAP" == "1" ]]; then
+    ANALYSIS_STATUS="skip-existing"
+  else
+    ANALYSIS_STATUS="run"
+  fi
+
   ANALYZE_CMD=(
     "$PYTHON_BIN"
     analyze_rl_beam_hint.py
@@ -271,6 +297,12 @@ if is_true "$FIXED_HINT_ENABLED"; then
     --export-fixed-hint-beam-size "$BEAM_SIZE"
     --export-fixed-hint-unsolved-depth "$UNSOLVED_DEPTH"
   )
+  if [[ "$ANALYSIS_HAVE_SUMMARY" == "1" ]]; then
+    ANALYZE_CMD+=(--reuse-summary-path "$ANALYSIS_SUMMARY_PATH")
+  fi
+  if [[ "$ANALYSIS_HAVE_DETAILS" == "1" ]]; then
+    ANALYZE_CMD+=(--reuse-details-path "$ANALYSIS_DETAILS_PATH")
+  fi
   FIXED_HINT_ARGS=(
     --fixed_hint_depth_map_path "$FIXED_HINT_MAP_PATH"
     --fixed_hint_unsolved_depth "$UNSOLVED_DEPTH"
@@ -286,7 +318,7 @@ fi
 TRAIN_CMD+=("${RUNTIME_ARGS[@]}")
 
 if [[ "$DRY_RUN" == "1" ]]; then
-  if [[ "${#ANALYZE_CMD[@]}" -gt 0 ]]; then
+  if [[ "${#ANALYZE_CMD[@]}" -gt 0 && "$ANALYSIS_STATUS" == "run" ]]; then
     printf '%q ' "${ANALYZE_CMD[@]}"
     echo
   fi
@@ -327,12 +359,23 @@ echo "[INFO] RESOLVED_MODEL_PATH=${RESOLVED_MODEL_PATH}"
 echo "[INFO] OUTPUT_DIR=${OUTPUT_DIR}"
 echo "[INFO] RUN_NAME=${RUN_NAME}"
 echo "[INFO] CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES}"
+echo "[INFO] ANALYSIS_STATUS=${ANALYSIS_STATUS}"
+if is_true "$FIXED_HINT_ENABLED"; then
+  echo "[INFO] ANALYSIS_HAVE_SUMMARY=${ANALYSIS_HAVE_SUMMARY}"
+  echo "[INFO] ANALYSIS_HAVE_DETAILS=${ANALYSIS_HAVE_DETAILS}"
+  echo "[INFO] ANALYSIS_HAVE_MAP=${ANALYSIS_HAVE_MAP}"
+  echo "[INFO] FORCE_REANALYZE=${FORCE_REANALYZE}"
+fi
 
-if [[ "${#ANALYZE_CMD[@]}" -gt 0 ]]; then
+if [[ "${#ANALYZE_CMD[@]}" -gt 0 && "$ANALYSIS_STATUS" == "run" ]]; then
   set -x
   "${ANALYZE_CMD[@]}"
   set +x
 
+  require_file "$ANALYSIS_SUMMARY_PATH" "analysis summary"
+  require_file "$ANALYSIS_DETAILS_PATH" "analysis details"
+  require_file "$FIXED_HINT_MAP_PATH" "fixed hint map"
+elif is_true "$FIXED_HINT_ENABLED"; then
   require_file "$ANALYSIS_SUMMARY_PATH" "analysis summary"
   require_file "$ANALYSIS_DETAILS_PATH" "analysis details"
   require_file "$FIXED_HINT_MAP_PATH" "fixed hint map"
