@@ -1,0 +1,2 @@
+path	HR@1	HR@3	HR@5	HR@10	HR@20	HR@50	NDCG@1	NDCG@3	NDCG@5	NDCG@10	NDCG@20	NDCG@50
+Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu/checkpoint-1834	0.077	0.0899	0.0988	0.118	0.1456	0.2001	0.077	0.0844	0.088	0.0941	0.1011	0.1118

@@ -165,6 +165,24 @@ run_legacy_once() {
     return 1
   fi
 
+  if [[ -f "$eval_profile_manifest_py" ]]; then
+    echo "[INFO] rebuilding eval profile manifest"
+    echo "       script=$eval_profile_manifest_py"
+    echo "       output=$eval_profile_manifest_json"
+    echo "       overrides=$eval_profile_overrides_json"
+    if ! "$python_bin" "$eval_profile_manifest_py" build-manifest \
+      --repo-root "$REPO_ROOT" \
+      --data-root "$data_root" \
+      --output "$eval_profile_manifest_json" \
+      --overrides "$eval_profile_overrides_json" >/dev/null; then
+      echo "[ERROR] failed to rebuild eval profile manifest"
+      echo "        script=$eval_profile_manifest_py"
+      echo "        output=$eval_profile_manifest_json"
+      echo "        overrides=$eval_profile_overrides_json"
+      return 1
+    fi
+  fi
+
   has_checkpoints() {
     local model_root="$1"
     find "$model_root" -mindepth 1 -maxdepth 1 -type d -name 'checkpoint-*' | grep -q .

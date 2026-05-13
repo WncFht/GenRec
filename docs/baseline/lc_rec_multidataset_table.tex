@@ -147,6 +147,29 @@ GenRec fixed-hint + CE (best NDCG@10) & \texttt{ckpt-3507} & 0.0654 & 0.0884 & 0
 \label{tab:lcrec-instruments-fixed-rl-repro}
 \end{table}
 
+\subsection{Arts 上的 rule/fixed RL 复现实测}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.08}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{p{4.3cm} p{2.0cm} c c c c c c c}
+\toprule
+Variant & Checkpoint & HR@1 & HR@5 & HR@10 & NDCG@5 & NDCG@10 & NDCG@50 & HR@50 \\
+\midrule
+Paper LC-Rec & -- & 0.0634 & 0.1011 & 0.1266 & 0.0828 & 0.0906 & -- & -- \\
+GenRec SFT (best) & \texttt{ckpt-8634} & 0.0533 & 0.0811 & 0.0996 & 0.0675 & 0.0734 & 0.0890 & 0.1709 \\
+Arts rule RL (best) & \texttt{ckpt-1896} & 0.0545 & 0.0801 & 0.0983 & 0.0664 & 0.0674 & 0.0852 & 0.1463 \\
+Arts fixed RL (best) & \texttt{ckpt-948} & 0.0512 & 0.0781 & 0.0968 & 0.0636 & 0.0645 & 0.0835 & 0.1438 \\
+\bottomrule
+\end{tabular}%
+}
+\caption{当前 \texttt{Arts-grec-rule} 与 \texttt{Arts-grec-fixed} 在 GenRec 统一评测口径下的最佳 checkpoint，对比 Arts 上的 paper LC-Rec 与 SFT 复现结果。}
+\label{tab:lcrec-arts-rule-fixed-rl-repro}
+\end{table}
+
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{lc4023_fixed_vs_rule_epoch_curves.png}

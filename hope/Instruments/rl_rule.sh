@@ -30,6 +30,24 @@ require_file() {
   fi
 }
 
+require_transformers_checkpoint() {
+  local path="$1"
+  if [[ ! -d "$path" ]]; then
+    echo "[ERROR] Missing model checkpoint directory: $path"
+    exit 1
+  fi
+  if [[ ! -f "$path/config.json" ]]; then
+    echo "[ERROR] Missing model config.json under checkpoint: $path"
+    echo "        MODEL_PATH should point to a real training checkpoint under saves/, not results/."
+    exit 1
+  fi
+  if [[ ! -f "$path/tokenizer.json" && ! -f "$path/tokenizer_config.json" && ! -f "$path/vocab.txt" ]]; then
+    echo "[ERROR] Missing tokenizer files under checkpoint: $path"
+    echo "        MODEL_PATH should point to a checkpoint that can be loaded by AutoTokenizer.from_pretrained."
+    exit 1
+  fi
+}
+
 CONDA_ACTIVATE="/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/conda/bin/activate"
 CONDA_ENV_NAME="genrec"
 REPO_ROOT="/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec"
@@ -37,21 +55,21 @@ REPO_ROOT="/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/
 # shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/_launcher_runtime.sh"
 
-DATA_VARIANT_DEFAULT="Instruments_grec_index_lcrec"
+DATA_VARIANT_DEFAULT="Instruments_grec_index"
 DATA_VARIANT_DIR="$(resolve_data_variant_dir "$REPO_ROOT" "$DATA_VARIANT_DEFAULT")"
-MODEL_PATH="${REPO_ROOT}/saves/qwen2.5-3b/full/Instruments-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu/checkpoint-4023"
+MODEL_PATH="${REPO_ROOT}/saves/qwen2.5-3b/full/Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu/checkpoint-2751"
 DATA_DIR="${DATA_VARIANT_DIR}/rl"
 INDEX_PATH="${DATA_VARIANT_DIR}/id2sid.json"
-OUTPUT_DIR="${REPO_ROOT}/rl_outputs/Instruments-grec-lc4023-rule"
+OUTPUT_DIR="${REPO_ROOT}/rl_outputs/Instruments-grec-genrec-aligned-rule"
 DS_CONFIG="${REPO_ROOT}/config/zero2.yaml"
 
-NUM_PROCESSES=4
+NUM_PROCESSES=8
 MAIN_PORT=29516
 NUM_BEAMS=16
 SID_LEVELS=-1
 PER_DEVICE_TRAIN_BSZ=64
 PER_DEVICE_EVAL_BSZ=64
-GRAD_ACC=4
+GRAD_ACC=2
 NUM_EPOCHS=2
 LEARNING_RATE=1e-5
 EVAL_STEP=100
@@ -62,7 +80,7 @@ TEMPERATURE=1.0
 SAVE_TOTAL_LIMIT=10
 REPORT_TO="wandb"
 RESUME_FROM_CHECKPOINT="auto"
-RUN_NAME="instruments_grec_lc4023_rule"
+RUN_NAME="instruments_grec_genrec_aligned_rule"
 DRY_RUN=0
 
 export WANDB_PROJECT="MIMIGenRec-GRPO"
@@ -70,6 +88,8 @@ export WANDB_MODE="offline"
 if [[ -n "${WANDB_API_KEY:-}" ]]; then
   export WANDB_API_KEY
 fi
+
+export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1,2,3,4,5,6,7}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -153,13 +173,21 @@ TRAIN_CMD=(
 )
 
 if [[ "$DRY_RUN" == "1" ]]; then
+  require_exists "$REPO_ROOT" "REPO_ROOT"
+  require_transformers_checkpoint "$MODEL_PATH"
+  require_file "${DATA_DIR}/train.json" "RL train dataset"
+  require_file "${DATA_DIR}/valid.json" "RL valid dataset"
+  require_file "${DATA_DIR}/test.json" "RL test dataset"
+  require_file "$INDEX_PATH" "id2sid index file"
+  require_file "$DS_CONFIG" "DeepSpeed config"
+  require_file "${REPO_ROOT}/trl_trainer.py" "trl_trainer.py"
   printf '%q ' "${TRAIN_CMD[@]}"
   echo
   exit 0
 fi
 
 require_exists "$REPO_ROOT" "REPO_ROOT"
-require_exists "$MODEL_PATH" "model path"
+require_transformers_checkpoint "$MODEL_PATH"
 require_file "${DATA_DIR}/train.json" "RL train dataset"
 require_file "${DATA_DIR}/valid.json" "RL valid dataset"
 require_file "${DATA_DIR}/test.json" "RL test dataset"

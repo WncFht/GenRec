@@ -95,30 +95,35 @@
     "Arts-grec-fixed": {
       "dataset_variant": "Arts_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "hope/Arts/rl_fixed.sh#output_dir"
       ]
     },
     "Arts-grec-fixed-ce": {
       "dataset_variant": "Arts_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "hope/Arts/rl_fixed_ce.sh#output_dir"
       ]
     },
     "Arts-grec-lcrec-aligned-qwen2.5-3b-sft-qwen4B-4-256-dsz3-4gpu": {
       "dataset_variant": "Arts_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "examples/train_full/Arts/arts_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_lcrec_aligned_4gpu.yaml#yaml_run_name"
       ]
     },
     "Arts-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu": {
       "dataset_variant": "Arts_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "examples/train_full/Arts/arts_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_lcrec_aligned_4gpu.yaml#yaml_output_dir"
       ]
     },
     "Arts-grec-rule": {
       "dataset_variant": "Arts_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "hope/Arts/rl_rule.sh#output_dir"
       ]
     },
@@ -143,12 +148,14 @@
     "Games-grec-lcrec-aligned-qwen2.5-3b-sft-qwen4B-4-256-dsz3-4gpu": {
       "dataset_variant": "Games_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "examples/train_full/Games/games_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_lcrec_aligned_4gpu.yaml#yaml_run_name"
       ]
     },
     "Games-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu": {
       "dataset_variant": "Games_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "examples/train_full/Games/games_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_lcrec_aligned_4gpu.yaml#yaml_output_dir"
       ]
     },
@@ -300,6 +307,13 @@
       "dataset_variant": "Instruments_grec_index",
       "sources": [
         "examples/train_full/Instruments/instruments_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_genrec_aligned_8gpu.yaml#yaml_run_name"
+      ]
+    },
+    "Instruments-grec-genrec-aligned-rule": {
+      "dataset_variant": "Instruments_grec_index",
+      "sources": [
+        "eval_profile_overrides.json#manual_override",
+        "hope/Instruments/rl_rule.sh#output_dir"
       ]
     },
     "Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu": {
@@ -503,55 +517,63 @@
     "Instruments-grec-lc4023-fixed": {
       "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "hope/Instruments/rl_4023_fixed.sh#output_dir"
       ]
     },
     "Instruments-grec-lc4023-fixed-ce": {
       "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "hope/Instruments/rl_4023_fixed_ce.sh#output_dir"
       ]
     },
     "Instruments-grec-lc4023-fixed-ce005": {
       "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "hope/Instruments/rl_4023_fixed_ce005.sh#output_dir"
       ]
     },
     "Instruments-grec-lc4023-ndcg": {
       "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "hope/Instruments/rl_ndcg.sh#output_dir"
       ]
     },
     "Instruments-grec-lc4023-rule": {
       "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
-        "hope/Instruments/rl_4023_rule.sh#output_dir",
-        "hope/Instruments/rl_rule.sh#output_dir"
+        "eval_profile_overrides.json#manual_override",
+        "hope/Instruments/rl_4023_rule.sh#output_dir"
       ]
     },
     "Instruments-grec-lcrec-aligned-qwen2.5-3b-sft-qwen4B-4-256-dsz3": {
       "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "examples/train_full/Instruments/instruments_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_lcrec_aligned.yaml#yaml_run_name"
       ]
     },
     "Instruments-grec-lcrec-aligned-qwen2.5-3b-sft-qwen4B-4-256-dsz3-4gpu": {
       "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "examples/train_full/Instruments/instruments_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_lcrec_aligned_4gpu.yaml#yaml_run_name"
       ]
     },
     "Instruments-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3": {
       "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "examples/train_full/Instruments/instruments_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_lcrec_aligned.yaml#yaml_output_dir"
       ]
     },
     "Instruments-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu": {
       "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "examples/train_full/Instruments/instruments_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_lcrec_aligned_4gpu.yaml#yaml_output_dir"
       ]
     },
@@ -643,18 +665,21 @@
     "arts_grec_fixed": {
       "dataset_variant": "Arts_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "hope/Arts/rl_fixed.sh#run_name"
       ]
     },
     "arts_grec_fixed_ce": {
       "dataset_variant": "Arts_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "hope/Arts/rl_fixed_ce.sh#run_name"
       ]
     },
     "arts_grec_rule": {
       "dataset_variant": "Arts_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "hope/Arts/rl_rule.sh#run_name"
       ]
     },
@@ -695,6 +720,13 @@
         "hope/instruments-grec-qwen2p5-3b-qwen4b-4-256/analyze-rl-beam-hint.sh#run_name"
       ]
     },
+    "instruments_grec_genrec_aligned_rule": {
+      "dataset_variant": "Instruments_grec_index",
+      "sources": [
+        "eval_profile_overrides.json#manual_override",
+        "hope/Instruments/rl_rule.sh#run_name"
+      ]
+    },
     "instruments_grec_hint_token_sft_dynamic_b16_lr3e_4_ckpt495": {
       "dataset_variant": "Instruments_grec_index_emb-qwen3-embedding-4B_rq4_cb256-256-256-256_dsInstruments_ridFeb-10-2026-05-40-47",
       "sources": [
@@ -712,32 +744,36 @@
     "instruments_grec_lc4023_fixed": {
       "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "hope/Instruments/rl_4023_fixed.sh#run_name"
       ]
     },
     "instruments_grec_lc4023_fixed_ce": {
       "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "hope/Instruments/rl_4023_fixed_ce.sh#run_name"
       ]
     },
     "instruments_grec_lc4023_fixed_ce005": {
       "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "hope/Instruments/rl_4023_fixed_ce005.sh#run_name"
       ]
     },
     "instruments_grec_lc4023_ndcg": {
       "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
+        "eval_profile_overrides.json#manual_override",
         "hope/Instruments/rl_ndcg.sh#run_name"
       ]
     },
     "instruments_grec_lc4023_rule": {
       "dataset_variant": "Instruments_grec_index_lcrec",
       "sources": [
-        "hope/Instruments/rl_4023_rule.sh#run_name",
-        "hope/Instruments/rl_rule.sh#run_name"
+        "eval_profile_overrides.json#manual_override",
+        "hope/Instruments/rl_4023_rule.sh#run_name"
       ]
     },
     "instruments_grec_rl_prefix_seq_only_fixed_hint_taskfix_b16_sid_only_ckpt495": {

@@ -5,9 +5,35 @@
     "Instruments"
   ],
   "aliases": {
+    "Arts-grec-fixed": "Arts_grec_index_lcrec",
+    "Arts-grec-fixed-ce": "Arts_grec_index_lcrec",
+    "Arts-grec-rule": "Arts_grec_index_lcrec",
+    "arts_grec_fixed": "Arts_grec_index_lcrec",
+    "arts_grec_fixed_ce": "Arts_grec_index_lcrec",
+    "arts_grec_rule": "Arts_grec_index_lcrec",
+    "Arts-grec-lcrec-aligned-qwen2.5-3b-sft-qwen4B-4-256-dsz3-4gpu": "Arts_grec_index_lcrec",
+    "Arts-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu": "Arts_grec_index_lcrec",
+    "Games-grec-lcrec-aligned-qwen2.5-3b-sft-qwen4B-4-256-dsz3-4gpu": "Games_grec_index_lcrec",
+    "Games-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu": "Games_grec_index_lcrec",
+    "Instruments-grec-lc4023-fixed": "Instruments_grec_index_lcrec",
+    "Instruments-grec-lc4023-fixed-ce": "Instruments_grec_index_lcrec",
+    "Instruments-grec-lc4023-fixed-ce005": "Instruments_grec_index_lcrec",
+    "Instruments-grec-lc4023-ndcg": "Instruments_grec_index_lcrec",
+    "Instruments-grec-lc4023-rule": "Instruments_grec_index_lcrec",
+    "Instruments-grec-lcrec-aligned-qwen2.5-3b-sft-qwen4B-4-256-dsz3": "Instruments_grec_index_lcrec",
+    "Instruments-grec-lcrec-aligned-qwen2.5-3b-sft-qwen4B-4-256-dsz3-4gpu": "Instruments_grec_index_lcrec",
+    "Instruments-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3": "Instruments_grec_index_lcrec",
+    "Instruments-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu": "Instruments_grec_index_lcrec",
+    "instruments_grec_lc4023_fixed": "Instruments_grec_index_lcrec",
+    "instruments_grec_lc4023_fixed_ce": "Instruments_grec_index_lcrec",
+    "instruments_grec_lc4023_fixed_ce005": "Instruments_grec_index_lcrec",
+    "instruments_grec_lc4023_ndcg": "Instruments_grec_index_lcrec",
+    "instruments_grec_lc4023_rule": "Instruments_grec_index_lcrec",
     "ins-lc4023-fixed": "Instruments_grec_index_lcrec",
     "ins-lc4023-fixed-ce": "Instruments_grec_index_lcrec",
-    "ins-lc4023-rule": "Instruments_grec_index_lcrec"
+    "ins-lc4023-rule": "Instruments_grec_index_lcrec",
+    "Instruments-grec-genrec-aligned-rule": "Instruments_grec_index",
+    "instruments_grec_genrec_aligned_rule": "Instruments_grec_index"
   },
   "dataset_overrides": {
     "Arts_grec_index_lcrec": {

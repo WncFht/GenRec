@@ -24,6 +24,20 @@ MASTER_TEX = BASELINE_DIR / "genrec-baseline.tex"
 
 METRICS = ["HR@1", "HR@5", "HR@10", "HR@20", "HR@50", "NDCG@5", "NDCG@10", "NDCG@20", "NDCG@50"]
 
+MAIN_TABLE_COLUMNS = [
+    "Caser",
+    "GRU4Rec",
+    "BERT4Rec",
+    "SASRec",
+    "TIGER",
+    "LC-Rec",
+    "GenRec(sft)",
+    "GenRec(rule)",
+    "GenRec(ranking)",
+    "GenRec(fixed)",
+    "GenRec(fixed + ce0.005)",
+]
+
 PAPER_REFERENCE_METHODS = [
     "GRU4Rec",
     "BERT4Rec",
@@ -326,9 +340,16 @@ class RunSpec:
 RUN_SPECS: list[RunSpec] = [
     RunSpec("Instruments", "Caser", "Caser", model_dir="Instruments-caser-pytorch/checkpoint-best"),
     RunSpec("Instruments", "GRU4Rec", "GRU4Rec", model_dir="Instruments-gru4rec-pytorch-official/checkpoint-best"),
-    RunSpec("Instruments", "BERT4Rec", "BERT4Rec", model_dir="Instruments-bert4rec-recsys23/checkpoint-best"),
+    RunSpec(
+        "Instruments",
+        "BERT4Rec (RecSys23)",
+        "BERT4Rec (RecSys23)",
+        model_dir="Instruments-bert4rec-recsys23/checkpoint-best",
+    ),
+    RunSpec("Instruments", "BERT4Rec", "BERT4Rec", model_dir="Instruments-bert4rec-vanilla/checkpoint-best"),
     RunSpec("Instruments", "SASRec", "SASRec", model_dir="Instruments-sasrec-recsys23/checkpoint-best"),
     RunSpec("Instruments", "TIGER", "TIGER", model_dir="Instruments-tiger-grec-h50-reverse/checkpoint-best"),
+    RunSpec("Instruments", "LC-Rec", "LC-Rec", model_dir="Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu"),
     RunSpec("Instruments", "GenRec (SFT)", "GenRec(sft)", model_dir="Instruments-grec-sft-qwen4B-4-256-dsz0"),
     RunSpec(
         "Instruments",
@@ -356,9 +377,13 @@ RUN_SPECS: list[RunSpec] = [
     ),
     RunSpec("Games", "Caser", "Caser", model_dir="Games-caser-pytorch/checkpoint-best"),
     RunSpec("Games", "GRU4Rec", "GRU4Rec", model_dir="Games-gru4rec-pytorch-official/checkpoint-best"),
-    RunSpec("Games", "BERT4Rec", "BERT4Rec", model_dir="Games-bert4rec-recsys23/checkpoint-best"),
+    RunSpec(
+        "Games", "BERT4Rec (RecSys23)", "BERT4Rec (RecSys23)", model_dir="Games-bert4rec-recsys23/checkpoint-best"
+    ),
+    RunSpec("Games", "BERT4Rec", "BERT4Rec", model_dir="Games-bert4rec-vanilla/checkpoint-best"),
     RunSpec("Games", "SASRec", "SASRec", model_dir="Games-sasrec-recsys23/checkpoint-best"),
     RunSpec("Games", "TIGER", "TIGER", model_dir="Games-tiger-grec-h50-reverse/checkpoint-best"),
+    RunSpec("Games", "LC-Rec", "LC-Rec", pending=True, note="pending"),
     RunSpec("Games", "GenRec (SFT)", "GenRec(sft)", model_dir="Games-grec-sft-qwen4B-4-256-dsz0"),
     RunSpec(
         "Games",
@@ -373,9 +398,11 @@ RUN_SPECS: list[RunSpec] = [
     RunSpec("Games", "GenRec (fixed + ce0.005)", "GenRec(fixed + ce0.005)", pending=True, note="not measured"),
     RunSpec("Arts", "Caser", "Caser", model_dir="Arts-caser-pytorch/checkpoint-best"),
     RunSpec("Arts", "GRU4Rec", "GRU4Rec", model_dir="Arts-gru4rec-pytorch-official/checkpoint-best"),
-    RunSpec("Arts", "BERT4Rec", "BERT4Rec", model_dir="Arts-bert4rec-recsys23/checkpoint-best"),
+    RunSpec("Arts", "BERT4Rec (RecSys23)", "BERT4Rec (RecSys23)", model_dir="Arts-bert4rec-recsys23/checkpoint-best"),
+    RunSpec("Arts", "BERT4Rec", "BERT4Rec", model_dir="Arts-bert4rec-vanilla/checkpoint-best"),
     RunSpec("Arts", "SASRec", "SASRec", model_dir="Arts-sasrec-recsys23/checkpoint-best"),
     RunSpec("Arts", "TIGER", "TIGER", model_dir="Arts-tiger-grec-h50-reverse/checkpoint-best"),
+    RunSpec("Arts", "LC-Rec", "LC-Rec", pending=True, note="pending"),
     RunSpec("Arts", "GenRec (SFT)", "GenRec(sft)", pending=True, note="not measured"),
     RunSpec("Arts", "GenRec (rule)", "GenRec(rule)", pending=True, note="not measured"),
     RunSpec("Arts", "GenRec (ranking)", "GenRec(ranking)", pending=True, note="not measured"),
@@ -547,7 +574,14 @@ def best_highlights(dataset_rows: list[dict[str, object]], metric: str) -> tuple
         item
         for item in measured
         if item[0]
-        not in {"GenRec(sft)", "GenRec(rule)", "GenRec(ranking)", "GenRec(fixed)", "GenRec(fixed + ce0.005)"}
+        not in {
+            "GenRec(sft)",
+            "GenRec(rule)",
+            "GenRec(ranking)",
+            "GenRec(fixed)",
+            "GenRec(fixed + ce0.005)",
+            "BERT4Rec (RecSys23)",
+        }
     ]
     if not baseline_candidates:
         return best_cols, set()
@@ -592,30 +626,18 @@ def build_main_table(resolved: list[dict[str, object]]) -> str:
     parts.append(r"\setlength{\tabcolsep}{3pt}")
     parts.append(r"\renewcommand{\arraystretch}{1.08}")
     parts.append(r"\resizebox{\textwidth}{!}{%")
-    parts.append(r"\begin{tabular}{llcccccccccc}")
+    parts.append(r"\begin{tabular}{ll" + "c" * len(MAIN_TABLE_COLUMNS) + r"}")
     parts.append(r"\toprule")
-    parts.append(
-        r"Dataset & Metric & Caser & GRU4Rec & BERT4Rec & SASRec & TIGER & GenRec(sft) & GenRec(rule) & GenRec(ranking) & GenRec(fixed) & GenRec(fixed + ce0.005) \\"
-    )
+    parts.append("Dataset & Metric & " + " & ".join(MAIN_TABLE_COLUMNS) + r" \\")
     parts.append(r"\midrule")
 
     for dataset_idx, dataset in enumerate(visible_datasets):
         dataset_rows = [row for row in resolved if row["spec"].dataset == dataset]  # type: ignore[attr-defined]
+        visible_dataset_rows = [row for row in dataset_rows if row["spec"].column_name in MAIN_TABLE_COLUMNS]  # type: ignore[attr-defined]
         for idx, metric in enumerate(METRICS):
-            best_cols, _ = best_highlights(dataset_rows, metric)
+            best_cols, _ = best_highlights(visible_dataset_rows, metric)
             cells = []
-            for col in [
-                "Caser",
-                "GRU4Rec",
-                "BERT4Rec",
-                "SASRec",
-                "TIGER",
-                "GenRec(sft)",
-                "GenRec(rule)",
-                "GenRec(ranking)",
-                "GenRec(fixed)",
-                "GenRec(fixed + ce0.005)",
-            ]:
+            for col in MAIN_TABLE_COLUMNS:
                 row = next(row for row in dataset_rows if row["spec"].column_name == col)  # type: ignore[attr-defined]
                 cells.append(render_cell(col, metric, row, best_cols))
             prefix = dataset if idx == 0 else ""
@@ -627,7 +649,7 @@ def build_main_table(resolved: list[dict[str, object]]) -> str:
     parts.append(r"\end{tabular}%")
     parts.append(r"}")
     parts.append(
-        r"\caption{GenRec index 口径下当前已测结果的主表。主表展示当前至少已有一条实测方法的数据集。当前已从 \texttt{results/*-caser-pytorch/checkpoint-best}、\texttt{results/*-gru4rec-pytorch-official/checkpoint-best}、\texttt{results/*-bert4rec-recsys23/checkpoint-best}、\texttt{results/*-sasrec-recsys23/checkpoint-best} 与 \texttt{results/*-tiger-grec-h50-reverse/checkpoint-best} 补入当前已同步回仓库的五类 baseline 实测结果。所有 GenRec 变体若存在多个 checkpoint，统一按 NDCG@10 选 best。}"
+        r"\caption{GenRec index 口径下当前已测结果的主表。主表展示当前至少已有一条实测方法的数据集。当前已从 \texttt{results/*-caser-pytorch/checkpoint-best}、\texttt{results/*-gru4rec-pytorch-official/checkpoint-best}、\texttt{results/Instruments-bert4rec-vanilla/checkpoint-best}、\texttt{results/*-sasrec-recsys23/checkpoint-best}、\texttt{results/*-tiger-grec-h50-reverse/checkpoint-best} 与 \texttt{results/Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu} 补入当前已同步回仓库的 baseline 与 SFT 对齐结果。RecSys23 版 BERT4Rec 只保留在附录中作参考。所有 GenRec 变体若存在多个 checkpoint，统一按 NDCG@10 选 best。}"
     )
     parts.append(r"\label{tab:genrec-index-main}")
     parts.append(r"\end{table}")
@@ -646,7 +668,11 @@ def build_main_table(resolved: list[dict[str, object]]) -> str:
     parts.append("Dataset & Variant & Best ckpt & " + " & ".join(METRICS) + r" \\")
     parts.append(r"\midrule")
     for dataset_idx, dataset in enumerate(visible_datasets):
-        dataset_rows = [row for row in resolved if row["spec"].dataset == dataset and row["status"] == "ok"]  # type: ignore[attr-defined]
+        dataset_rows = [
+            row
+            for row in resolved
+            if row["spec"].dataset == dataset and row["status"] == "ok" and row["spec"].column_name != "BERT4Rec (RecSys23)"
+        ]  # type: ignore[attr-defined]
         for idx, row in enumerate(dataset_rows):
             spec: RunSpec = row["spec"]  # type: ignore[assignment]
             metrics: dict[str, float] = row["metrics"]  # type: ignore[assignment]
@@ -676,14 +702,14 @@ def build_main_table(resolved: list[dict[str, object]]) -> str:
         r"\paragraph{Readout.} 本轮主表只纳入当前仓库里已经能追溯到 \texttt{GenRec index} 统一评测口径的结果。"
     )
     parts.append(
-        r"Instruments 上补入 Caser / GRU4Rec 后，当前 overall best \texttt{NDCG@10} 仍是 \texttt{BERT4Rec} 的 \texttt{0.0988}；\texttt{GRU4Rec} 已达到 \texttt{NDCG@10=0.0962, HR@50=0.2068}，略高于 \texttt{GenRec(rule)} 的 \texttt{0.0960}。\texttt{Caser} 当前为 \texttt{NDCG@10=0.0591, HR@50=0.1593}。"
+        r"Instruments 上新增了 \texttt{BERT4Rec vanilla} 与 \texttt{LC-Rec} 两条对照。当前 overall best 已变为 \texttt{LC-Rec}，best checkpoint 为 \texttt{checkpoint-2751 / NDCG@10=0.1033 / HR@50=0.2195}；\texttt{BERT4Rec vanilla} 为 \texttt{0.0918}，\texttt{GRU4Rec} 为 \texttt{0.0962}。RecSys23 版 BERT4Rec 只在附录保留。"
     )
     parts.append(r"如果看 coverage，\texttt{GenRec(fixed + ce0.005)} 在当前 best 点达到 \texttt{HR@50=0.1985}。")
     parts.append(
-        r"Arts 现在五条 baseline 已全部补齐；当前 best 仍是 \texttt{BERT4Rec}，\texttt{NDCG@10=0.0869, HR@50=0.2113}。新补入的 \texttt{GRU4Rec} 达到 \texttt{NDCG@10=0.0804, HR@50=0.1884}，介于 \texttt{TIGER} 的 \texttt{0.0849} 与 \texttt{SASRec} 的 \texttt{0.0736} 之间，明显高于 \texttt{Caser} 的 \texttt{0.0387}。"
+        r"Arts 现在 baseline 进一步补入了 \texttt{BERT4Rec vanilla}；当前主表里最强 baseline 是 \texttt{TIGER}，\texttt{NDCG@10=0.0849, HR@50=0.2125}。\texttt{BERT4Rec vanilla} 当前为 \texttt{0.0769 / 0.1965}，低于 \texttt{GRU4Rec} 的 \texttt{0.0804} 与 \texttt{TIGER}，但仍高于 \texttt{SASRec} 的 \texttt{0.0736}。"
     )
     parts.append(
-        r"Games 现在五条 baseline 也已补齐；当前 overall best 仍是 \texttt{BERT4Rec}，\texttt{NDCG@10=0.0526, HR@50=0.2350}。新补入的 \texttt{GRU4Rec} 达到 \texttt{NDCG@10=0.0484, HR@50=0.2161}，略高于 \texttt{GenRec(fixed)} 的 \texttt{0.0480}，也明显高于 \texttt{TIGER} 的 \texttt{0.0439} 与 \texttt{Caser} 的 \texttt{0.0286}。"
+        r"Games 现在也补入了 \texttt{BERT4Rec vanilla}；当前主表里最强 baseline 仍是 \texttt{GRU4Rec}，\texttt{NDCG@10=0.0484, HR@50=0.2161}。\texttt{BERT4Rec vanilla} 当前为 \texttt{0.0490 / 0.2188}，略高于 \texttt{GRU4Rec} 与 \texttt{GenRec(fixed)} 的 \texttt{0.0480}，也高于 \texttt{TIGER} 的 \texttt{0.0449}。"
     )
     return "\n".join(parts) + "\n"
 
@@ -692,9 +718,23 @@ def appendix_run_specs() -> list[RunSpec]:
     return [
         RunSpec("Instruments", "Caser", "Caser", model_dir="Instruments-caser-pytorch/checkpoint-best"),
         RunSpec("Instruments", "GRU4Rec", "GRU4Rec", model_dir="Instruments-gru4rec-pytorch-official/checkpoint-best"),
-        RunSpec("Instruments", "BERT4Rec", "BERT4Rec", model_dir="Instruments-bert4rec-recsys23/checkpoint-best"),
+        RunSpec(
+            "Instruments",
+            "BERT4Rec (RecSys23)",
+            "BERT4Rec (RecSys23)",
+            model_dir="Instruments-bert4rec-recsys23/checkpoint-best",
+        ),
+        RunSpec(
+            "Instruments",
+            "BERT4Rec",
+            "BERT4Rec",
+            model_dir="Instruments-bert4rec-vanilla/checkpoint-best",
+        ),
         RunSpec("Instruments", "SASRec", "SASRec", model_dir="Instruments-sasrec-recsys23/checkpoint-best"),
         RunSpec("Instruments", "TIGER", "TIGER", model_dir="Instruments-tiger-grec-h50-reverse/checkpoint-best"),
+        RunSpec(
+            "Instruments", "LC-Rec", "LC-Rec", model_dir="Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu"
+        ),
         RunSpec("Instruments", "GenRec (SFT)", "GenRec(sft)", model_dir="Instruments-grec-sft-qwen4B-4-256-dsz0"),
         RunSpec(
             "Instruments",
@@ -722,7 +762,10 @@ def appendix_run_specs() -> list[RunSpec]:
         ),
         RunSpec("Games", "Caser", "Caser", model_dir="Games-caser-pytorch/checkpoint-best"),
         RunSpec("Games", "GRU4Rec", "GRU4Rec", model_dir="Games-gru4rec-pytorch-official/checkpoint-best"),
-        RunSpec("Games", "BERT4Rec", "BERT4Rec", model_dir="Games-bert4rec-recsys23/checkpoint-best"),
+        RunSpec(
+            "Games", "BERT4Rec (RecSys23)", "BERT4Rec (RecSys23)", model_dir="Games-bert4rec-recsys23/checkpoint-best"
+        ),
+        RunSpec("Games", "BERT4Rec", "BERT4Rec", model_dir="Games-bert4rec-vanilla/checkpoint-best"),
         RunSpec("Games", "SASRec", "SASRec", model_dir="Games-sasrec-recsys23/checkpoint-best"),
         RunSpec("Games", "TIGER", "TIGER", model_dir="Games-tiger-grec-h50-reverse/checkpoint-best"),
         RunSpec("Games", "GenRec (SFT)", "GenRec(sft)", model_dir="Games-grec-sft-qwen4B-4-256-dsz0"),
@@ -740,7 +783,10 @@ def appendix_run_specs() -> list[RunSpec]:
         ),
         RunSpec("Arts", "Caser", "Caser", model_dir="Arts-caser-pytorch/checkpoint-best"),
         RunSpec("Arts", "GRU4Rec", "GRU4Rec", model_dir="Arts-gru4rec-pytorch-official/checkpoint-best"),
-        RunSpec("Arts", "BERT4Rec", "BERT4Rec", model_dir="Arts-bert4rec-recsys23/checkpoint-best"),
+        RunSpec(
+            "Arts", "BERT4Rec (RecSys23)", "BERT4Rec (RecSys23)", model_dir="Arts-bert4rec-recsys23/checkpoint-best"
+        ),
+        RunSpec("Arts", "BERT4Rec", "BERT4Rec", model_dir="Arts-bert4rec-vanilla/checkpoint-best"),
         RunSpec("Arts", "SASRec", "SASRec", model_dir="Arts-sasrec-recsys23/checkpoint-best"),
         RunSpec("Arts", "TIGER", "TIGER", model_dir="Arts-tiger-grec-h50-reverse/checkpoint-best"),
     ]

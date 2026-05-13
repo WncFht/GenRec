@@ -287,6 +287,19 @@ def register_alias(
         }
         return
     if existing["dataset_variant"] != variant:
+        existing_sources = set(existing.get("sources", []))
+        # Manual overrides are the source of truth. If an auto-discovered shell/YAML
+        # alias conflicts with an explicit override, keep the explicit mapping and
+        # ignore the conflicting auto-discovered one instead of failing manifest
+        # rebuilds.
+        if any(src.endswith("#manual_override") for src in existing_sources):
+            return
+        if source.endswith("#manual_override"):
+            aliases[cleaned_alias] = {
+                "dataset_variant": variant,
+                "sources": [source],
+            }
+            return
         raise ValueError(f"alias {cleaned_alias!r} maps to both {existing['dataset_variant']!r} and {variant!r}")
     existing.setdefault("sources", []).append(source)
 
@@ -460,9 +473,7 @@ def apply_runtime_overrides_to_manifest(manifest: dict[str, Any], overrides_path
     }
 
     disabled_variants = {
-        variant
-        for variant in payload.get("disabled_variants", [])
-        if isinstance(variant, str) and variant
+        variant for variant in payload.get("disabled_variants", []) if isinstance(variant, str) and variant
     }
     if disabled_variants:
         for variant in disabled_variants:
@@ -481,11 +492,7 @@ def apply_runtime_overrides_to_manifest(manifest: dict[str, Any], overrides_path
             if variant not in runtime_manifest["datasets"]:
                 continue
             runtime_manifest["datasets"][variant].update(
-                {
-                    key: value
-                    for key, value in override.items()
-                    if isinstance(key, str) and isinstance(value, str)
-                }
+                {key: value for key, value in override.items() if isinstance(key, str) and isinstance(value, str)}
             )
 
     alias_overrides = payload.get("aliases", {})

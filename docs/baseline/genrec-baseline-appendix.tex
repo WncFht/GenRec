@@ -81,7 +81,7 @@ Checkpoint & HR@1 & HR@5 & HR@10 & HR@20 & HR@50 & NDCG@5 & NDCG@10 & NDCG@20 & 
 \label{tab:appendix-instruments-gru4rec}
 \end{table}
 
-\subsection{Instruments: BERT4Rec}
+\subsection{Instruments: BERT4Rec (RecSys23)}
 
 \begin{table}[H]
 \centering
@@ -98,6 +98,26 @@ Checkpoint & HR@1 & HR@5 & HR@10 & HR@20 & HR@50 & NDCG@5 & NDCG@10 & NDCG@20 & 
 \end{tabular}%
 }
 \caption{Instruments 上 \texttt{Instruments-bert4rec-recsys23/checkpoint-best} 的完整 checkpoint 指标。}
+\label{tab:appendix-instruments-bert4rec-recsys23}
+\end{table}
+
+\subsection{Instruments: BERT4Rec}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.05}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{cccccccccc}
+\toprule
+Checkpoint & HR@1 & HR@5 & HR@10 & HR@20 & HR@50 & NDCG@5 & NDCG@10 & NDCG@20 & NDCG@50 \\
+\midrule
+\texttt{checkpoint-best} & 0.0709 & 0.0996 & 0.1193 & 0.1512 & 0.2073 & 0.0855 & 0.0918 & 0.0999 & 0.1109 \\
+\bottomrule
+\end{tabular}%
+}
+\caption{Instruments 上 \texttt{Instruments-bert4rec-vanilla/checkpoint-best} 的完整 checkpoint 指标。}
 \label{tab:appendix-instruments-bert4rec}
 \end{table}
 
@@ -139,6 +159,29 @@ Checkpoint & HR@1 & HR@5 & HR@10 & HR@20 & HR@50 & NDCG@5 & NDCG@10 & NDCG@20 & 
 }
 \caption{Instruments 上 \texttt{Instruments-tiger-grec-h50-reverse/checkpoint-best} 的完整 checkpoint 指标。}
 \label{tab:appendix-instruments-tiger}
+\end{table}
+
+\subsection{Instruments: LC-Rec}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.05}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{cccccccccc}
+\toprule
+Checkpoint & HR@1 & HR@5 & HR@10 & HR@20 & HR@50 & NDCG@5 & NDCG@10 & NDCG@20 & NDCG@50 \\
+\midrule
+\texttt{checkpoint-917} & 0.0678 & 0.0878 & 0.1051 & 0.1289 & 0.1740 & 0.0780 & 0.0836 & 0.0896 & 0.0985 \\
+\texttt{checkpoint-1834} & 0.0770 & 0.0988 & 0.1180 & 0.1456 & 0.2001 & 0.0880 & 0.0941 & 0.1011 & 0.1118 \\
+\texttt{checkpoint-2751} & 0.0830 & 0.1102 & 0.1311 & 0.1597 & 0.2195 & 0.0967 & 0.1033 & 0.1105 & 0.1223 \\
+\texttt{checkpoint-3668} & 0.0822 & 0.1088 & 0.1290 & 0.1598 & 0.2185 & 0.0958 & 0.1023 & 0.1100 & 0.1216 \\
+\bottomrule
+\end{tabular}%
+}
+\caption{Instruments 上 \texttt{Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu} 的完整 checkpoint 指标。}
+\label{tab:appendix-instruments-lc-rec}
 \end{table}
 
 \subsection{Instruments: GenRec (SFT)}
@@ -318,7 +361,7 @@ Checkpoint & HR@1 & HR@5 & HR@10 & HR@20 & HR@50 & NDCG@5 & NDCG@10 & NDCG@20 & 
 \label{tab:appendix-games-gru4rec}
 \end{table}
 
-\subsection{Games: BERT4Rec}
+\subsection{Games: BERT4Rec (RecSys23)}
 
 \begin{table}[H]
 \centering
@@ -335,6 +378,26 @@ Checkpoint & HR@1 & HR@5 & HR@10 & HR@20 & HR@50 & NDCG@5 & NDCG@10 & NDCG@20 & 
 \end{tabular}%
 }
 \caption{Games 上 \texttt{Games-bert4rec-recsys23/checkpoint-best} 的完整 checkpoint 指标。}
+\label{tab:appendix-games-bert4rec-recsys23}
+\end{table}
+
+\subsection{Games: BERT4Rec}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.05}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{cccccccccc}
+\toprule
+Checkpoint & HR@1 & HR@5 & HR@10 & HR@20 & HR@50 & NDCG@5 & NDCG@10 & NDCG@20 & NDCG@50 \\
+\midrule
+\texttt{checkpoint-best} & 0.0200 & 0.0578 & 0.0889 & 0.1352 & 0.2188 & 0.0390 & 0.0490 & 0.0607 & 0.0772 \\
+\bottomrule
+\end{tabular}%
+}
+\caption{Games 上 \texttt{Games-bert4rec-vanilla/checkpoint-best} 的完整 checkpoint 指标。}
 \label{tab:appendix-games-bert4rec}
 \end{table}
 
@@ -370,7 +433,7 @@ Checkpoint & HR@1 & HR@5 & HR@10 & HR@20 & HR@50 & NDCG@5 & NDCG@10 & NDCG@20 & 
 \toprule
 Checkpoint & HR@1 & HR@5 & HR@10 & HR@20 & HR@50 & NDCG@5 & NDCG@10 & NDCG@20 & NDCG@50 \\
 \midrule
-\texttt{checkpoint-best} & 0.0176 & 0.0525 & 0.0841 & 0.1300 & 0.2147 & 0.0349 & 0.0450 & 0.0566 & 0.0734 \\
+\texttt{checkpoint-best} & 0.0011 & 0.0068 & 0.0113 & 0.0177 & 0.0309 & 0.0038 & 0.0052 & 0.0069 & 0.0095 \\
 \bottomrule
 \end{tabular}%
 }
@@ -503,7 +566,7 @@ Checkpoint & HR@1 & HR@5 & HR@10 & HR@20 & HR@50 & NDCG@5 & NDCG@10 & NDCG@20 & 
 \label{tab:appendix-arts-gru4rec}
 \end{table}
 
-\subsection{Arts: BERT4Rec}
+\subsection{Arts: BERT4Rec (RecSys23)}
 
 \begin{table}[H]
 \centering
@@ -520,6 +583,26 @@ Checkpoint & HR@1 & HR@5 & HR@10 & HR@20 & HR@50 & NDCG@5 & NDCG@10 & NDCG@20 & 
 \end{tabular}%
 }
 \caption{Arts 上 \texttt{Arts-bert4rec-recsys23/checkpoint-best} 的完整 checkpoint 指标。}
+\label{tab:appendix-arts-bert4rec-recsys23}
+\end{table}
+
+\subsection{Arts: BERT4Rec}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.05}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{cccccccccc}
+\toprule
+Checkpoint & HR@1 & HR@5 & HR@10 & HR@20 & HR@50 & NDCG@5 & NDCG@10 & NDCG@20 & NDCG@50 \\
+\midrule
+\texttt{checkpoint-best} & 0.0523 & 0.0862 & 0.1090 & 0.1394 & 0.1965 & 0.0696 & 0.0769 & 0.0845 & 0.0958 \\
+\bottomrule
+\end{tabular}%
+}
+\caption{Arts 上 \texttt{Arts-bert4rec-vanilla/checkpoint-best} 的完整 checkpoint 指标。}
 \label{tab:appendix-arts-bert4rec}
 \end{table}
 

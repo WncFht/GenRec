@@ -8,43 +8,43 @@
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1.08}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{llcccccccccc}
+\begin{tabular}{llccccccccccc}
 \toprule
-Dataset & Metric & Caser & GRU4Rec & BERT4Rec & SASRec & TIGER & GenRec(sft) & GenRec(rule) & GenRec(ranking) & GenRec(fixed) & GenRec(fixed + ce0.005) \\
+Dataset & Metric & Caser & GRU4Rec & BERT4Rec & SASRec & TIGER & LC-Rec & GenRec(sft) & GenRec(rule) & GenRec(ranking) & GenRec(fixed) & GenRec(fixed + ce0.005) \\
 \midrule
-Instruments & HR@1 & 0.0422 & 0.0784 & 0.0783 & 0.0597 & 0.0756 & 0.0588 & 0.0788 & \textbf{0.0808} & 0.0722 & 0.0764 \\
- & HR@5 & 0.0645 & 0.1017 & \textbf{0.1059} & 0.0871 & 0.0996 & 0.0932 & 0.1027 & 0.1002 & 0.1014 & 0.1009 \\
- & HR@10 & 0.0825 & 0.1203 & \textbf{0.1265} & 0.1082 & 0.1207 & 0.1094 & 0.1179 & 0.1145 & 0.1189 & 0.1180 \\
- & HR@20 & 0.1097 & 0.1478 & \textbf{0.1547} & 0.1393 & 0.1533 & 0.1344 & 0.1373 & 0.1337 & 0.1447 & 0.1435 \\
- & HR@50 & 0.1593 & 0.2068 & \textbf{0.2137} & 0.2011 & 0.2097 & 0.1844 & 0.1681 & 0.1696 & 0.1941 & 0.1985 \\
- & NDCG@5 & 0.0533 & 0.0902 & \textbf{0.0922} & 0.0737 & 0.0878 & 0.0771 & 0.0911 & 0.0906 & 0.0875 & 0.0890 \\
- & NDCG@10 & 0.0591 & 0.0962 & \textbf{0.0988} & 0.0805 & 0.0945 & 0.0823 & 0.0960 & 0.0952 & 0.0931 & 0.0945 \\
- & NDCG@20 & 0.0659 & 0.1031 & \textbf{0.1058} & 0.0883 & 0.1028 & 0.0886 & 0.1009 & 0.1000 & 0.0995 & 0.1009 \\
- & NDCG@50 & 0.0757 & 0.1148 & \textbf{0.1175} & 0.1005 & 0.1139 & 0.0985 & 0.1070 & 0.1071 & 0.1094 & 0.1118 \\
+Instruments & HR@1 & 0.0422 & 0.0784 & 0.0709 & 0.0597 & 0.0756 & \textbf{0.0830} & 0.0588 & 0.0788 & 0.0808 & 0.0722 & 0.0764 \\
+ & HR@5 & 0.0645 & 0.1017 & 0.0996 & 0.0871 & 0.0996 & \textbf{0.1102} & 0.0932 & 0.1027 & 0.1002 & 0.1014 & 0.1009 \\
+ & HR@10 & 0.0825 & 0.1203 & 0.1193 & 0.1082 & 0.1207 & \textbf{0.1311} & 0.1094 & 0.1179 & 0.1145 & 0.1189 & 0.1180 \\
+ & HR@20 & 0.1097 & 0.1478 & 0.1512 & 0.1393 & 0.1533 & \textbf{0.1597} & 0.1344 & 0.1373 & 0.1337 & 0.1447 & 0.1435 \\
+ & HR@50 & 0.1593 & 0.2068 & 0.2073 & 0.2011 & 0.2097 & \textbf{0.2195} & 0.1844 & 0.1681 & 0.1696 & 0.1941 & 0.1985 \\
+ & NDCG@5 & 0.0533 & 0.0902 & 0.0855 & 0.0737 & 0.0878 & \textbf{0.0967} & 0.0771 & 0.0911 & 0.0906 & 0.0875 & 0.0890 \\
+ & NDCG@10 & 0.0591 & 0.0962 & 0.0918 & 0.0805 & 0.0945 & \textbf{0.1033} & 0.0823 & 0.0960 & 0.0952 & 0.0931 & 0.0945 \\
+ & NDCG@20 & 0.0659 & 0.1031 & 0.0999 & 0.0883 & 0.1028 & \textbf{0.1105} & 0.0886 & 0.1009 & 0.1000 & 0.0995 & 0.1009 \\
+ & NDCG@50 & 0.0757 & 0.1148 & 0.1109 & 0.1005 & 0.1139 & \textbf{0.1223} & 0.0985 & 0.1070 & 0.1071 & 0.1094 & 0.1118 \\
 \midrule
-Arts & HR@1 & 0.0274 & 0.0599 & \textbf{0.0606} & 0.0500 & 0.0596 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
- & HR@5 & 0.0421 & 0.0870 & \textbf{0.0970} & 0.0828 & 0.0923 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
- & HR@10 & 0.0547 & 0.1071 & \textbf{0.1202} & 0.1044 & 0.1191 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
- & HR@20 & 0.0745 & 0.1350 & 0.1520 & 0.1348 & \textbf{0.1527} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
- & HR@50 & 0.1103 & 0.1884 & 0.2113 & 0.1903 & \textbf{0.2125} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
- & NDCG@5 & 0.0347 & 0.0739 & \textbf{0.0794} & 0.0666 & 0.0763 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
- & NDCG@10 & 0.0387 & 0.0804 & \textbf{0.0869} & 0.0736 & 0.0849 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
- & NDCG@20 & 0.0437 & 0.0874 & \textbf{0.0949} & 0.0812 & 0.0934 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
- & NDCG@50 & 0.0508 & 0.0979 & \textbf{0.1065} & 0.0922 & 0.1052 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+Arts & HR@1 & 0.0274 & \textbf{0.0599} & 0.0523 & 0.0500 & 0.0596 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & HR@5 & 0.0421 & 0.0870 & 0.0862 & 0.0828 & \textbf{0.0923} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & HR@10 & 0.0547 & 0.1071 & 0.1090 & 0.1044 & \textbf{0.1191} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & HR@20 & 0.0745 & 0.1350 & 0.1394 & 0.1348 & \textbf{0.1527} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & HR@50 & 0.1103 & 0.1884 & 0.1965 & 0.1903 & \textbf{0.2125} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & NDCG@5 & 0.0347 & 0.0739 & 0.0696 & 0.0666 & \textbf{0.0763} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & NDCG@10 & 0.0387 & 0.0804 & 0.0769 & 0.0736 & \textbf{0.0849} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & NDCG@20 & 0.0437 & 0.0874 & 0.0845 & 0.0812 & \textbf{0.0934} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
+ & NDCG@50 & 0.0508 & 0.0979 & 0.0958 & 0.0922 & \textbf{0.1052} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
 \midrule
-Games & HR@1 & 0.0102 & 0.0204 & \textbf{0.0212} & 0.0155 & 0.0176 & 0.0168 & 0.0206 & \textemdash & 0.0210 & \textemdash \\
- & HR@5 & 0.0334 & 0.0570 & \textbf{0.0624} & 0.0463 & 0.0525 & 0.0503 & 0.0544 & \textemdash & 0.0555 & \textemdash \\
- & HR@10 & 0.0546 & 0.0869 & \textbf{0.0963} & 0.0726 & 0.0841 & 0.0804 & 0.0825 & \textemdash & 0.0857 & \textemdash \\
- & HR@20 & 0.0876 & 0.1312 & \textbf{0.1447} & 0.1098 & 0.1300 & 0.1215 & 0.1186 & \textemdash & 0.1273 & \textemdash \\
- & HR@50 & 0.1517 & 0.2161 & \textbf{0.2350} & 0.1862 & 0.2147 & 0.1998 & 0.1815 & \textemdash & 0.1972 & \textemdash \\
- & NDCG@5 & 0.0218 & 0.0389 & \textbf{0.0417} & 0.0310 & 0.0349 & 0.0336 & 0.0377 & \textemdash & 0.0383 & \textemdash \\
- & NDCG@10 & 0.0286 & 0.0484 & \textbf{0.0526} & 0.0394 & 0.0450 & 0.0433 & 0.0467 & \textemdash & 0.0480 & \textemdash \\
- & NDCG@20 & 0.0369 & 0.0596 & \textbf{0.0648} & 0.0487 & 0.0566 & 0.0536 & 0.0558 & \textemdash & 0.0584 & \textemdash \\
- & NDCG@50 & 0.0496 & 0.0763 & \textbf{0.0826} & 0.0638 & 0.0734 & 0.0691 & 0.0683 & \textemdash & 0.0723 & \textemdash \\
+Games & HR@1 & 0.0102 & 0.0204 & 0.0200 & 0.0155 & 0.0011 & \textemdash & 0.0168 & 0.0206 & \textemdash & \textbf{0.0210} & \textemdash \\
+ & HR@5 & 0.0334 & 0.0570 & \textbf{0.0578} & 0.0463 & 0.0068 & \textemdash & 0.0503 & 0.0544 & \textemdash & 0.0555 & \textemdash \\
+ & HR@10 & 0.0546 & 0.0869 & \textbf{0.0889} & 0.0726 & 0.0113 & \textemdash & 0.0804 & 0.0825 & \textemdash & 0.0857 & \textemdash \\
+ & HR@20 & 0.0876 & 0.1312 & \textbf{0.1352} & 0.1098 & 0.0177 & \textemdash & 0.1215 & 0.1186 & \textemdash & 0.1273 & \textemdash \\
+ & HR@50 & 0.1517 & 0.2161 & \textbf{0.2188} & 0.1862 & 0.0309 & \textemdash & 0.1998 & 0.1815 & \textemdash & 0.1972 & \textemdash \\
+ & NDCG@5 & 0.0218 & 0.0389 & \textbf{0.0390} & 0.0310 & 0.0038 & \textemdash & 0.0336 & 0.0377 & \textemdash & 0.0383 & \textemdash \\
+ & NDCG@10 & 0.0286 & 0.0484 & \textbf{0.0490} & 0.0394 & 0.0052 & \textemdash & 0.0433 & 0.0467 & \textemdash & 0.0480 & \textemdash \\
+ & NDCG@20 & 0.0369 & 0.0596 & \textbf{0.0607} & 0.0487 & 0.0069 & \textemdash & 0.0536 & 0.0558 & \textemdash & 0.0584 & \textemdash \\
+ & NDCG@50 & 0.0496 & 0.0763 & \textbf{0.0772} & 0.0638 & 0.0095 & \textemdash & 0.0691 & 0.0683 & \textemdash & 0.0723 & \textemdash \\
 \bottomrule
 \end{tabular}%
 }
-\caption{GenRec index 口径下当前已测结果的主表。主表展示当前至少已有一条实测方法的数据集。当前已从 \texttt{results/*-caser-pytorch/checkpoint-best}、\texttt{results/*-gru4rec-pytorch-official/checkpoint-best}、\texttt{results/*-bert4rec-recsys23/checkpoint-best}、\texttt{results/*-sasrec-recsys23/checkpoint-best} 与 \texttt{results/*-tiger-grec-h50-reverse/checkpoint-best} 补入当前已同步回仓库的五类 baseline 实测结果。所有 GenRec 变体若存在多个 checkpoint，统一按 NDCG@10 选 best。}
+\caption{GenRec index 口径下当前已测结果的主表。主表展示当前至少已有一条实测方法的数据集。当前已从 \texttt{results/*-caser-pytorch/checkpoint-best}、\texttt{results/*-gru4rec-pytorch-official/checkpoint-best}、\texttt{results/Instruments-bert4rec-vanilla/checkpoint-best}、\texttt{results/*-sasrec-recsys23/checkpoint-best}、\texttt{results/*-tiger-grec-h50-reverse/checkpoint-best} 与 \texttt{results/Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu} 补入当前已同步回仓库的 baseline 与 SFT 对齐结果。RecSys23 版 BERT4Rec 只保留在附录中作参考。所有 GenRec 变体若存在多个 checkpoint，统一按 NDCG@10 选 best。}
 \label{tab:genrec-index-main}
 \end{table}
 
@@ -62,9 +62,10 @@ Dataset & Variant & Best ckpt & HR@1 & HR@5 & HR@10 & HR@20 & HR@50 & NDCG@5 & N
 \midrule
 Instruments & Caser & \texttt{checkpoint-best} & 0.0422 & 0.0645 & 0.0825 & 0.1097 & 0.1593 & 0.0533 & 0.0591 & 0.0659 & 0.0757 \\
  & GRU4Rec & \texttt{checkpoint-best} & 0.0784 & 0.1017 & 0.1203 & 0.1478 & 0.2068 & 0.0902 & 0.0962 & 0.1031 & 0.1148 \\
- & BERT4Rec & \texttt{checkpoint-best} & 0.0783 & 0.1059 & 0.1265 & 0.1547 & 0.2137 & 0.0922 & 0.0988 & 0.1058 & 0.1175 \\
+ & BERT4Rec & \texttt{checkpoint-best} & 0.0709 & 0.0996 & 0.1193 & 0.1512 & 0.2073 & 0.0855 & 0.0918 & 0.0999 & 0.1109 \\
  & SASRec & \texttt{checkpoint-best} & 0.0597 & 0.0871 & 0.1082 & 0.1393 & 0.2011 & 0.0737 & 0.0805 & 0.0883 & 0.1005 \\
  & TIGER & \texttt{checkpoint-best} & 0.0756 & 0.0996 & 0.1207 & 0.1533 & 0.2097 & 0.0878 & 0.0945 & 0.1028 & 0.1139 \\
+ & LC-Rec & \texttt{checkpoint-2751} & 0.0830 & 0.1102 & 0.1311 & 0.1597 & 0.2195 & 0.0967 & 0.1033 & 0.1105 & 0.1223 \\
  & GenRec (SFT) & \texttt{checkpoint-495} & 0.0588 & 0.0932 & 0.1094 & 0.1344 & 0.1844 & 0.0771 & 0.0823 & 0.0886 & 0.0985 \\
  & GenRec (rule) & \texttt{checkpoint-2997} & 0.0788 & 0.1027 & 0.1179 & 0.1373 & 0.1681 & 0.0911 & 0.0960 & 0.1009 & 0.1070 \\
  & GenRec (ranking) & \texttt{checkpoint-1665} & 0.0808 & 0.1002 & 0.1145 & 0.1337 & 0.1696 & 0.0906 & 0.0952 & 0.1000 & 0.1071 \\
@@ -73,15 +74,15 @@ Instruments & Caser & \texttt{checkpoint-best} & 0.0422 & 0.0645 & 0.0825 & 0.10
 \midrule
 Arts & Caser & \texttt{checkpoint-best} & 0.0274 & 0.0421 & 0.0547 & 0.0745 & 0.1103 & 0.0347 & 0.0387 & 0.0437 & 0.0508 \\
  & GRU4Rec & \texttt{checkpoint-best} & 0.0599 & 0.0870 & 0.1071 & 0.1350 & 0.1884 & 0.0739 & 0.0804 & 0.0874 & 0.0979 \\
- & BERT4Rec & \texttt{checkpoint-best} & 0.0606 & 0.0970 & 0.1202 & 0.1520 & 0.2113 & 0.0794 & 0.0869 & 0.0949 & 0.1065 \\
+ & BERT4Rec & \texttt{checkpoint-best} & 0.0523 & 0.0862 & 0.1090 & 0.1394 & 0.1965 & 0.0696 & 0.0769 & 0.0845 & 0.0958 \\
  & SASRec & \texttt{checkpoint-best} & 0.0500 & 0.0828 & 0.1044 & 0.1348 & 0.1903 & 0.0666 & 0.0736 & 0.0812 & 0.0922 \\
  & TIGER & \texttt{checkpoint-best} & 0.0596 & 0.0923 & 0.1191 & 0.1527 & 0.2125 & 0.0763 & 0.0849 & 0.0934 & 0.1052 \\
 \midrule
 Games & Caser & \texttt{checkpoint-best} & 0.0102 & 0.0334 & 0.0546 & 0.0876 & 0.1517 & 0.0218 & 0.0286 & 0.0369 & 0.0496 \\
  & GRU4Rec & \texttt{checkpoint-best} & 0.0204 & 0.0570 & 0.0869 & 0.1312 & 0.2161 & 0.0389 & 0.0484 & 0.0596 & 0.0763 \\
- & BERT4Rec & \texttt{checkpoint-best} & 0.0212 & 0.0624 & 0.0963 & 0.1447 & 0.2350 & 0.0417 & 0.0526 & 0.0648 & 0.0826 \\
+ & BERT4Rec & \texttt{checkpoint-best} & 0.0200 & 0.0578 & 0.0889 & 0.1352 & 0.2188 & 0.0390 & 0.0490 & 0.0607 & 0.0772 \\
  & SASRec & \texttt{checkpoint-best} & 0.0155 & 0.0463 & 0.0726 & 0.1098 & 0.1862 & 0.0310 & 0.0394 & 0.0487 & 0.0638 \\
- & TIGER & \texttt{checkpoint-best} & 0.0176 & 0.0525 & 0.0841 & 0.1300 & 0.2147 & 0.0349 & 0.0450 & 0.0566 & 0.0734 \\
+ & TIGER & \texttt{checkpoint-best} & 0.0011 & 0.0068 & 0.0113 & 0.0177 & 0.0309 & 0.0038 & 0.0052 & 0.0069 & 0.0095 \\
  & GenRec (SFT) & \texttt{checkpoint-768} & 0.0168 & 0.0503 & 0.0804 & 0.1215 & 0.1998 & 0.0336 & 0.0433 & 0.0536 & 0.0691 \\
  & GenRec (rule) & \texttt{checkpoint-8752} & 0.0206 & 0.0544 & 0.0825 & 0.1186 & 0.1815 & 0.0377 & 0.0467 & 0.0558 & 0.0683 \\
  & GenRec (fixed) & \texttt{checkpoint-8752} & 0.0210 & 0.0555 & 0.0857 & 0.1273 & 0.1972 & 0.0383 & 0.0480 & 0.0584 & 0.0723 \\
@@ -93,7 +94,7 @@ Games & Caser & \texttt{checkpoint-best} & 0.0102 & 0.0334 & 0.0546 & 0.0876 & 0
 \end{table}
 
 \paragraph{Readout.} 本轮主表只纳入当前仓库里已经能追溯到 \texttt{GenRec index} 统一评测口径的结果。
-Instruments 上补入 Caser / GRU4Rec 后，当前 overall best \texttt{NDCG@10} 仍是 \texttt{BERT4Rec} 的 \texttt{0.0988}；\texttt{GRU4Rec} 已达到 \texttt{NDCG@10=0.0962, HR@50=0.2068}，略高于 \texttt{GenRec(rule)} 的 \texttt{0.0960}。\texttt{Caser} 当前为 \texttt{NDCG@10=0.0591, HR@50=0.1593}。
+Instruments 上新增了 \texttt{BERT4Rec vanilla} 与 \texttt{LC-Rec} 两条对照。当前 overall best 已变为 \texttt{LC-Rec}，best checkpoint 为 \texttt{checkpoint-2751 / NDCG@10=0.1033 / HR@50=0.2195}；\texttt{BERT4Rec vanilla} 为 \texttt{0.0918}，\texttt{GRU4Rec} 为 \texttt{0.0962}。RecSys23 版 BERT4Rec 只在附录保留。
 如果看 coverage，\texttt{GenRec(fixed + ce0.005)} 在当前 best 点达到 \texttt{HR@50=0.1985}。
-Arts 现在五条 baseline 已全部补齐；当前 best 仍是 \texttt{BERT4Rec}，\texttt{NDCG@10=0.0869, HR@50=0.2113}。新补入的 \texttt{GRU4Rec} 达到 \texttt{NDCG@10=0.0804, HR@50=0.1884}，介于 \texttt{TIGER} 的 \texttt{0.0849} 与 \texttt{SASRec} 的 \texttt{0.0736} 之间，明显高于 \texttt{Caser} 的 \texttt{0.0387}。
-Games 现在五条 baseline 也已补齐；当前 overall best 仍是 \texttt{BERT4Rec}，\texttt{NDCG@10=0.0526, HR@50=0.2350}。新补入的 \texttt{GRU4Rec} 达到 \texttt{NDCG@10=0.0484, HR@50=0.2161}，略高于 \texttt{GenRec(fixed)} 的 \texttt{0.0480}，也明显高于 \texttt{TIGER} 的 \texttt{0.0439} 与 \texttt{Caser} 的 \texttt{0.0286}。
+Arts 现在 baseline 进一步补入了 \texttt{BERT4Rec vanilla}；当前主表里最强 baseline 是 \texttt{TIGER}，\texttt{NDCG@10=0.0849, HR@50=0.2125}。\texttt{BERT4Rec vanilla} 当前为 \texttt{0.0769 / 0.1965}，低于 \texttt{GRU4Rec} 的 \texttt{0.0804} 与 \texttt{TIGER}，但仍高于 \texttt{SASRec} 的 \texttt{0.0736}。
+Games 现在也补入了 \texttt{BERT4Rec vanilla}；当前主表里最强 baseline 仍是 \texttt{GRU4Rec}，\texttt{NDCG@10=0.0484, HR@50=0.2161}。\texttt{BERT4Rec vanilla} 当前为 \texttt{0.0490 / 0.2188}，略高于 \texttt{GRU4Rec} 与 \texttt{GenRec(fixed)} 的 \texttt{0.0480}，也高于 \texttt{TIGER} 的 \texttt{0.0449}。
