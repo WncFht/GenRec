@@ -6,7 +6,7 @@ REPO_ROOT="${REPO_ROOT:-$(cd -- "${SCRIPT_DIR}/../.." && pwd)}"
 
 export REPO_ROOT
 export DATA_VARIANT_DEFAULT="${DATA_VARIANT_DEFAULT:-Instruments_grec_index}"
-export MODEL_PATH="${MODEL_PATH:-${REPO_ROOT}/saves/qwen2.5-3b/full/Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu}"
+export MODEL_PATH="${MODEL_PATH:-${REPO_ROOT}/saves/qwen2.5-3b/full/Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu/checkpoint-2751}"
 export OUTPUT_DIR="${OUTPUT_DIR:-${REPO_ROOT}/rl_outputs/Instruments-grec-genrec-rule-from-sft}"
 export RUN_NAME="${RUN_NAME:-instruments_grec_genrec_rule_from_sft}"
 export NUM_PROCESSES="${NUM_PROCESSES:-8}"

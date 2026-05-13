@@ -12,6 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 BASELINE_DIR = ROOT / "docs" / "baseline"
 RESULTS_DIR = ROOT / "results"
+INSTRUMENTS_REPORT_ASSET_DIR = ROOT / "docs" / "research" / "assets" / "instruments-report"
 INSTRUMENTS_BEST_CSV = ROOT / "docs" / "research" / "assets" / "instruments-report" / "all_variant_best_summary.csv"
 GAMES_SFT_BEST_CSV = ROOT / "docs" / "research" / "assets" / "games-report" / "games_sft_best_summary.csv"
 GAMES_RL_BEST_CSV = ROOT / "docs" / "research" / "assets" / "games-report" / "games_rl_best_summary.csv"
@@ -20,6 +21,13 @@ ARTS_CKPT_CSV = ROOT / "docs" / "research" / "assets" / "arts-report" / "arts_ch
 MAIN_TEX = BASELINE_DIR / "genrec-baseline-main.tex"
 APPENDIX_TEX = BASELINE_DIR / "genrec-baseline-appendix.tex"
 MASTER_TEX = BASELINE_DIR / "genrec-baseline.tex"
+
+ALIGNED_RULE_MODEL_DIR = "Instruments-grec-genrec-aligned-rule"
+ALIGNED_SFT_MODEL_DIR = "Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu"
+ALIGNED_RULE_NUM_EPOCHS = 2.0
+ALIGNED_RULE_EPOCH_NORMALIZER_STEP = 3326
+ALIGNED_RULE_CURVES_PNG = INSTRUMENTS_REPORT_ASSET_DIR / "genrec_aligned_rule_epoch_curves.png"
+ALIGNED_RULE_METRICS_CSV = INSTRUMENTS_REPORT_ASSET_DIR / "genrec_aligned_rule_checkpoint_metrics.csv"
 
 
 METRICS = ["HR@1", "HR@5", "HR@10", "HR@20", "HR@50", "NDCG@5", "NDCG@10", "NDCG@20", "NDCG@50"]
@@ -505,6 +513,13 @@ def collect_metrics_dir(model_dir: str) -> list[tuple[str, dict[str, float]]]:
     return entries
 
 
+def checkpoint_epoch(checkpoint_name: str, max_step: int, num_train_epochs: float) -> float:
+    step = checkpoint_step(checkpoint_name)
+    if step <= 0 or max_step <= 0:
+        return float("nan")
+    return step / max_step * num_train_epochs
+
+
 def select_best(entries: list[tuple[str, dict[str, float]]]) -> tuple[str, dict[str, float]] | None:
     if not entries:
         return None
@@ -548,6 +563,82 @@ def maybe_value(metrics: dict[str, float], key: str) -> float | None:
     if value is None or math.isnan(value):
         return None
     return value
+
+
+def build_aligned_rule_assets() -> list[dict[str, float | str]]:
+    rule_entries = collect_metrics_dir(ALIGNED_RULE_MODEL_DIR)
+    sft_best = select_best(collect_metrics_dir(ALIGNED_SFT_MODEL_DIR))
+    if not rule_entries or sft_best is None:
+        return []
+
+    sft_checkpoint, sft_metrics = sft_best
+
+    rows: list[dict[str, float | str]] = []
+    for checkpoint_name, metrics in rule_entries:
+        row: dict[str, float | str] = {
+            "checkpoint": checkpoint_name,
+            "step": checkpoint_step(checkpoint_name),
+            "epoch": checkpoint_epoch(
+                checkpoint_name,
+                ALIGNED_RULE_EPOCH_NORMALIZER_STEP,
+                ALIGNED_RULE_NUM_EPOCHS,
+            ),
+        }
+        for metric in METRICS:
+            row[metric] = float(metrics[metric])
+        rows.append(row)
+
+    INSTRUMENTS_REPORT_ASSET_DIR.mkdir(parents=True, exist_ok=True)
+    with ALIGNED_RULE_METRICS_CSV.open("w", newline="") as f:
+        fieldnames = ["checkpoint", "step", "epoch", *METRICS]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, axes = plt.subplots(5, 2, figsize=(11.6, 14.0), sharex=True)
+    axes_flat = list(axes.flat)
+    epochs = [float(row["epoch"]) for row in rows]
+
+    for ax, metric in zip(axes_flat, METRICS):
+        values = [float(row[metric]) for row in rows]
+        ax.plot(
+            epochs,
+            values,
+            color="#9C755F",
+            marker="s",
+            linewidth=2.2,
+            markersize=5,
+            label="GenRec(rule)",
+        )
+        ax.axhline(
+            float(sft_metrics[metric]),
+            linestyle="--",
+            linewidth=1.4,
+            color="#6B7280",
+            label=f"GenRec(sft) best ({sft_checkpoint})",
+        )
+        ax.set_title(metric)
+        ax.set_xlabel("Epoch")
+        ax.set_ylabel(metric)
+        ax.set_xlim(0.0, ALIGNED_RULE_NUM_EPOCHS)
+        ax.grid(alpha=0.22)
+
+    for ax in axes_flat[len(METRICS):]:
+        ax.axis("off")
+
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    unique = dict(zip(labels, handles, strict=False))
+    fig.legend(unique.values(), unique.keys(), loc="upper center", bbox_to_anchor=(0.5, 0.992), ncol=2, frameon=False)
+    fig.suptitle("Instruments GenRec aligned rule: all main-table metrics vs SFT best", y=0.965)
+    fig.tight_layout(rect=(0, 0, 1, 0.94))
+    fig.savefig(ALIGNED_RULE_CURVES_PNG, dpi=180)
+    plt.close(fig)
+    return rows
 
 
 def resolve_run(
@@ -713,6 +804,13 @@ def render_result_table(
 
 
 def build_main_table(resolved: list[dict[str, object]]) -> str:
+    aligned_rule_row = next(
+        row
+        for row in resolved
+        if row["spec"].dataset == "Instruments" and row["spec"].column_name == "GenRec(rule)" and row["status"] == "ok"
+    )
+    aligned_rule_ckpt = str(aligned_rule_row["best_checkpoint"])
+    aligned_rule_metrics: dict[str, float] = aligned_rule_row["metrics"]  # type: ignore[assignment]
     parts: list[str] = []
     parts.append(r"\section{GenRec Index Baseline Tables}")
     parts.append("")
@@ -775,7 +873,7 @@ def build_main_table(resolved: list[dict[str, object]]) -> str:
         r"\paragraph{Readout.} 当前首页主表只保留已经完成的 GenRec index 口径实测。"
     )
     parts.append(
-        r"Instruments 上，\texttt{LC-Rec} 与 \texttt{GenRec(sft)} 目前都对齐到 \texttt{Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu}，最佳 checkpoint 都是 \texttt{checkpoint-2751 / NDCG@10=0.1033 / HR@50=0.2195}；当前唯一补进来的 RL 结果是 \texttt{GenRec(rule)}，best checkpoint 为 \texttt{checkpoint-666 / NDCG@10=0.1007 / HR@50=0.1903}。"
+        rf"Instruments 上，\texttt{{LC-Rec}} 与 \texttt{{GenRec(sft)}} 目前都对齐到 \texttt{{Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu}}，最佳 checkpoint 都是 \texttt{{checkpoint-2751 / NDCG@10=0.1033 / HR@50=0.2195}}；当前唯一补进来的 RL 结果是 \texttt{{GenRec(rule)}}，best checkpoint 为 \texttt{{{aligned_rule_ckpt} / NDCG@10={fmt_metric(maybe_value(aligned_rule_metrics, 'NDCG@10'))} / HR@50={fmt_metric(maybe_value(aligned_rule_metrics, 'HR@50'))}}}。"
     )
     parts.append(
         r"Arts 与 Games 在这张表里暂时只保留 baseline，因为当前还没有按同一口径补齐新的 \texttt{GenRec(sft) / rule / fixed} 结果。"
@@ -783,7 +881,64 @@ def build_main_table(resolved: list[dict[str, object]]) -> str:
     parts.append(
         r"旧版基座下的完整对照仍保留在附录，方便继续和历史结果比对。"
     )
+    parts.append("")
+    parts.append(build_aligned_rule_section())
     return "\n".join(parts) + "\n"
+
+
+def build_aligned_rule_section() -> str:
+    rule_entries = collect_metrics_dir(ALIGNED_RULE_MODEL_DIR)
+    sft_best = select_best(collect_metrics_dir(ALIGNED_SFT_MODEL_DIR))
+    if not rule_entries or sft_best is None:
+        return ""
+
+    last_synced_step = max(checkpoint_step(ckpt) for ckpt, _ in rule_entries)
+    sft_checkpoint, sft_metrics = sft_best
+    best_rule = select_best(rule_entries)
+    assert best_rule is not None
+    best_rule_checkpoint, best_rule_metrics = best_rule
+
+    parts: list[str] = []
+    parts.append(r"\subsection{Instruments: GenRec(rule) Checkpoint Curves}")
+    parts.append("")
+    parts.append(r"\begin{figure}[H]")
+    parts.append(r"\centering")
+    parts.append(r"\includegraphics[width=\textwidth]{../research/assets/instruments-report/genrec_aligned_rule_epoch_curves.png}")
+    parts.append(
+        rf"\caption{{Instruments 上 \texttt{{GenRec(rule)}} 的完整 checkpoint 曲线。图中统一展示主表里的九个指标：\texttt{{HR@1/5/10/20/50}} 与 \texttt{{NDCG@5/10/20/50}}；横轴统一按 Instruments RL 主线的 \texttt{{3326 step = 2 epoch}} 归一化，因此当前最后一个已同步点 \texttt{{checkpoint-{last_synced_step}}} 对应约 \texttt{{{checkpoint_epoch(f'checkpoint-{last_synced_step}', ALIGNED_RULE_EPOCH_NORMALIZER_STEP, ALIGNED_RULE_NUM_EPOCHS):.3f} epoch}}，虚线表示 \texttt{{GenRec(sft)}}/\texttt{{LC-Rec}} 共享的最佳 SFT 基线 \texttt{{{sft_checkpoint}}}。}}"
+    )
+    parts.append(r"\label{fig:genrec-index-aligned-rule-curves}")
+    parts.append(r"\end{figure}")
+    parts.append("")
+    parts.append(
+        rf"\paragraph{{Readout.}} \texttt{{GenRec(rule)}} 最优点出现在 \texttt{{{best_rule_checkpoint}}}，对应 \texttt{{NDCG@10={fmt_metric(maybe_value(best_rule_metrics, 'NDCG@10'))}}}。从九个指标整体看，这条 rule 线在前排 hit/NDCG 上超过了当前 best SFT，但 \texttt{{HR@50}} 仍始终低于 \texttt{{GenRec(sft)}} 的 \texttt{{{fmt_metric(maybe_value(sft_metrics, 'HR@50'))}}}。"
+    )
+    parts.append("")
+    parts.append(r"\begin{table}[H]")
+    parts.append(r"\centering")
+    parts.append(r"\scriptsize")
+    parts.append(r"\setlength{\tabcolsep}{3.5pt}")
+    parts.append(r"\renewcommand{\arraystretch}{1.05}")
+    parts.append(r"\resizebox{\textwidth}{!}{%")
+    parts.append(r"\begin{tabular}{c c " + " c" * len(METRICS) + r"}")
+    parts.append(r"\toprule")
+    parts.append("Epoch & Step & " + " & ".join(METRICS) + r" \\")
+    parts.append(r"\midrule")
+    for checkpoint_name, metrics in rule_entries:
+        step = checkpoint_step(checkpoint_name)
+        epoch = checkpoint_epoch(checkpoint_name, ALIGNED_RULE_EPOCH_NORMALIZER_STEP, ALIGNED_RULE_NUM_EPOCHS)
+        cells = [fmt_metric(maybe_value(metrics, metric)) for metric in METRICS]
+        parts.append(" & ".join([f"{epoch:.3f}", str(step), *cells]) + r" \\")
+    parts.append(r"\bottomrule")
+    parts.append(r"\end{tabular}%")
+    parts.append(r"}")
+    parts.append(
+        rf"\caption{{\texttt{{{ALIGNED_RULE_MODEL_DIR.replace('_', r'\_')}}} 的逐 checkpoint 指标明细。epoch 统一按 \texttt{{step / {ALIGNED_RULE_EPOCH_NORMALIZER_STEP} * 2}} 计算，对齐 Instruments RL 主线的 \texttt{{3326 step = 2 epoch}} 口径；因此当前最后一个已同步点 \texttt{{checkpoint-{last_synced_step}}} 对应约 \texttt{{{checkpoint_epoch(f'checkpoint-{last_synced_step}', ALIGNED_RULE_EPOCH_NORMALIZER_STEP, ALIGNED_RULE_NUM_EPOCHS):.3f} epoch}}。}}"
+    )
+    parts.append(r"\label{tab:genrec-index-aligned-rule-all-points}")
+    parts.append(r"\end{table}")
+    parts.append("")
+    return "\n".join(parts)
 
 
 def appendix_run_specs() -> list[RunSpec]:
@@ -998,6 +1153,7 @@ def build_master() -> str:
 \usepackage{float}
 \usepackage{graphicx}
 \usepackage{textcomp}
+\graphicspath{{../research/assets/instruments-report/}}
 
 \begin{document}
 
@@ -1010,6 +1166,7 @@ def build_master() -> str:
 
 def main() -> None:
     resolved = [resolve_run(spec, [], [], []) for spec in LC_REC_RUN_SPECS]
+    build_aligned_rule_assets()
 
     MAIN_TEX.write_text(build_main_table(resolved))
     APPENDIX_TEX.write_text(build_appendix())
