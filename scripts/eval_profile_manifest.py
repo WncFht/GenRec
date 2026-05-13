@@ -9,7 +9,7 @@ import json
 import re
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 
 ASSIGNMENT_RE = re.compile(r"^\s*(?:export\s+)?([A-Z][A-Z0-9_]*)=(.+?)\s*$")
@@ -172,6 +172,16 @@ def parse_simple_yaml(path: Path) -> dict[str, str]:
         value = strip_matching_quotes(match.group(2).strip())
         parsed[key] = value
     return parsed
+
+
+def load_source_config(repo_root: Path) -> dict[str, Any]:
+    config_path = repo_root / "data" / "eval_profile_manifest_sources.json"
+    if not config_path.is_file():
+        return {}
+    payload = json.loads(config_path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        return {}
+    return payload
 
 
 def variant_from_dataset_key(key: str) -> str:
@@ -360,11 +370,30 @@ def load_dataset_manifest_entries(data_root: Path) -> dict[str, Any]:
     return manifest
 
 
-def collect_yaml_aliases(repo_root: Path, manifest: dict[str, Any]) -> None:
+def iter_scan_targets(repo_root: Path, configured_roots: Any, default_root: Path, pattern: str) -> Iterable[Path]:
+    roots: list[Path]
+    if isinstance(configured_roots, list) and configured_roots:
+        roots = [(repo_root / str(entry)).resolve() for entry in configured_roots if isinstance(entry, str)]
+    else:
+        roots = [default_root]
+
+    seen: set[Path] = set()
+    for root in roots:
+        if root in seen:
+            continue
+        seen.add(root)
+        if root.is_file():
+            if root.match(pattern):
+                yield root
+            continue
+        if not root.is_dir():
+            continue
+        yield from sorted(root.rglob(pattern))
+
+
+def collect_yaml_aliases(repo_root: Path, manifest: dict[str, Any], source_config: dict[str, Any]) -> None:
     examples_root = repo_root / "examples" / "train_full"
-    if not examples_root.is_dir():
-        return
-    for path in sorted(examples_root.rglob("*.yaml")):
+    for path in iter_scan_targets(repo_root, source_config.get("yaml_roots"), examples_root, "*.yaml"):
         payload = parse_simple_yaml(path)
         dataset_name = payload.get("eval_dataset") or payload.get("dataset")
         if not dataset_name:
@@ -391,11 +420,9 @@ def collect_yaml_aliases(repo_root: Path, manifest: dict[str, Any]) -> None:
             )
 
 
-def collect_shell_aliases(repo_root: Path, manifest: dict[str, Any]) -> None:
+def collect_shell_aliases(repo_root: Path, manifest: dict[str, Any], source_config: dict[str, Any]) -> None:
     hope_root = repo_root / "hope"
-    if not hope_root.is_dir():
-        return
-    for path in sorted(hope_root.rglob("*.sh")):
+    for path in iter_scan_targets(repo_root, source_config.get("shell_roots"), hope_root, "*.sh"):
         payload = resolve_all_shell_assignments(path)
         variant = (
             payload.get("DATA_VARIANT_DEFAULT")
@@ -454,10 +481,11 @@ def apply_overrides(overrides_path: Path, manifest: dict[str, Any]) -> None:
 
 def build_manifest(repo_root: Path, data_root: Path, overrides_path: Path | None = None) -> dict[str, Any]:
     manifest = load_dataset_manifest_entries(data_root)
+    source_config = load_source_config(repo_root)
     if overrides_path is not None:
         apply_overrides(overrides_path, manifest)
-    collect_yaml_aliases(repo_root, manifest)
-    collect_shell_aliases(repo_root, manifest)
+    collect_yaml_aliases(repo_root, manifest, source_config)
+    collect_shell_aliases(repo_root, manifest, source_config)
     return normalize_manifest(manifest)
 
 

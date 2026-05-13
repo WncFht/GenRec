@@ -229,3 +229,69 @@ Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu
 5. 最后在远端做一次完整的 `build-manifest + dry-run evaluate` 验证。
 
 我认为这样做的好处是：先把未来主线固定住，再给 legacy 留兼容壳，而不是继续在一个目录里同时维护两代约定。
+
+## status update
+
+### 已完成
+
+1. 新增了两层共享入口：
+   - `hope/_canonical_sft_launcher.sh`
+   - `hope/_canonical_rl_launcher.sh`
+2. 新建了 canonical 目录并把未来主线按 `genrec / lcrec` 分开：
+   - `hope/Instruments-genrec`
+   - `hope/Instruments-lcrec`
+   - `hope/Arts-genrec`
+   - `hope/Arts-lcrec`
+   - `hope/Games-genrec`
+   - `hope/Games-lcrec`
+3. `Instruments / Arts / Games` 的 genrec 主线都已经补齐了 `prepare / sft / rule / ndcg / fixed / fixed_ce` 入口。
+4. `Instruments / Arts / Games` 的 lcrec 侧都已经有单独目录，并且三套目录现在都补齐到 `prepare / sft / rule / ndcg / fixed / fixed_ce`。
+5. 已补齐缺失的两个 genrec 8 卡 SFT YAML：
+   - `examples/train_full/Arts/arts_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_genrec_aligned_8gpu.yaml`
+   - `examples/train_full/Games/games_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_genrec_aligned_8gpu.yaml`
+6. 已修正 `hope/Instruments/Qwen2_5-3B-Instruct-qwen4B-4-256-GenRecAligned-grec-sft-8.sh` 默认 `RUN_NAME` 漂移问题。
+7. 新增了 `data/eval_profile_manifest_sources.json`，把 manifest 扫描范围收口到显式声明的 canonical YAML 和 canonical shell 目录。
+8. `scripts/eval_profile_manifest.py` 已改成优先读取 `eval_profile_manifest_sources.json`，不再默认扫整棵 `examples/train_full` / `hope`。
+9. 已重建 `data/eval_profile_manifest.json`。
+
+### 本地验证结果
+
+1. 运行了：
+   - `python3 scripts/eval_profile_manifest.py build-manifest ...`
+   - `python3 scripts/eval_profile_manifest.py resolve ...`
+   - `python3 scripts/eval_profile_manifest.py audit ...`
+2. 当前 manifest 已经从原先混着大量历史 variant 的状态，收口成 6 个 canonical dataset variant：
+   - `Instruments_grec_index`
+   - `Instruments_grec_index_lcrec`
+   - `Arts_grec_index`
+   - `Arts_grec_index_lcrec`
+   - `Games_grec_index`
+   - `Games_grec_index_lcrec`
+3. 下面这些新 alias 已能被正确解析：
+   - `Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu`
+   - `Arts-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu`
+   - `Games-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu`
+   - `Instruments-grec-genrec-rule-from-sft`
+   - `Arts-grec-genrec-rule-from-sft`
+   - `Games-grec-genrec-rule-from-sft`
+4. 本地 `audit` 里仍然显示很多 `test_exists=false / index_exists=false`，这是因为当前本地仓库没有远端完整数据目录，不代表 manifest 结构错误；最终验收仍然要在远端 `GenRec` 目录上执行。
+
+### 还没有做的事
+
+1. 我没有删除旧的 `hope/Instruments`、`hope/Arts`、`hope/Games` 和历史实验目录。
+   - 这次是“新增 canonical 入口 + 收口 manifest 扫描范围”，不是“物理清空 legacy 脚本”。
+2. 我没有删除或迁走旧的历史实验脚本。
+   - 当前只是把 future canonical 入口和 manifest 扫描范围收口了，legacy 目录仍然保留在仓库里。
+3. 我没有在远端实际执行训练或 evaluate watcher。
+   - 本地只做了 manifest/build/resolve 级别验证。
+
+### 我建议你在远端继续做的验收
+
+1. 先同步本次改动到远端仓库。
+2. 在远端执行：
+   - `python3 scripts/eval_profile_manifest.py build-manifest --repo-root . --data-root ./data --output ./data/eval_profile_manifest.json --overrides ./data/eval_profile_overrides.json`
+3. 再分别验证：
+   - `python3 scripts/eval_profile_manifest.py resolve --repo-root . --data-root ./data --manifest ./data/eval_profile_manifest.json --overrides ./data/eval_profile_overrides.json --model-name Arts-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu --format json`
+   - `python3 scripts/eval_profile_manifest.py resolve --repo-root . --data-root ./data --manifest ./data/eval_profile_manifest.json --overrides ./data/eval_profile_overrides.json --model-name Games-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu --format json`
+   - `python3 scripts/eval_profile_manifest.py resolve --repo-root . --data-root ./data --manifest ./data/eval_profile_manifest.json --overrides ./data/eval_profile_overrides.json --model-name Instruments-grec-genrec-rule-from-sft --format json`
+4. 如果这些 resolve 都正确，再去跑实际 watcher / evaluate。

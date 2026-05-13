@@ -48,7 +48,7 @@ sanitize_log_name() {
 }
 
 LOG_DIR="${LOG_DIR:-${REPO_ROOT}/log}"
-RUN_NAME="${RUN_NAME:-instruments_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_lcrec_aligned_4gpu}"
+RUN_NAME="${RUN_NAME:-Instruments-grec-genrec-aligned-qwen2.5-3b-sft-qwen4B-4-256-dsz3-8gpu}"
 TS="$(date +%Y%m%d_%H%M%S)"
 LOG_FILE="${LOG_DIR}/$(sanitize_log_name "${RUN_NAME}")_${TS}.log"
 mkdir -p "${LOG_DIR}"

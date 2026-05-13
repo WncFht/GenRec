@@ -1,0 +1,18 @@
+{
+  "yaml_roots": [
+    "examples/train_full/Instruments/instruments_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_genrec_aligned_8gpu.yaml",
+    "examples/train_full/Instruments/instruments_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_lcrec_aligned_4gpu.yaml",
+    "examples/train_full/Arts/arts_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_genrec_aligned_8gpu.yaml",
+    "examples/train_full/Arts/arts_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_lcrec_aligned_4gpu.yaml",
+    "examples/train_full/Games/games_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_genrec_aligned_8gpu.yaml",
+    "examples/train_full/Games/games_rec_full_sft_3b_dsz3_qwen4b_4_256_grec_lcrec_aligned_4gpu.yaml"
+  ],
+  "shell_roots": [
+    "hope/Instruments-genrec",
+    "hope/Instruments-lcrec",
+    "hope/Arts-genrec",
+    "hope/Arts-lcrec",
+    "hope/Games-genrec",
+    "hope/Games-lcrec"
+  ]
+}
