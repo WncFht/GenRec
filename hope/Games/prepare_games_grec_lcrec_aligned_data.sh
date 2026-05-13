@@ -4,18 +4,27 @@ set -eo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  bash hope/Games/prepare_games_grec_lcrec_aligned_data.sh [check|build] [--dry-run]
+  bash hope/Games/prepare_games_grec_lcrec_aligned_data.sh [check|build|build-data] [--dry-run]
 
 Modes:
-  check  Inspect resolved Games paths and stable preprocess settings
-  build  Build GRec-style Games data aligned to LC-Rec-style history/max settings
+  check       Inspect resolved Games paths and stable preprocess settings
+  build       Build GRec-style Games data aligned to current preprocess settings
+  build-data  Alias of build
 
 Important defaults:
   - split strategy defaults to GRec
   - history_max defaults to 20 to match LC-Rec
   - train row order defaults to forward to match LC-Rec
   - seq sample defaults to 10000, consistent with current Games preprocess setup
+  - task3 sample defaults to -1, meaning keep all fusion train samples
   - RL task filters remain disabled; this is a plain LCRecAligned SFT data build
+
+Common env overrides:
+  REPO_ROOT GENREC_ROOT DATA_ROOT CATEGORY INDEX_PATH
+  DATA_VARIANT DATA_VARIANT_TAG OUTPUT_DIR DATASET_SUBDIR DATASET_KEY_PREFIX
+  SEQ_SAMPLE TASK3_SAMPLE SEED SID_LEVELS HISTORY_MAX TRAIN_ROW_ORDER
+  RL_ONLY_TASK1 RL_ONLY_TASK4 RL_ONLY_TASK5
+  PYTHON_BIN
 EOF
 }
 
@@ -39,7 +48,7 @@ MODE="check"
 DRY_RUN=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    check|build)
+    check|build|build-data)
       MODE="$1"
       shift
       ;;
@@ -61,6 +70,7 @@ done
 
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 SEQ_SAMPLE="${SEQ_SAMPLE:-10000}"
+TASK3_SAMPLE="${TASK3_SAMPLE:--1}"
 SEED="${SEED:-42}"
 SID_LEVELS="${SID_LEVELS:--1}"
 HISTORY_MAX="${HISTORY_MAX:-20}"
@@ -88,6 +98,7 @@ print_config() {
 [INFO] DATASET_INFO_PATH=${DATASET_INFO_PATH}
 [INFO] PYTHON_BIN=${PYTHON_BIN}
 [INFO] SEQ_SAMPLE=${SEQ_SAMPLE}
+[INFO] TASK3_SAMPLE=${TASK3_SAMPLE}
 [INFO] SEED=${SEED}
 [INFO] SID_LEVELS=${SID_LEVELS}
 [INFO] HISTORY_MAX=${HISTORY_MAX}
@@ -128,6 +139,7 @@ step_build() {
     DATASET_INFO_PATH="${DATASET_INFO_PATH}" \
     PYTHON_BIN="${PYTHON_BIN}" \
     SEQ_SAMPLE="${SEQ_SAMPLE}" \
+    TASK3_SAMPLE="${TASK3_SAMPLE}" \
     SEED="${SEED}" \
     SID_LEVELS="${SID_LEVELS}" \
     HISTORY_MAX="${HISTORY_MAX}" \
@@ -143,5 +155,5 @@ print_config
 
 case "${MODE}" in
   check) step_check ;;
-  build) step_build ;;
+  build|build-data) step_build ;;
 esac
