@@ -13,14 +13,14 @@
 Dataset & Metric & Caser & GRU4Rec & BERT4Rec & SASRec & TIGER & LC-Rec & GenRec(sft) & GenRec(rule) & GenRec(ranking) & GenRec(fixed) & GenRec(fixed + ce0.005) \\
 \midrule
 Instruments & HR@1 & 0.0422 & 0.0784 & 0.0709 & 0.0597 & 0.0756 & 0.0830 & 0.0830 & \textbf{0.0865} & \textemdash & \textemdash & \textemdash \\
- & HR@5 & 0.0645 & 0.1017 & 0.0996 & 0.0871 & 0.0996 & 0.1102 & 0.1102 & \textbf{0.1125} & \textemdash & \textemdash & \textemdash \\
- & HR@10 & 0.0825 & 0.1203 & 0.1193 & 0.1082 & 0.1207 & \textbf{0.1311} & \textbf{0.1311} & 0.1299 & \textemdash & \textemdash & \textemdash \\
- & HR@20 & 0.1097 & 0.1478 & 0.1512 & 0.1393 & 0.1533 & \textbf{0.1597} & \textbf{0.1597} & 0.1550 & \textemdash & \textemdash & \textemdash \\
- & HR@50 & 0.1593 & 0.2068 & 0.2073 & 0.2011 & 0.2097 & \textbf{0.2195} & \textbf{0.2195} & 0.1921 & \textemdash & \textemdash & \textemdash \\
- & NDCG@5 & 0.0533 & 0.0902 & 0.0855 & 0.0737 & 0.0878 & 0.0967 & 0.0967 & \textbf{0.0997} & \textemdash & \textemdash & \textemdash \\
- & NDCG@10 & 0.0591 & 0.0962 & 0.0918 & 0.0805 & 0.0945 & 0.1033 & 0.1033 & \textbf{0.1053} & \textemdash & \textemdash & \textemdash \\
- & NDCG@20 & 0.0659 & 0.1031 & 0.0999 & 0.0883 & 0.1028 & 0.1105 & 0.1105 & \textbf{0.1116} & \textemdash & \textemdash & \textemdash \\
- & NDCG@50 & 0.0757 & 0.1148 & 0.1109 & 0.1005 & 0.1139 & \textbf{0.1223} & \textbf{0.1223} & 0.1189 & \textemdash & \textemdash & \textemdash \\
+ & HR@5 & 0.0645 & 0.1017 & 0.0996 & 0.0871 & 0.0996 & 0.1102 & 0.1102 & \textbf{0.1126} & \textemdash & \textemdash & \textemdash \\
+ & HR@10 & 0.0825 & 0.1203 & 0.1193 & 0.1082 & 0.1207 & \textbf{0.1311} & \textbf{0.1311} & 0.1304 & \textemdash & \textemdash & \textemdash \\
+ & HR@20 & 0.1097 & 0.1478 & 0.1512 & 0.1393 & 0.1533 & \textbf{0.1597} & \textbf{0.1597} & 0.1557 & \textemdash & \textemdash & \textemdash \\
+ & HR@50 & 0.1593 & 0.2068 & 0.2073 & 0.2011 & 0.2097 & \textbf{0.2195} & \textbf{0.2195} & 0.1938 & \textemdash & \textemdash & \textemdash \\
+ & NDCG@5 & 0.0533 & 0.0902 & 0.0855 & 0.0737 & 0.0878 & 0.0967 & 0.0967 & \textbf{0.0999} & \textemdash & \textemdash & \textemdash \\
+ & NDCG@10 & 0.0591 & 0.0962 & 0.0918 & 0.0805 & 0.0945 & 0.1033 & 0.1033 & \textbf{0.1057} & \textemdash & \textemdash & \textemdash \\
+ & NDCG@20 & 0.0659 & 0.1031 & 0.0999 & 0.0883 & 0.1028 & 0.1105 & 0.1105 & \textbf{0.1120} & \textemdash & \textemdash & \textemdash \\
+ & NDCG@50 & 0.0757 & 0.1148 & 0.1109 & 0.1005 & 0.1139 & \textbf{0.1223} & \textbf{0.1223} & 0.1196 & \textemdash & \textemdash & \textemdash \\
 \midrule
 Arts & HR@1 & 0.0274 & \textbf{0.0599} & 0.0523 & 0.0500 & 0.0596 & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
  & HR@5 & 0.0421 & 0.0870 & 0.0862 & 0.0828 & \textbf{0.0923} & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash & \textemdash \\
@@ -67,7 +67,7 @@ Instruments & Caser & \texttt{checkpoint-best} & 0.0422 & 0.0645 & 0.0825 & 0.10
  & TIGER & \texttt{checkpoint-best} & 0.0756 & 0.0996 & 0.1207 & 0.1533 & 0.2097 & 0.0878 & 0.0945 & 0.1028 & 0.1139 \\
  & LC-Rec & \texttt{checkpoint-2751} & 0.0830 & 0.1102 & 0.1311 & 0.1597 & 0.2195 & 0.0967 & 0.1033 & 0.1105 & 0.1223 \\
  & GenRec (SFT) & \texttt{checkpoint-2751} & 0.0830 & 0.1102 & 0.1311 & 0.1597 & 0.2195 & 0.0967 & 0.1033 & 0.1105 & 0.1223 \\
- & GenRec (rule) & \texttt{checkpoint-2331} & 0.0865 & 0.1125 & 0.1299 & 0.1550 & 0.1921 & 0.0997 & 0.1053 & 0.1116 & 0.1189 \\
+ & GenRec (rule) & \texttt{checkpoint-3326} & 0.0865 & 0.1126 & 0.1304 & 0.1557 & 0.1938 & 0.0999 & 0.1057 & 0.1120 & 0.1196 \\
 \midrule
 Arts & Caser & \texttt{checkpoint-best} & 0.0274 & 0.0421 & 0.0547 & 0.0745 & 0.1103 & 0.0347 & 0.0387 & 0.0437 & 0.0508 \\
  & GRU4Rec & \texttt{checkpoint-best} & 0.0599 & 0.0870 & 0.1071 & 0.1350 & 0.1884 & 0.0739 & 0.0804 & 0.0874 & 0.0979 \\
@@ -88,7 +88,7 @@ Games & Caser & \texttt{checkpoint-best} & 0.0102 & 0.0334 & 0.0546 & 0.0876 & 0
 \end{table}
 
 \paragraph{Readout.} 当前首页主表只保留已经完成的 GenRec index 口径实测。
-Instruments 上，\texttt{LC-Rec} 与 \texttt{GenRec(sft)} 目前都对齐到 \texttt{Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu}，最佳 checkpoint 都是 \texttt{checkpoint-2751 / NDCG@10=0.1033 / HR@50=0.2195}；当前唯一补进来的 RL 结果是 \texttt{GenRec(rule)}，best checkpoint 为 \texttt{checkpoint-2331 / NDCG@10=0.1053 / HR@50=0.1921}。
+Instruments 上，\texttt{LC-Rec} 与 \texttt{GenRec(sft)} 目前都对齐到 \texttt{Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu}，最佳 checkpoint 都是 \texttt{checkpoint-2751 / NDCG@10=0.1033 / HR@50=0.2195}；当前唯一补进来的 RL 结果是 \texttt{GenRec(rule)}，best checkpoint 为 \texttt{checkpoint-3326 / NDCG@10=0.1057 / HR@50=0.1938}。
 Arts 与 Games 在这张表里暂时只保留 baseline，因为当前还没有按同一口径补齐新的 \texttt{GenRec(sft) / rule / fixed} 结果。
 旧版基座下的完整对照仍保留在附录，方便继续和历史结果比对。
 
@@ -97,11 +97,11 @@ Arts 与 Games 在这张表里暂时只保留 baseline，因为当前还没有�
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{../research/assets/instruments-report/genrec_aligned_rule_epoch_curves.png}
-\caption{Instruments 上 \texttt{GenRec(rule)} 的完整 checkpoint 曲线。图中统一展示主表里的九个指标：\texttt{HR@1/5/10/20/50} 与 \texttt{NDCG@5/10/20/50}；横轴统一按 Instruments RL 主线的 \texttt{3326 step = 2 epoch} 归一化，因此当前最后一个已同步点 \texttt{checkpoint-2331} 对应约 \texttt{1.402 epoch}，虚线表示 \texttt{GenRec(sft)}/\texttt{LC-Rec} 共享的最佳 SFT 基线 \texttt{checkpoint-2751}。}
+\caption{Instruments 上 \texttt{GenRec(rule)} 的完整 checkpoint 曲线。图中统一展示主表里的九个指标：\texttt{HR@1/5/10/20/50} 与 \texttt{NDCG@5/10/20/50}；横轴统一按 Instruments RL 主线的 \texttt{3326 step = 2 epoch} 归一化，因此当前最后一个已同步点 \texttt{checkpoint-3326} 对应约 \texttt{2.000 epoch}，虚线表示 \texttt{GenRec(sft)}/\texttt{LC-Rec} 共享的最佳 SFT 基线 \texttt{checkpoint-2751}。}
 \label{fig:genrec-index-aligned-rule-curves}
 \end{figure}
 
-\paragraph{Readout.} \texttt{GenRec(rule)} 最优点出现在 \texttt{checkpoint-2331}，对应 \texttt{NDCG@10=0.1053}。从九个指标整体看，这条 rule 线在前排 hit/NDCG 上超过了当前 best SFT，但 \texttt{HR@50} 仍始终低于 \texttt{GenRec(sft)} 的 \texttt{0.2195}。
+\paragraph{Readout.} \texttt{GenRec(rule)} 最优点出现在 \texttt{checkpoint-3326}，对应 \texttt{NDCG@10=0.1057}。从九个指标整体看，这条 rule 线在前排 hit/NDCG 上超过了当前 best SFT，但 \texttt{HR@50} 仍始终低于 \texttt{GenRec(sft)} 的 \texttt{0.2195}。
 
 \begin{table}[H]
 \centering
@@ -120,10 +120,13 @@ Epoch & Step & HR@1 & HR@5 & HR@10 & HR@20 & HR@50 & NDCG@5 & NDCG@10 & NDCG@20 
 1.001 & 1665 & 0.0853 & 0.1101 & 0.1279 & 0.1493 & 0.1878 & 0.0978 & 0.1035 & 0.1088 & 0.1164 \\
 1.201 & 1998 & 0.0858 & 0.1106 & 0.1285 & 0.1518 & 0.1889 & 0.0985 & 0.1043 & 0.1101 & 0.1174 \\
 1.402 & 2331 & 0.0865 & 0.1125 & 0.1299 & 0.1550 & 0.1921 & 0.0997 & 0.1053 & 0.1116 & 0.1189 \\
+1.602 & 2664 & 0.0866 & 0.1123 & 0.1298 & 0.1551 & 0.1925 & 0.0997 & 0.1053 & 0.1117 & 0.1191 \\
+1.802 & 2997 & 0.0865 & 0.1121 & 0.1299 & 0.1557 & 0.1934 & 0.0997 & 0.1054 & 0.1119 & 0.1194 \\
+2.000 & 3326 & 0.0865 & 0.1126 & 0.1304 & 0.1557 & 0.1938 & 0.0999 & 0.1057 & 0.1120 & 0.1196 \\
 \bottomrule
 \end{tabular}%
 }
-\caption{\texttt{Instruments-grec-genrec-aligned-rule} 的逐 checkpoint 指标明细。epoch 统一按 \texttt{step / 3326 * 2} 计算，对齐 Instruments RL 主线的 \texttt{3326 step = 2 epoch} 口径；因此当前最后一个已同步点 \texttt{checkpoint-2331} 对应约 \texttt{1.402 epoch}。}
+\caption{\texttt{Instruments-grec-genrec-aligned-rule} 的逐 checkpoint 指标明细。epoch 统一按 \texttt{step / 3326 * 2} 计算，对齐 Instruments RL 主线的 \texttt{3326 step = 2 epoch} 口径；因此当前最后一个已同步点 \texttt{checkpoint-3326} 对应约 \texttt{2.000 epoch}。}
 \label{tab:genrec-index-aligned-rule-all-points}
 \end{table}
 
