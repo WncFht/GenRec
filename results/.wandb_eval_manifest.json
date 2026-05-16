@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "generated_at": "2026-05-13T18:12:41+00:00",
+  "generated_at": "2026-05-15T18:29:00+00:00",
   "results_root": "/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/results",
   "models": [
     {
-      "model_dir": "Arts-grec-fixed",
-      "dataset": "Arts_grec_fixed",
+      "model_dir": "Arts-grec-genrec-rule-from-sft",
+      "dataset": "Arts_grec_genrec_rule_from_sft",
       "cb_setting": "none",
       "eval_split": "test",
       "seed": 42,
@@ -15,8 +15,8 @@
       "wandb_group": null,
       "wandb_project": "MIMIGenRec-Eval",
       "wandb_entity": null,
-      "wandb_run_id": "eval-9469a485669d8fbcd65c",
-      "wandb_run_name": "Arts-grec-fixed-eval"
+      "wandb_run_id": "eval-f4fbc938f3603e676754",
+      "wandb_run_name": "Arts-grec-genrec-rule-from-sft-eval"
     },
     {
       "model_dir": "Arts-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu",
@@ -34,8 +34,23 @@
       "wandb_run_name": "Arts-grec-lcrec-aligned-sft-qwen4B-4-256-dsz3-4gpu-eval"
     },
     {
-      "model_dir": "Arts-grec-rule",
-      "dataset": "Arts_grec_rule",
+      "model_dir": "Arts-grec-sft-qwen4B-4-256-dsz0",
+      "dataset": "Arts_grec",
+      "cb_setting": "cb256",
+      "eval_split": "test",
+      "seed": 42,
+      "num_beams": 50,
+      "sid_levels": -1,
+      "num_train_epochs": null,
+      "wandb_group": null,
+      "wandb_project": "MIMIGenRec-Eval",
+      "wandb_entity": null,
+      "wandb_run_id": "eval-0c40cfc70da70e3043ed",
+      "wandb_run_name": "Arts-grec-sft-qwen4B-4-256-dsz0-eval"
+    },
+    {
+      "model_dir": "Games-grec-genrec-fixed-ce-from-sft",
+      "dataset": "Games_grec_genrec_fixed_ce_from_sft",
       "cb_setting": "none",
       "eval_split": "test",
       "seed": 42,
@@ -45,8 +60,8 @@
       "wandb_group": null,
       "wandb_project": "MIMIGenRec-Eval",
       "wandb_entity": null,
-      "wandb_run_id": "eval-4a2897972acfc66514ff",
-      "wandb_run_name": "Arts-grec-rule-eval"
+      "wandb_run_id": "eval-e56a01533a208318642f",
+      "wandb_run_name": "Games-grec-genrec-fixed-ce-from-sft-eval"
     },
     {
       "model_dir": "Games-grec-grpo-rule-only-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft896",
