@@ -107,8 +107,8 @@ def fetch_run_dataframe(api: wandb.Api, run_id: str) -> tuple[RunSpec, pd.DataFr
     return spec, df
 
 
-def rolling(series: pd.Series, window: int = ROLLING_WINDOW) -> pd.Series:
-    return series.rolling(window=window, min_periods=1).mean()
+def rolling_median(series: pd.Series, window: int = ROLLING_WINDOW) -> pd.Series:
+    return series.rolling(window=window, min_periods=1).median()
 
 
 def build_summary(spec: RunSpec, df: pd.DataFrame) -> dict[str, object]:
@@ -146,10 +146,10 @@ def plot_run(spec: RunSpec, df: pd.DataFrame, out_path: Path) -> Path:
     )
     ax.plot(
         epoch,
-        rolling(rl_base),
+        rolling_median(rl_base),
         color=METRIC_STYLES["train/loss/rl_base"]["color"],
         linewidth=2.2,
-        label=f"{METRIC_STYLES['train/loss/rl_base']['label']} ({ROLLING_WINDOW}-pt rolling)",
+        label=f"{METRIC_STYLES['train/loss/rl_base']['label']} ({ROLLING_WINDOW}-pt rolling median)",
     )
     ax.plot(
         epoch,
@@ -160,10 +160,10 @@ def plot_run(spec: RunSpec, df: pd.DataFrame, out_path: Path) -> Path:
     )
     ax.plot(
         epoch,
-        rolling(hint_ce_weighted),
+        rolling_median(hint_ce_weighted),
         color=METRIC_STYLES["train/loss/hint_ce_weighted"]["color"],
         linewidth=2.2,
-        label=f"{METRIC_STYLES['train/loss/hint_ce_weighted']['label']} ({ROLLING_WINDOW}-pt rolling)",
+        label=f"{METRIC_STYLES['train/loss/hint_ce_weighted']['label']} ({ROLLING_WINDOW}-pt rolling median)",
     )
 
     ax.axhline(0.0, color="#666666", linewidth=1.0, linestyle="--", alpha=0.7)
@@ -196,7 +196,7 @@ def plot_run(spec: RunSpec, df: pd.DataFrame, out_path: Path) -> Path:
     fig.text(
         0.5,
         0.935,
-        f"{spec.output_dir_name} | raw traces + rolling means",
+        f"{spec.output_dir_name} | raw traces + rolling medians",
         ha="center",
         va="top",
         fontsize=10,
