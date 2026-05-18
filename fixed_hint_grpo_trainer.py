@@ -11,7 +11,7 @@ from trl.data_utils import is_conversational, maybe_apply_chat_template
 from trl.trainer.grpo_trainer import nanstd
 from trl.trainer.utils import pad
 
-from fixed_hint_utils import build_hint_text, build_prompt_with_hint
+from fixed_hint_utils import build_hint_text, build_prompt_with_hint, build_suffix_text
 
 
 def _extract_images_from_inputs(inputs: list[dict[str, Union[torch.Tensor, Any]]]) -> list[Any] | None:
@@ -43,22 +43,26 @@ def _compute_rule_hit_rewards(
     return rewards
 
 
-def build_prompt_hint_shift_mask(prompt_lengths: list[int], hint_token_counts: list[int]) -> list[list[int]]:
-    if len(prompt_lengths) != len(hint_token_counts):
+def build_prompt_target_shift_mask(prompt_lengths: list[int], target_token_counts: list[int]) -> list[list[int]]:
+    if len(prompt_lengths) != len(target_token_counts):
         raise ValueError(
-            f"prompt_lengths and hint_token_counts must have the same length, got "
-            f"{len(prompt_lengths)} and {len(hint_token_counts)}."
+            f"prompt_lengths and target_token_counts must have the same length, got "
+            f"{len(prompt_lengths)} and {len(target_token_counts)}."
         )
 
     masks: list[list[int]] = []
-    for prompt_length, hint_token_count in zip(prompt_lengths, hint_token_counts):
+    for prompt_length, target_token_count in zip(prompt_lengths, target_token_counts):
         prompt_length = int(prompt_length)
-        hint_token_count = max(int(hint_token_count), 0)
+        target_token_count = max(int(target_token_count), 0)
         shift_length = max(prompt_length - 1, 0)
-        effective_hint_token_count = min(hint_token_count, shift_length)
-        suffix_start = shift_length - effective_hint_token_count
+        effective_target_token_count = min(target_token_count, shift_length)
+        suffix_start = shift_length - effective_target_token_count
         masks.append([1 if index >= suffix_start else 0 for index in range(shift_length)])
     return masks
+
+
+def build_prompt_hint_shift_mask(prompt_lengths: list[int], hint_token_counts: list[int]) -> list[list[int]]:
+    return build_prompt_target_shift_mask(prompt_lengths, hint_token_counts)
 
 
 def _selective_log_softmax(logits: torch.Tensor, target_ids: torch.Tensor) -> torch.Tensor:
@@ -73,9 +77,18 @@ def _entropy_from_logits(logits: torch.Tensor) -> torch.Tensor:
 
 
 class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
-    def __init__(self, *args, hint_ce_loss_coef: float = 0.0, **kwargs):
+    def __init__(
+        self,
+        *args,
+        hint_ce_loss_coef: float = 0.0,
+        full_sequence_sft_loss_coef: float = 0.0,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.hint_ce_loss_coef = float(hint_ce_loss_coef)
+        self.full_sequence_sft_loss_coef = float(full_sequence_sft_loss_coef)
+        if self.hint_ce_loss_coef > 0.0 and self.full_sequence_sft_loss_coef > 0.0:
+            raise ValueError("hint_ce_loss_coef and full_sequence_sft_loss_coef cannot both be > 0.")
         self._cached_prompt_shift_logits: torch.Tensor | None = None
 
     def _build_hinted_prompts(self, inputs: list[dict[str, Union[torch.Tensor, Any]]]) -> list[str]:
@@ -105,6 +118,11 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
     def _get_hint_token_counts(self, inputs: list[dict[str, Union[torch.Tensor, Any]]]) -> list[int]:
         return [max(int(example.get("oracle_hint_depth", 0)), 0) for example in inputs]
 
+    def _tokenize_text(self, text: str) -> list[int]:
+        encoded = self.processing_class(text, add_special_tokens=False)
+        input_ids = encoded["input_ids"] if isinstance(encoded, dict) else encoded.input_ids
+        return list(input_ids)
+
     def _build_prompt_hint_ce_mask(
         self,
         prompt_ids_list: list[Any],
@@ -115,6 +133,93 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
         shift_masks = build_prompt_hint_shift_mask(prompt_lengths, hint_token_counts)
         mask_tensors = [torch.tensor(mask, device=device, dtype=torch.float32) for mask in shift_masks]
         return pad(mask_tensors, padding_value=0.0, padding_side="left")
+
+    def _build_suffix_sft_batch(
+        self,
+        inputs: list[dict[str, Union[torch.Tensor, Any]]],
+        prompt_ids_list: list[Any],
+        device: torch.device,
+    ) -> dict[str, torch.Tensor]:
+        input_ids_rows = []
+        attention_rows = []
+        suffix_shift_mask_rows = []
+        suffix_token_counts = []
+
+        for example, prompt_ids in zip(inputs, prompt_ids_list):
+            suffix_text = build_suffix_text(
+                example["reward_model"]["ground_truth"],
+                int(example.get("oracle_hint_depth", 0)),
+            )
+            suffix_ids = self._tokenize_text(suffix_text) if suffix_text else []
+            full_ids = list(prompt_ids) + suffix_ids
+            input_ids_rows.append(torch.tensor(full_ids, device=device, dtype=torch.long))
+            attention_rows.append(torch.ones(len(full_ids), device=device, dtype=torch.long))
+            shift_mask = build_prompt_target_shift_mask(
+                prompt_lengths=[len(full_ids)],
+                target_token_counts=[len(suffix_ids)],
+            )[0]
+            suffix_shift_mask_rows.append(torch.tensor(shift_mask, device=device, dtype=torch.float32))
+            suffix_token_counts.append(min(len(suffix_ids), max(len(full_ids) - 1, 0)))
+
+        return {
+            "full_sequence_sft_input_ids": pad(
+                input_ids_rows,
+                padding_value=self.pad_token_id,
+                padding_side="right",
+            ),
+            "full_sequence_sft_attention_mask": pad(
+                attention_rows,
+                padding_value=0,
+                padding_side="right",
+            ),
+            "full_sequence_sft_suffix_mask": pad(
+                suffix_shift_mask_rows,
+                padding_value=0.0,
+                padding_side="right",
+            ),
+            "full_sequence_sft_suffix_token_count": torch.tensor(
+                suffix_token_counts,
+                device=device,
+                dtype=torch.float32,
+            ),
+        }
+
+    def _compute_masked_ce_local_sum(
+        self,
+        shift_logits: torch.Tensor,
+        shift_labels: torch.Tensor,
+        shift_mask: torch.Tensor,
+    ) -> torch.Tensor:
+        token_losses = torch.nn.functional.cross_entropy(
+            shift_logits.reshape(-1, shift_logits.size(-1)),
+            shift_labels.reshape(-1),
+            reduction="none",
+        ).view_as(shift_labels)
+        return (token_losses * shift_mask).sum()
+
+    def _compute_global_masked_ce_mean(
+        self,
+        local_loss_sum: torch.Tensor,
+        local_token_count: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        zero = local_token_count * 0.0
+        gathered_token_count = self.accelerator.gather(local_token_count.detach())
+        global_token_count = gathered_token_count.sum()
+        if torch.isclose(global_token_count, zero):
+            return zero, global_token_count
+        gathered_loss_sum = self.accelerator.gather(local_loss_sum.detach())
+        global_loss_mean = gathered_loss_sum.sum() / global_token_count.clamp(min=1.0)
+        return global_loss_mean, global_token_count
+
+    def _append_masked_ce_metrics(
+        self,
+        mode: str,
+        metric_prefix: str,
+        global_loss_mean: torch.Tensor,
+        global_token_count: torch.Tensor,
+    ) -> None:
+        self._metrics[mode][f"{metric_prefix}/loss"].append(global_loss_mean.item())
+        self._metrics[mode][f"{metric_prefix}/token_count"].append(global_token_count.item())
 
     def _compute_prompt_hint_ce_loss(self, model, inputs) -> torch.Tensor:
         prompt_hint_ce_mask = inputs.get("prompt_hint_ce_mask")
@@ -146,18 +251,17 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
                     "from the main RL forward and must not run a second gradient-bearing model forward."
                 )
             prompt_shift_labels = prompt_ids[:, 1:]
+            local_hint_ce_sum = self._compute_masked_ce_local_sum(
+                prompt_shift_logits,
+                prompt_shift_labels,
+                prompt_hint_ce_mask,
+            )
 
-            prompt_token_losses = torch.nn.functional.cross_entropy(
-                prompt_shift_logits.reshape(-1, prompt_shift_logits.size(-1)),
-                prompt_shift_labels.reshape(-1),
-                reduction="none",
-            ).view_as(prompt_shift_labels)
-            local_hint_ce_sum = (prompt_token_losses * prompt_hint_ce_mask).sum()
-
-        gathered_hint_ce_sum = self.accelerator.gather(local_hint_ce_sum.detach())
-        global_hint_ce_mean = gathered_hint_ce_sum.sum() / global_hint_token_count.clamp(min=1.0)
-        self._metrics[mode]["hint_ce/loss"].append(global_hint_ce_mean.item())
-        self._metrics[mode]["hint_ce/token_count"].append(global_hint_token_count.item())
+        global_hint_ce_mean, global_hint_token_count = self._compute_global_masked_ce_mean(
+            local_hint_ce_sum,
+            hint_token_count,
+        )
+        self._append_masked_ce_metrics(mode, "hint_ce", global_hint_ce_mean, global_hint_token_count)
 
         if getattr(self, "loss_type", None) == "dapo":
             prompt_hint_ce_num_items_in_batch = inputs.get("prompt_hint_ce_num_items_in_batch")
@@ -177,6 +281,94 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
         local_hint_ce_mean = local_hint_ce_sum / hint_token_count.clamp(min=1.0)
         return local_hint_ce_mean / self.current_gradient_accumulation_steps
 
+    def _compute_full_sequence_sft_loss(self, model, inputs) -> torch.Tensor:
+        prompt_hint_ce_mask = inputs.get("prompt_hint_ce_mask")
+        prompt_ids = inputs["prompt_ids"]
+        zero = prompt_ids.new_zeros((), dtype=torch.float32)
+        mode = "train" if self.model.training else "eval"
+
+        if prompt_hint_ce_mask is None:
+            return zero
+
+        prompt_hint_ce_mask = prompt_hint_ce_mask.float()
+        prompt_hint_token_count = prompt_hint_ce_mask.sum()
+        prompt_shift_logits = inputs.get("prompt_shift_logits")
+        if prompt_shift_logits is None:
+            prompt_shift_logits = getattr(self, "_cached_prompt_shift_logits", None)
+        if prompt_shift_logits is None:
+            raise RuntimeError(
+                "Full-sequence SFT prompt logits cache is missing. This trainer expects prompt-side logits "
+                "from the main RL forward and must not run a second gradient-bearing prompt forward."
+            )
+
+        prompt_shift_labels = prompt_ids[:, 1:]
+        if torch.isclose(prompt_hint_token_count, zero):
+            local_prompt_hint_sum = zero
+        else:
+            local_prompt_hint_sum = self._compute_masked_ce_local_sum(
+                prompt_shift_logits,
+                prompt_shift_labels,
+                prompt_hint_ce_mask,
+            )
+
+        suffix_input_ids = inputs.get("full_sequence_sft_input_ids")
+        suffix_attention_mask = inputs.get("full_sequence_sft_attention_mask")
+        suffix_shift_mask = inputs.get("full_sequence_sft_suffix_mask")
+        if suffix_input_ids is None or suffix_attention_mask is None or suffix_shift_mask is None:
+            raise RuntimeError("Full-sequence SFT tensors are missing from the generated batch.")
+
+        suffix_shift_mask = suffix_shift_mask.float()
+        suffix_token_count = suffix_shift_mask.sum()
+        if torch.isclose(suffix_token_count, zero):
+            local_suffix_sum = zero
+        else:
+            suffix_outputs = model(
+                input_ids=suffix_input_ids,
+                attention_mask=suffix_attention_mask,
+                use_cache=False,
+            )
+            suffix_shift_logits = suffix_outputs.logits[:, :-1, :]
+            suffix_shift_labels = suffix_input_ids[:, 1:]
+            local_suffix_sum = self._compute_masked_ce_local_sum(
+                suffix_shift_logits,
+                suffix_shift_labels,
+                suffix_shift_mask,
+            )
+
+        prompt_hint_mean, prompt_hint_global_count = self._compute_global_masked_ce_mean(
+            local_prompt_hint_sum,
+            prompt_hint_token_count,
+        )
+        suffix_mean, suffix_global_count = self._compute_global_masked_ce_mean(
+            local_suffix_sum,
+            suffix_token_count,
+        )
+        total_token_count = prompt_hint_token_count + suffix_token_count
+        total_mean, total_global_count = self._compute_global_masked_ce_mean(
+            local_prompt_hint_sum + local_suffix_sum,
+            total_token_count,
+        )
+
+        self._append_masked_ce_metrics(mode, "full_sequence_sft", total_mean, total_global_count)
+        self._append_masked_ce_metrics(mode, "full_sequence_sft/prompt_hint", prompt_hint_mean, prompt_hint_global_count)
+        self._append_masked_ce_metrics(mode, "full_sequence_sft/suffix", suffix_mean, suffix_global_count)
+
+        if torch.isclose(total_global_count, zero):
+            return zero
+
+        if getattr(self, "loss_type", None) == "dapo":
+            full_sequence_sft_num_items_in_batch = inputs.get("full_sequence_sft_num_items_in_batch")
+            if full_sequence_sft_num_items_in_batch is None:
+                raise RuntimeError(
+                    "Full-sequence SFT global token count is missing for DAPO normalization. This trainer "
+                    "expects the full accumulated-step supervised token count to be precomputed before splitting batches."
+                )
+            normalizer = full_sequence_sft_num_items_in_batch / self.accelerator.num_processes
+            return (local_prompt_hint_sum + local_suffix_sum) / normalizer.clamp(min=1.0)
+
+        local_total_mean = (local_prompt_hint_sum + local_suffix_sum) / total_token_count.clamp(min=1.0)
+        return local_total_mean / self.current_gradient_accumulation_steps
+
     def _get_per_token_logps_and_entropies(
         self,
         model,
@@ -194,7 +386,11 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
         mm_token_type_ids=None,
         image_position_ids=None,
     ) -> tuple[torch.Tensor, torch.Tensor | None]:
-        if getattr(self, "hint_ce_loss_coef", 0.0) <= 0.0 or not compute_entropy:
+        aux_prompt_loss_coef = max(
+            getattr(self, "hint_ce_loss_coef", 0.0),
+            getattr(self, "full_sequence_sft_loss_coef", 0.0),
+        )
+        if aux_prompt_loss_coef <= 0.0 or not compute_entropy:
             super_method = super()._get_per_token_logps_and_entropies
             supported_params = set(inspect.signature(super_method).parameters)
             kwargs = {
@@ -257,7 +453,7 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
                 model_inputs["mm_token_type_ids"] = mm_token_type_ids[start : start + batch_size]
 
             # We intentionally avoid logits_to_keep here so the same forward can
-            # also supply prompt-side logits for the hint CE auxiliary loss.
+            # also supply prompt-side logits for the auxiliary supervised loss.
             if "logits_to_keep" in model_kwarg_keys:
                 pass
 
@@ -305,11 +501,19 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
 
         prompt_hint_ce_mask = None
         prompt_hint_ce_num_items_in_batch = None
-        if getattr(self, "hint_ce_loss_coef", 0.0) > 0.0:
+        full_sequence_sft_batch = None
+        full_sequence_sft_num_items_in_batch = None
+        if getattr(self, "hint_ce_loss_coef", 0.0) > 0.0 or getattr(self, "full_sequence_sft_loss_coef", 0.0) > 0.0:
             hint_token_counts = self._get_hint_token_counts(inputs)
             prompt_hint_ce_mask = self._build_prompt_hint_ce_mask(prompt_ids_list, hint_token_counts, device=device)
             if getattr(self, "loss_type", None) == "dapo":
                 prompt_hint_ce_num_items_in_batch = self.accelerator.gather(prompt_hint_ce_mask.sum()).sum()
+        if getattr(self, "full_sequence_sft_loss_coef", 0.0) > 0.0:
+            full_sequence_sft_batch = self._build_suffix_sft_batch(inputs, prompt_ids_list, device=device)
+            if getattr(self, "loss_type", None) == "dapo":
+                full_sequence_sft_num_items_in_batch = self.accelerator.gather(
+                    prompt_hint_ce_mask.sum() + full_sequence_sft_batch["full_sequence_sft_suffix_mask"].sum()
+                ).sum()
 
         prompt_ids = [torch.tensor(ids, device=device) for ids in prompt_ids_list]
         prompt_mask = [torch.ones_like(ids, dtype=torch.long) for ids in prompt_ids]
@@ -435,6 +639,10 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
             output["prompt_hint_ce_mask"] = prompt_hint_ce_mask
         if prompt_hint_ce_num_items_in_batch is not None:
             output["prompt_hint_ce_num_items_in_batch"] = prompt_hint_ce_num_items_in_batch
+        if full_sequence_sft_batch is not None:
+            output.update(full_sequence_sft_batch)
+        if full_sequence_sft_num_items_in_batch is not None:
+            output["full_sequence_sft_num_items_in_batch"] = full_sequence_sft_num_items_in_batch
         return output
 
     def _compute_loss(self, model, inputs):
@@ -442,13 +650,19 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
         loss = super()._compute_loss(model, inputs)
         mode = "train" if self.model.training else "eval"
         self._metrics[mode]["loss/rl_base"].append(loss.item())
-        if getattr(self, "hint_ce_loss_coef", 0.0) <= 0.0:
-            return loss
         try:
-            hint_ce_loss = self._compute_prompt_hint_ce_loss(model, inputs)
-            weighted_hint_ce_loss = self.hint_ce_loss_coef * hint_ce_loss
-            self._metrics[mode]["loss/hint_ce_weighted"].append(weighted_hint_ce_loss.item())
-            return loss + weighted_hint_ce_loss
+            total_loss = loss
+            if getattr(self, "hint_ce_loss_coef", 0.0) > 0.0:
+                hint_ce_loss = self._compute_prompt_hint_ce_loss(model, inputs)
+                weighted_hint_ce_loss = self.hint_ce_loss_coef * hint_ce_loss
+                self._metrics[mode]["loss/hint_ce_weighted"].append(weighted_hint_ce_loss.item())
+                total_loss = total_loss + weighted_hint_ce_loss
+            if getattr(self, "full_sequence_sft_loss_coef", 0.0) > 0.0:
+                full_sequence_sft_loss = self._compute_full_sequence_sft_loss(model, inputs)
+                weighted_full_sequence_sft_loss = self.full_sequence_sft_loss_coef * full_sequence_sft_loss
+                self._metrics[mode]["loss/full_sequence_sft_weighted"].append(weighted_full_sequence_sft_loss.item())
+                total_loss = total_loss + weighted_full_sequence_sft_loss
+            return total_loss
         finally:
             self._cached_prompt_shift_logits = None
 

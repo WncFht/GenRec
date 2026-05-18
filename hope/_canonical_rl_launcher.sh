@@ -121,6 +121,7 @@ REWARD_MODE="${REWARD_MODE:-rule_only}"
 FIXED_HINT_ENABLED="${FIXED_HINT_ENABLED:-false}"
 FIXED_HINT_APPLY_TO_EVAL="${FIXED_HINT_APPLY_TO_EVAL:-false}"
 HINT_CE_LOSS_COEF="${HINT_CE_LOSS_COEF:-0.0}"
+FULL_SEQUENCE_SFT_LOSS_COEF="${FULL_SEQUENCE_SFT_LOSS_COEF:-0.0}"
 FORCE_REANALYZE="${FORCE_REANALYZE:-false}"
 BEAM_SIZE="${BEAM_SIZE:-16}"
 UNSOLVED_DEPTH="${UNSOLVED_DEPTH:-3}"
@@ -308,6 +309,7 @@ if is_true "$FIXED_HINT_ENABLED"; then
     --fixed_hint_unsolved_depth "$UNSOLVED_DEPTH"
     --fixed_hint_apply_to_eval "$FIXED_HINT_APPLY_TO_EVAL"
     --hint_ce_loss_coef "$HINT_CE_LOSS_COEF"
+    --full_sequence_sft_loss_coef "$FULL_SEQUENCE_SFT_LOSS_COEF"
   )
   TRAIN_CMD+=("${FIXED_HINT_ARGS[@]}")
   if [[ -n "$CAP_DEPTH" ]]; then

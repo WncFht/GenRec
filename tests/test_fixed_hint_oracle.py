@@ -6,8 +6,10 @@ from fixed_hint_utils import (
     build_fixed_hint_sample_key,
     build_hint_text,
     build_prompt_with_hint,
+    build_suffix_text,
     group_examples_by_hint_depth,
     group_generation_inputs_by_hint_depth,
+    split_ground_truth_by_hint_depth,
 )
 
 
@@ -103,6 +105,8 @@ def test_apply_fixed_hint_depth_to_example_supports_legacy_index_only_maps():
 
 def test_build_hint_text_and_group_examples_by_hint_depth():
     assert build_hint_text("<a_1><b_2><c_3><d_4>", 3) == "<a_1><b_2><c_3>"
+    assert build_suffix_text("<a_1><b_2><c_3><d_4>", 3) == "<d_4>"
+    assert split_ground_truth_by_hint_depth("<a_1><b_2><c_3><d_4>", 2) == ("<a_1><b_2>", "<c_3><d_4>")
 
     grouped = group_examples_by_hint_depth(
         [

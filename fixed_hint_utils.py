@@ -8,8 +8,20 @@ from typing import Any
 from analyze_rl_beam_hint import extract_sid_tokens
 
 
+def split_ground_truth_by_hint_depth(ground_truth: str, hint_depth: int) -> tuple[str, str]:
+    tokens = extract_sid_tokens(ground_truth)
+    split_index = max(int(hint_depth), 0)
+    return "".join(tokens[:split_index]), "".join(tokens[split_index:])
+
+
 def build_hint_text(ground_truth: str, hint_depth: int) -> str:
-    return "".join(extract_sid_tokens(ground_truth)[: max(hint_depth, 0)])
+    hint_text, _ = split_ground_truth_by_hint_depth(ground_truth, hint_depth)
+    return hint_text
+
+
+def build_suffix_text(ground_truth: str, hint_depth: int) -> str:
+    _, suffix_text = split_ground_truth_by_hint_depth(ground_truth, hint_depth)
+    return suffix_text
 
 
 def build_prompt_with_hint(example: dict[str, Any], formatter) -> str:

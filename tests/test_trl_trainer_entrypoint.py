@@ -105,6 +105,10 @@ FIXED_HINT_PREFIX_SEQ_SID_ONLY_SCRIPT = (
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
     / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-prefix-seq-only-fixed-hint-sid-only.sh"
 )
+ARTS_GENREC_FIXED_FULL_SEQUENCE_SFT_SCRIPT = REPO_ROOT / "hope" / "Arts-genrec" / "rl_fixed_full_sequence_sft.sh"
+INSTRUMENTS_GENREC_FIXED_FULL_SEQUENCE_SFT_SCRIPT = (
+    REPO_ROOT / "hope" / "Instruments-genrec" / "rl_fixed_full_sequence_sft.sh"
+)
 GREC_RL_SCRIPT_DIR = REPO_ROOT / "hope" / "Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec"
 
 
@@ -1279,6 +1283,71 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
             {"use_reentrant": False},
         )
 
+    def test_fixed_hint_trainer_accepts_full_sequence_sft_loss_coef(self):
+        grpo_kwargs = {}
+        fixed_hint_trainer_kwargs = {}
+        module = _load_trl_trainer_module(grpo_kwargs, fixed_hint_trainer_kwargs)
+
+        with self.assertRaises(StopAfterTrainerInit):
+            module.main(
+                model="dummy-model",
+                data_dir="dummy-data",
+                index_path="dummy-index",
+                output_dir="dummy-output",
+                report_to="wandb",
+                run_name="fixed-hint-full-sequence-sft-test-run",
+                token_level_prefix_advantage=False,
+                reward_mode="rule_only",
+                num_beams=4,
+                fixed_hint_depth_map_path="dummy-fixed-hint-map.json",
+                full_sequence_sft_loss_coef=0.001,
+            )
+
+        self.assertEqual(fixed_hint_trainer_kwargs["full_sequence_sft_loss_coef"], 0.001)
+        self.assertTrue(grpo_kwargs["gradient_checkpointing"])
+        self.assertEqual(
+            grpo_kwargs["gradient_checkpointing_kwargs"],
+            {"use_reentrant": False},
+        )
+
+    def test_full_sequence_sft_requires_fixed_hint_path(self):
+        grpo_kwargs = {}
+        module = _load_trl_trainer_module(grpo_kwargs)
+
+        with self.assertRaisesRegex(ValueError, "full_sequence_sft_loss_coef currently requires fixed_hint_depth_map_path"):
+            module.main(
+                model="dummy-model",
+                data_dir="dummy-data",
+                index_path="dummy-index",
+                output_dir="dummy-output",
+                report_to="wandb",
+                run_name="invalid-full-sequence-sft-test-run",
+                token_level_prefix_advantage=False,
+                reward_mode="rule_only",
+                num_beams=4,
+                full_sequence_sft_loss_coef=0.001,
+            )
+
+    def test_full_sequence_sft_conflicts_with_hint_ce(self):
+        grpo_kwargs = {}
+        module = _load_trl_trainer_module(grpo_kwargs)
+
+        with self.assertRaisesRegex(ValueError, "cannot both be enabled"):
+            module.main(
+                model="dummy-model",
+                data_dir="dummy-data",
+                index_path="dummy-index",
+                output_dir="dummy-output",
+                report_to="wandb",
+                run_name="invalid-mixed-aux-loss-test-run",
+                token_level_prefix_advantage=False,
+                reward_mode="rule_only",
+                num_beams=4,
+                fixed_hint_depth_map_path="dummy-fixed-hint-map.json",
+                hint_ce_loss_coef=0.001,
+                full_sequence_sft_loss_coef=0.001,
+            )
+
     def test_fixed_hint_ce_shell_dry_run_forwards_hint_ce_loss(self):
         result = self._run_fixed_hint_ce_dry_run()
 
@@ -1290,6 +1359,36 @@ class TrlTrainerEntrypointTests(unittest.TestCase):
         self.assertIn("--hint_ce_loss_coef 0.001", result.stdout)
         self.assertIn("--reward_mode rule_only", result.stdout)
         self.assertIn("--eval_on_start false", result.stdout)
+
+    def test_arts_genrec_fixed_full_sequence_sft_shell_dry_run_forwards_defaults(self):
+        result = subprocess.run(
+            ["bash", str(ARTS_GENREC_FIXED_FULL_SEQUENCE_SFT_SCRIPT), "--dry-run"],
+            cwd=REPO_ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("Arts-grec-genrec-fixed-full-sequence-sft-from-sft", result.stdout)
+        self.assertIn("--full_sequence_sft_loss_coef 0.001", result.stdout)
+        self.assertIn("--hint_ce_loss_coef 0.0", result.stdout)
+        self.assertIn("--reward_mode rule_only", result.stdout)
+
+    def test_instruments_genrec_fixed_full_sequence_sft_shell_dry_run_forwards_defaults(self):
+        result = subprocess.run(
+            ["bash", str(INSTRUMENTS_GENREC_FIXED_FULL_SEQUENCE_SFT_SCRIPT), "--dry-run"],
+            cwd=REPO_ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("Instruments-grec-genrec-fixed-full-sequence-sft-from-sft", result.stdout)
+        self.assertIn("--full_sequence_sft_loss_coef 0.001", result.stdout)
+        self.assertIn("--hint_ce_loss_coef 0.0", result.stdout)
+        self.assertIn("--reward_mode rule_only", result.stdout)
 
     def test_fixed_hint_ce_shell_dry_run_keeps_beam16_only_defaults(self):
         result = self._run_fixed_hint_ce_dry_run()

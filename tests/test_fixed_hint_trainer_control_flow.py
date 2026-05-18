@@ -107,6 +107,9 @@ def _install_trainer_stubs():
     fixed_hint_utils_mod.build_hint_text = lambda ground_truth, hint_depth: "".join(
         re.findall(r"<[^>]+>", ground_truth)[: max(hint_depth, 0)]
     )
+    fixed_hint_utils_mod.build_suffix_text = lambda ground_truth, hint_depth: "".join(
+        re.findall(r"<[^>]+>", ground_truth)[max(hint_depth, 0) :]
+    )
     fixed_hint_utils_mod.build_prompt_with_hint = lambda example, formatter: (
         f"{formatter(example['prompt'])}{example.get('oracle_hint_text', '')}"
     )
@@ -383,6 +386,53 @@ class FixedHintTrainerControlFlowTests(unittest.TestCase):
         self.assertEqual(total_loss.item(), 1.55)
         self.assertEqual(trainer._metrics["train"]["loss/rl_base"], [1.5])
         self.assertEqual(trainer._metrics["train"]["loss/hint_ce_weighted"], [0.05])
+
+    def test_compute_loss_records_weighted_full_sequence_sft_metrics(self):
+        module = _load_trainer_module()
+
+        trainer = object.__new__(module.FixedHintRuleOnlyGRPOTrainer)
+        trainer.model = types.SimpleNamespace(training=True)
+        trainer._metrics = {"train": defaultdict(list), "eval": defaultdict(list)}
+        trainer.hint_ce_loss_coef = 0.0
+        trainer.full_sequence_sft_loss_coef = 0.3
+        trainer._cached_prompt_shift_logits = None
+
+        original_super_compute_loss = module.GRPOTrainer._compute_loss
+        original_full_sequence_sft = module.FixedHintRuleOnlyGRPOTrainer._compute_full_sequence_sft_loss
+
+        class FakeLoss:
+            def __init__(self, value):
+                self.value = float(value)
+
+            def item(self):
+                return self.value
+
+            def __add__(self, other):
+                return FakeLoss(self.value + other.value)
+
+            def __mul__(self, other):
+                return FakeLoss(self.value * float(other))
+
+            __rmul__ = __mul__
+
+        def fake_super_compute_loss(self, model, inputs):
+            return FakeLoss(1.5)
+
+        def fake_full_sequence_sft(self, model, inputs):
+            return FakeLoss(0.4)
+
+        module.GRPOTrainer._compute_loss = fake_super_compute_loss
+        module.FixedHintRuleOnlyGRPOTrainer._compute_full_sequence_sft_loss = fake_full_sequence_sft
+
+        try:
+            total_loss = trainer._compute_loss(model="model", inputs={})
+        finally:
+            module.GRPOTrainer._compute_loss = original_super_compute_loss
+            module.FixedHintRuleOnlyGRPOTrainer._compute_full_sequence_sft_loss = original_full_sequence_sft
+
+        self.assertEqual(total_loss.item(), 1.62)
+        self.assertEqual(trainer._metrics["train"]["loss/rl_base"], [1.5])
+        self.assertEqual(trainer._metrics["train"]["loss/full_sequence_sft_weighted"], [0.12])
 
     def test_hint_ce_loss_uses_global_dapo_hint_token_normalizer(self):
         module = _load_trainer_module()

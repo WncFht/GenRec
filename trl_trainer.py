@@ -149,6 +149,7 @@ def main(
     fixed_hint_task_names: Optional[str] = None,
     fixed_hint_apply_to_eval: bool = False,
     hint_ce_loss_coef: float = 0.0,
+    full_sequence_sft_loss_coef: float = 0.0,
     dynamic_hint_max_depth: Optional[int] = None,
     dynamic_hint_apply_to_eval: bool = False,
     dynamic_hint_task_names: Optional[str] = None,
@@ -197,6 +198,12 @@ def main(
         raise ValueError("fixed_hint_depth_map_path and dynamic_hint_max_depth cannot be enabled at the same time.")
     if hint_ce_loss_coef and fixed_hint_depth_map_path is None and not dynamic_hint_enabled:
         raise ValueError("hint_ce_loss_coef currently requires fixed_hint_depth_map_path or dynamic_hint_max_depth.")
+    if full_sequence_sft_loss_coef and fixed_hint_depth_map_path is None:
+        raise ValueError("full_sequence_sft_loss_coef currently requires fixed_hint_depth_map_path.")
+    if full_sequence_sft_loss_coef and dynamic_hint_enabled:
+        raise NotImplementedError("full_sequence_sft_loss_coef is currently supported only for fixed-hint training.")
+    if hint_ce_loss_coef and full_sequence_sft_loss_coef:
+        raise ValueError("hint_ce_loss_coef and full_sequence_sft_loss_coef cannot both be enabled at the same time.")
     if dynamic_hint_enabled and normalized_reward_mode not in {"rule_only", "ranking"}:
         raise NotImplementedError(
             "Dynamic hint cascade training currently supports reward_mode=rule_only or reward_mode=ranking only."
@@ -371,7 +378,7 @@ def main(
         report_to=report_to,
         run_name=run_name,
     )
-    if hint_ce_loss_coef:
+    if hint_ce_loss_coef or full_sequence_sft_loss_coef:
         # Hint CE now reuses the main loss forward's prompt-side logits.
         # Keep activation checkpointing enabled, but force the non-reentrant
         # implementation because the trainer/model stack already defaults to
@@ -431,6 +438,7 @@ def main(
         f"fixed_hint_unsolved_depth={fixed_hint_unsolved_depth}, "
         f"fixed_hint_apply_to_eval={fixed_hint_apply_to_eval}, "
         f"hint_ce_loss_coef={hint_ce_loss_coef}, "
+        f"full_sequence_sft_loss_coef={full_sequence_sft_loss_coef}, "
         f"dynamic_hint_generation_mode={'cascade' if dynamic_hint_enabled else 'disabled'}, "
         f"dynamic_hint_max_depth={dynamic_hint_max_depth}, "
         f"dynamic_hint_apply_to_eval={dynamic_hint_apply_to_eval}, "
@@ -447,6 +455,7 @@ def main(
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
             hint_ce_loss_coef=hint_ce_loss_coef,
+            full_sequence_sft_loss_coef=full_sequence_sft_loss_coef,
         )
     elif dynamic_hint_enabled:
         trainer = DynamicHintRuleOnlyGRPOTrainer(
