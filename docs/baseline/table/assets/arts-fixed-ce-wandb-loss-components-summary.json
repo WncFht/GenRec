@@ -1,0 +1,50 @@
+[
+  {
+    "run_id": "x1s1ksog",
+    "run_name": "arts_grec_genrec_fixed_ce_from_sft",
+    "coef": 0.001,
+    "coef_label": "0.001",
+    "output_dir_name": "Arts-grec-genrec-fixed-ce-0001-from-sft",
+    "row_count": 2681,
+    "epoch_min": 0.00047551117451260106,
+    "epoch_max": 1.2748454588682834,
+    "rl_base_median": 0.0026909969747066498,
+    "rl_base_abs_median": 0.0026909969747066498,
+    "weighted_hint_ce_median": 0.0017952517373487353,
+    "weighted_hint_ce_mean": 0.0018395410828835237,
+    "ce_over_abs_rl_median": 0.6552544701658203,
+    "ce_gt_abs_rl_fraction": 0.38418500559492724
+  },
+  {
+    "run_id": "zw2nici2",
+    "run_name": "arts_grec_genrec_fixed_ce_from_sft",
+    "coef": 0.005,
+    "coef_label": "0.005",
+    "output_dir_name": "Arts-grec-genrec-fixed-ce-from-sft",
+    "row_count": 4206,
+    "epoch_min": 0.00047551117451260106,
+    "epoch_max": 2.0,
+    "rl_base_median": 0.0037278207018971443,
+    "rl_base_abs_median": 0.0037278207018971443,
+    "weighted_hint_ce_median": 0.00830894976388663,
+    "weighted_hint_ce_mean": 0.008514088155990774,
+    "ce_over_abs_rl_median": 2.1978711045234873,
+    "ce_gt_abs_rl_fraction": 0.7289586305278174
+  },
+  {
+    "run_id": "1zl0r0up",
+    "run_name": "arts_grec_genrec_fixed_ce_from_sft",
+    "coef": 0.01,
+    "coef_label": "0.01",
+    "output_dir_name": "Arts-grec-genrec-fixed-ce-001-from-sft",
+    "row_count": 3600,
+    "epoch_min": 0.00047551117451260106,
+    "epoch_max": 1.7118402282453637,
+    "rl_base_median": 0.0036317752674221992,
+    "rl_base_abs_median": 0.0036317752674221992,
+    "weighted_hint_ce_median": 0.015643406426534057,
+    "weighted_hint_ce_mean": 0.01604442665825546,
+    "ce_over_abs_rl_median": 4.183487263992625,
+    "ce_gt_abs_rl_fraction": 0.8411111111111111
+  }
+]
