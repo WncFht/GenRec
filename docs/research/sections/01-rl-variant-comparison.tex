@@ -1,4 +1,4 @@
-\section{RQ1: Overall Performance}
+\section{主表与 Baseline}
 
 \subsection{主表：Instruments 上当前最重要的 run 地图}
 
@@ -22,57 +22,87 @@ Ablation & dynamic max1 & checkpoint-1332 & 0.801 & 0.0934 & 0.1905 \\
 CE & hintce-2 & checkpoint-2664 & 1.602 & 0.0931 & 0.1951 \\
 CE & hintce-3 & checkpoint-1665 & 1.001 & 0.0945 & 0.1985 \\
 Hint ablation & single-hint mixed & checkpoint-2664 & 1.602 & 0.0948 & 0.1958 \\
-Dual-task & fixed dual-task & checkpoint-3012 & 2.000 & 0.0939 & 0.1905 \\
+Dual-task & dynamic dual-task & checkpoint-1510 & 1.003 & 0.0930 & 0.1885 \\
+Dual-task & fixed dual-task & checkpoint-2718 & 1.805 & 0.0939 & 0.1897 \\
 \bottomrule
 \end{tabular}
-\caption{RQ1 的主结果地图：Instruments 上当前已经同步回来的关键 run。}
+\caption{Instruments 数据集上的主线 run 地图。}
 \end{table}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.96\textwidth]{rl-seven-way-main-curves.png}
-\caption{主线七线曲线图，用来定位 RQ1 的整体版图。}
+\caption{主线七线曲线图，用来给后续 section 定位。}
 \end{figure}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.78\textwidth]{rl-best-ndcg10-vs-hr50-scatter.png}
-\caption{best \texttt{NDCG@10} 对应的 top-10 / coverage trade-off。}
+\caption{best NDCG@10 对应的 top-10 / coverage trade-off。}
 \end{figure}
 
-\subsection{No-hint baseline 与 hint-enabled frontier}
+先看这张主表，最重要的定位只有三点：
+
+\begin{enumerate}
+\item plain \texttt{rule-only} 仍然是 top-10 最强 baseline，但 coverage 明显最差。
+\item \texttt{dynamic gather-fix} 是后文默认使用的 canonical dynamic。
+\item clean fixed family、\texttt{single-hint mixed}、\texttt{hintce-3} 和 \texttt{fixed dual-task} 都落在图里的更右上区域，因此它们是后文重点解释的对象。
+\end{enumerate}
+
+\subsection{SFT 与 rule-only：baseline 在哪里}
+
+\paragraph{对应脚本}
+{\footnotesize
+\begin{itemize}
+\item 脚本目录：\path{hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/}
+\item rule-only：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only.sh}
+\end{itemize}
+}
 
 \begin{table}[H]
 \centering
 \small
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{p{4.0cm} p{2.4cm} c c c c}
+\begin{tabular}{p{3.6cm} p{2.5cm} c c c c}
 \toprule
 Variant & Best ckpt & NDCG@10 & HR@10 & NDCG@50 & HR@50 \\
 \midrule
 SFT495 & checkpoint-495 & 0.0823 & 0.1094 & 0.0985 & 0.1844 \\
 rule-only rerun & checkpoint-2997 & 0.0960 & 0.1179 & 0.1070 & 0.1681 \\
+\bottomrule
+\end{tabular}
+\caption{SFT 与 plain rule-only baseline。}
+\end{table}
+
+这一组 baseline 的读法很清楚：
+
+\begin{itemize}
+\item \texttt{rule-only} 相比 SFT，把 \texttt{NDCG@10} 从 0.0823 拉到 0.0960，说明 exact reward 确实能把 top-10 打高。
+\item 但它的 \texttt{HR@50} 从 0.1844 掉到 0.1681，说明 plain exact reward 仍然在用 coverage 换 headline top-10。
+\end{itemize}
+
+\subsection{Canonical dynamic 与 fixed hint：主线大方向}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{3.8cm} p{2.6cm} c c c c}
+\toprule
+Variant & Best ckpt & NDCG@10 & HR@10 & NDCG@50 & HR@50 \\
+\midrule
+rule-only rerun & checkpoint-2997 & 0.0960 & 0.1179 & 0.1070 & 0.1681 \\
 dynamic gather-fix & checkpoint-2997 & 0.0936 & 0.1169 & 0.1083 & 0.1855 \\
 fixed taskfix sid-only & checkpoint-2652 & 0.0945 & 0.1205 & 0.1103 & 0.1935 \\
 \bottomrule
 \end{tabular}
-\caption{RQ1 最核心的四条线：SFT、plain rule-only、canonical adaptive hinting、clean fixed first-token hint。}
+\caption{主线故事可以先压缩成 baseline、canonical dynamic 和 clean fixed 三条线。}
 \end{table}
 
-这张表给出正文后续所有 RQ 的共同起点：
+如果只想记住一张最核心的对照表，这张就够了：
 
 \begin{itemize}
-\item \texttt{rule-only} 仍然是当前最强的无 hint top-10 baseline，但 coverage 损失很明显。
-\item \texttt{dynamic gather-fix} 说明一旦在训练里显式引入 prefix hint，模型就能把 \texttt{HR@50} 拉回到 SFT 以上，而不是只会做 headline overfit。
-\item \texttt{fixed taskfix sid-only} 进一步把 trade-off 推到更右上，说明 prefix hint 的收益并不只停留在 adaptive family。
+\item \texttt{rule-only} 提供最强的无 hint top-10 baseline。
+\item \texttt{dynamic gather-fix} 是“hint scaffold 有用”的干净证据，它把 coverage 拉回到了 SFT 以上。
+\item clean \texttt{fixed taskfix sid-only} 则进一步把 trade-off 推到了更右上方：相对 canonical dynamic，多了 0.0009 的 \texttt{NDCG@10} 和 0.0080 的 \texttt{HR@50}。
 \end{itemize}
-
-\subsection{RQ1 的简化读法}
-
-如果只想记住这一节的结论，可以压缩成三点：
-
-\begin{enumerate}
-\item plain \texttt{rule-only} 仍然定义了“无 hint 时 top-10 能推到多高”的 baseline。
-\item canonical \texttt{dynamic gather-fix} 说明 hint-conditioned training signal 是有效的，因为它没有像 \texttt{rule-only} 那样用 coverage 去换 headline。
-\item clean fixed family、尤其是 \texttt{fixed taskfix sid-only} 与后面的 CE / partial-hint 候选，构成了当前真正需要继续比较的 performance frontier。
-\end{enumerate}

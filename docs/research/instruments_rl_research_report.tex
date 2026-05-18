@@ -20,23 +20,22 @@
 \graphicspath{
   {assets/instruments-report/}
   {assets/games-report/}
-  {../baseline/table/assets/}
 }
 
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 \setlength{\LTleft}{0pt}
 \setlength{\LTright}{0pt}
 
-\title{GenRec Prefix-Hint RL 研究稿：四个 Research Questions 与附录}
-\author{按 RQ1--RQ4 重构的 LaTeX 研究稿}
-\date{2026-05-19}
+\title{GenRec RL 实验整理：Instruments 主报告与 Games 附录}
+\author{按实验主题重构的 LaTeX 研究稿}
+\date{2026-04-26}
 
 \begin{document}
 
 \maketitle
 
 \begin{abstract}
-本文把 \texttt{Instruments-grec} 上已经完成的主要 prefix-hint RL 实验重构成四个 research questions。RQ1 关注 overall performance，先建立 SFT、plain \texttt{rule-only}、canonical adaptive hinting 与 clean fixed hint frontier 的整体版图；RQ2 进一步分析 prefix hint 是否真的提供有效训练信号，并把当前最核心的四条 strategy 压成一个 fixed/adaptive 与 task-aware/first-token 的 \texttt{2x2}；RQ3 讨论训练任务范围与 loss 设计两类 ablation，其中 full-sequence SFT + GRPO 仍处于 running 状态；RQ4 则把 fixed CE coefficient 分析扩展到 \texttt{Instruments} 与 \texttt{Arts} 两个数据集。single-hint mixed、hint-token SFT、old fixed bug 与 Games cross-dataset readout 继续保留在 appendix。
+本文把 \texttt{Instruments-grec} 上已经跑出来的主要 RL 实验按“baseline、canonical hint family、家族内部对照、专项消融”四层结构重排。正文仍以 Instruments 为主，默认将 \texttt{dynamic gather-fix} 视为正确的 canonical dynamic 实现，将 old fixed-hint 明确标成带 bug caveat 的历史参考，并把 \texttt{max1}、CE scaling、single-hint mixed 与 dual-task 这些后续探索拆成单独 section。本轮更新进一步把新同步回来的 \texttt{dynamic hint + CE(0.005)} 与 \texttt{dynamic single-hint mixed} 的更长轨迹接进同一份研究稿中，并把 \texttt{fixed single-hint mixed + CE(0.005)} 从旧的 first-look 升级成完整轨迹对照。当前完整曲线表明，这条新 fixed 变体并没有把 plain \texttt{single-hint mixed} 与 \texttt{hintce-3} 的优势叠加起来：它的 top-10 接近 parent line，但 coverage 明显更弱，因此暂时更像一次有信息量的负结果。附录则补入 \texttt{Games-grec} 的全流程摘要与 RL 结果，作为第二数据集上的交叉验证。
 \end{abstract}
 
 \tableofcontents
@@ -44,37 +43,50 @@
 
 \input{sections/00-overview}
 \input{sections/01-rl-variant-comparison}
+\input{sections/04-dynamic-sid-only-vs-dynamic}
+\input{sections/05-fixed-sid-only-vs-fixed}
+\input{sections/06-ranking-dynamic-vs-dynamic}
+\input{sections/07-old-fixed-bug-vs-corrected}
 \input{sections/02-dynamic-max1-ablation}
-\input{sections/12-rq3-ablation-study}
 \input{sections/08-ce-scaling-ablation}
+\input{sections/03-dual-task-single-hint}
+\input{sections/03a-single-hint-ce-mixed}
+\input{sections/09-dual-task-ablation}
+\input{sections/09a-promising-instruments-candidates}
+\input{sections/09b-hint-token-sft}
 
 \section{结论与下一步}
 
-\subsection{按 RQ 压缩后的主结论}
+\subsection{当前最稳的主故事}
 
 \begin{enumerate}
-\item RQ1：\texttt{rule-only} 仍然定义了当前无 hint top-10 baseline，但真正的 performance frontier 已经转移到 hint-enabled family，尤其是 clean fixed family 与后续 CE variants。
-\item RQ2：prefix hint 的训练信号是有效的；在 adaptive 行里，task-aware prefix 明显优于 first-token prefix；在 fixed 行里，task-aware 与 first-token 更像是在交换 top-10 和 coverage，而不是简单单边支配；\texttt{max1} 则说明单 token hint 仍有信号，但更像 early-stop candidate。
-\item RQ3：训练任务范围会显著改变 fixed family 的形状，当前最强 top-10 来自 \texttt{sid-only}，最稳 coverage 仍在完整 \texttt{3-task}；loss 侧加入 prefix SFT/CE 已经明确改变 frontier，但 full-sequence SFT + GRPO 还需要等待真实结果。
-\item RQ4：CE 系数不会单调地产生收益。当前 \texttt{0.005} 是更稳的中间档，\texttt{0.01} 更像 Instruments 上的 aggressive top-10 设定，而 Arts 对大系数更敏感。
+\item plain \texttt{rule-only} 仍然是当前 top-10 最强的无 hint baseline，但 coverage 损失很明确，因此不适合直接当 balanced 主线。
+\item \texttt{dynamic gather-fix} 应被视为当前 canonical dynamic 实现；\texttt{dynamic sid-only} 和 \texttt{ranking dynamic} 都还没有超过它。
+\item clean fixed family 仍然是当前最强的 balanced 主候选；其中 corrected \texttt{fixed taskfix sid-only} 是更干净的 fixed 参考，而 old fixed 只能当 historical reference。
+\item 在后续探索里，\texttt{max1} 更像 early-stop dynamic candidate；\texttt{hintce-3}、\texttt{hintce-4}、fixed \texttt{single-hint mixed} 和 \texttt{fixed dual-task} 仍然是当前最成熟的新候选。相对地，新同步完整后的 \texttt{dynamic hint + CE(0.005)} 与 \texttt{dynamic single-hint mixed} 目前都没有改写 dynamic family 的排序。
+\item 新增的 \texttt{fixed single-hint mixed + CE(0.005)} 现在已经补齐完整轨迹；按当前 full-trace 对照看，它仍然没有把 \texttt{single-hint mixed} 和 \texttt{hintce-3} 的优势自然合并起来，因此暂时不应被当作新的主候选。
 \end{enumerate}
 
-\subsection{下一步最值得补的证据}
+\subsection{下一步最值得继续补的证据}
 
 \begin{itemize}
-\item 等 \path{hope/Instruments-genrec/rl_fixed_full_sequence_sft.sh} 跑完，把 RQ3 的 loss comparison 从“问题定义 + 当前 readout”升级成真正的三线定量比较。
-\item 如果后面要选一个固定主配置继续扩数据集，当前最值得优先验证的是 \texttt{fixed taskfix sid-only}、\texttt{hintce-3} 和 \texttt{hintce-4} 的跨数据集稳定性。
-\item 对 RQ2，如果后面还要继续讲 prefix hint 机制，优先补的是 task-level readout，而不是再堆更多 headline checkpoint。
+\item 解释 \texttt{hintce-3} 为什么在完整尾段已经补齐后，best 点仍停在中段而不是最终点，并确认它该被当作峰值候选还是稳态候选。
+\item 继续跟 \texttt{single-hint mixed} 的尾段平台，并解释为什么它能在完整 2 epoch 维持住 fixed family 前沿。
+\item 对 \texttt{single-hint mixed + CE(0.005)}，当前更值得做的是解释为什么它没有继承 plain \texttt{single-hint mixed} 和 \texttt{hintce-3} 的优势，而不是继续把它默认当成等待后段翻盘的候选。
+\item 继续跟 \texttt{dynamic dual-task} 与 \texttt{fixed dual-task} 的终段 readout，确认 dual-task family 的稳定排序。
+\item 对 \texttt{dynamic hint + CE(0.005)} 和 \texttt{dynamic single-hint mixed} 这两条线，当前更值得做的是解释它们为什么在 early-window 看起来有信号，但长跑后没有转化成真正的主候选，而不是再把它们默认当成最优先的加算力对象。
+\item 如果后面要把这份稿件扩成更正式的研究报告，建议继续沿用“一个实验主题一个子文件”的结构，而不是回到按日期拼接的 note 模式。
 \end{itemize}
 
-\clearpage
-\appendix
+\subsection{Games 当前定位}
 
-\input{sections/07-old-fixed-bug-vs-corrected}
-\input{sections/03-dual-task-single-hint}
-\input{sections/03a-single-hint-ce-mixed}
-\input{sections/09a-promising-instruments-candidates}
-\input{sections/09b-hint-token-sft}
+\begin{itemize}
+\item Games 现在已经足够作为正式附录收录，因为它不再只是一套脚本和早期 readout，而是完整覆盖了 \texttt{index -> preprocess -> SFT -> RL}。
+\item 在第二个数据集上，\texttt{fixed-hint} 继续是当前最强、最平衡的主候选，而 \texttt{rule-only} 继续体现 top-10 与 coverage 的交换。
+\item 这意味着 Instruments 上的主结论目前并不是单数据集偶然，但 Games 还需要 task-level readout 才能继续往机制解释推进。
+\end{itemize}
+
+\appendix
 \input{sections/10-games-pipeline-and-sft}
 \input{sections/11-games-rl-results}
 
