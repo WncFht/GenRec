@@ -1,43 +1,87 @@
-\section{Max1 消融}
+\section{RQ2: Deep Analysis for Prefix Hint}
 
-\subsection{实验问题}
+\subsection{RQ2.1 Hint-conditioned training signal 是否有效}
 
-这一组实验只改一件事：把 dynamic hint 的 online budget 从 \texttt{dynamic\_hint\_max\_depth=3} 收紧到 \texttt{1}。因此它回答的问题也很集中：
-
-\begin{quote}
-如果只允许 dynamic hint 最多暴露 1 个 oracle token，而不改 trainer 逻辑、不丢 no-hit 样本，最终的 eval trade-off 会落在什么位置。
-\end{quote}
-
-\subsection{对应脚本}
-
-{\footnotesize
-\begin{itemize}
-\item 脚本目录：\path{hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/}
-\item max1：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-max1.sh}
-\end{itemize}
-}
-
-\subsection{改动范围}
+这个问题先不看 family 内部细节，只问一件事：当训练过程真正看到 prefix hint 之后，信号是否会转化成可观测的性能变化，而不只是把 \texttt{rule-only} 换个包装。
 
 \begin{table}[H]
 \centering
 \small
-\begin{tabularx}{\textwidth}{l l l Y}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{3.9cm} p{2.3cm} c c c c}
 \toprule
-维度 & baseline & max1 实验 & 备注 \\
+Variant & Best ckpt & NDCG@10 & HR@10 & NDCG@50 & HR@50 \\
 \midrule
-reward mode & rule-only & rule-only & 不变 \\
-num beams & 16 & 16 & 不变 \\
-dataset variant & Instruments-grec 主线数据 & 相同 & 不变 \\
-trainer 收口逻辑 & 当前 dynamic trainer & 相同 & 不变 \\
-样本筛除 & 不丢 no-hit 样本 & 不丢 & 不变 \\
-hint budget & max depth 3 & max depth 1 & 唯一改动 \\
+SFT495 & checkpoint-495 & 0.0823 & 0.1094 & 0.0985 & 0.1844 \\
+rule-only rerun & checkpoint-2997 & 0.0960 & 0.1179 & 0.1070 & 0.1681 \\
+dynamic gather-fix & checkpoint-2997 & 0.0936 & 0.1169 & 0.1083 & 0.1855 \\
+fixed taskfix & checkpoint-2997 & 0.0931 & 0.1189 & 0.1094 & 0.1941 \\
+fixed taskfix sid-only & checkpoint-2652 & 0.0945 & 0.1205 & 0.1103 & 0.1935 \\
 \bottomrule
-\end{tabularx}
-\caption{max1 消融的唯一改动是 online hint budget。}
+\end{tabular}
+\caption{hint-conditioned training signal 的第一层证据。}
 \end{table}
 
-\subsection{关键指标}
+这张表背后的判断很直接：
+
+\begin{itemize}
+\item \texttt{rule-only} 把 \texttt{NDCG@10} 推高了，但 \texttt{HR@50} 从 \texttt{0.1844} 掉到 \texttt{0.1681}，说明无 hint 的 exact reward 仍然主要在做 top-10 极值化。
+\item \texttt{dynamic gather-fix} 在只比 \texttt{rule-only} 低 \texttt{0.0024} 个 \texttt{NDCG@10} 的同时，把 \texttt{HR@50} 拉回到 \texttt{0.1855}，已经超过 SFT；这就是“hint-conditioned signal 有效”的最直接证据。
+\item 两条 fixed 线继续把右上角往外推，尤其是 \texttt{fixed taskfix sid-only}，说明 prefix hint 的收益并不只发生在 adaptive 侧。
+\end{itemize}
+
+\subsection{RQ2.2 Prefix Hint Strategy 的 2x2 对比}
+
+这里把 prefix-hint strategy 压缩成一个明确的 \texttt{2x2}：
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+ & task-aware prefix (ours) & first-token prefix \\
+\midrule
+fixed hint & \texttt{fixed taskfix} & \texttt{fixed taskfix sid-only} \\
+adaptive hint & \texttt{dynamic gather-fix} & \texttt{dynamic sid-only} \\
+\bottomrule
+\end{tabular}
+\caption{RQ2 中的 prefix-hint 2x2。}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{3.9cm} p{2.3cm} c c c c}
+\toprule
+Variant & Best ckpt & NDCG@10 & HR@10 & NDCG@50 & HR@50 \\
+\midrule
+fixed taskfix (ours) & checkpoint-2997 & 0.0931 & 0.1189 & 0.1094 & 0.1941 \\
+dynamic gather-fix (adaptive hinting) & checkpoint-2997 & 0.0936 & 0.1169 & 0.1083 & 0.1855 \\
+fixed taskfix sid-only (fixed first-token) & checkpoint-2652 & 0.0945 & 0.1205 & 0.1103 & 0.1935 \\
+dynamic sid-only (adaptive first-token) & checkpoint-2394 & 0.0921 & 0.1155 & 0.1065 & 0.1830 \\
+\bottomrule
+\end{tabular}
+\caption{prefix-hint 2x2 在 best checkpoint 上的对照。}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{prefix_hint_strategy_2x2_curves.png}
+\caption{prefix-hint 2x2 的完整 epoch 曲线。}
+\end{figure}
+
+这组对照可以回答两个更细的问题：
+
+\begin{itemize}
+\item 在 adaptive 行里，\texttt{dynamic gather-fix} 四个主指标同时强于 \texttt{dynamic sid-only}，说明 adaptive hinting 本身仍然需要 task-aware prefix，而不是退化成 first-token 就够。
+\item 在 fixed 行里，\texttt{fixed taskfix sid-only} 把 \texttt{NDCG@10} 从 \texttt{0.0931} 提到 \texttt{0.0945}，而 \texttt{fixed taskfix} 保住了略高的 \texttt{HR@50}；因此 fixed 侧更像是在 top-10 与 coverage 之间做形状调整，而不是单边支配。
+\item 跨行看，当前 best-point 意义下 fixed 侧整体仍强于 adaptive 侧，因此本文后面的 loss/CE 讨论都优先放在 fixed family 上展开。
+\end{itemize}
+
+\subsection{RQ2.3 Prefix Budget 敏感性：max1}
+
+如果把 adaptive hint 的在线 budget 从 \texttt{max depth=3} 收紧到 \texttt{1}，可以更直接地回答“hint signal 是否真的来自更深的 prefix”。
 
 \begin{table}[H]
 \centering
@@ -53,10 +97,8 @@ dynamic max1 & checkpoint-1332 & 0.801 & 0.0934 & 0.1905 \\
 fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1935 \\
 \bottomrule
 \end{tabular}
-\caption{max1 的位置：更像 early-stop dynamic candidate，而不是新的默认线。}
+\caption{max1 说明“只给一个 prefix token”依然有信号，但它更像 early-stop candidate。}
 \end{table}
-
-\subsection{图表}
 
 \begin{figure}[H]
 \centering
@@ -67,13 +109,11 @@ fixed taskfix sid-only & checkpoint-2652 & 2.000 & 0.0945 & 0.1935 \\
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.96\textwidth]{max1-vs-fixed-epoch-curves.png}
-\caption{max1 与 dynamic/fixed 参考线的 four-way comparison。}
+\caption{max1 与 dynamic / fixed 参考线的 focused comparison。}
 \end{figure}
 
-\subsection{结论}
-
 \begin{itemize}
-\item \texttt{max1} 不是退化成 \texttt{rule-only}，因为它保住了明显更高的 coverage。
-\item 它也不是被 \texttt{gather-fix} 全程支配，因为早中段确实能给出更好的 trade-off。
-\item 但完整轨迹已经说明它的优势主要停在前中段，因此更准确的定位仍然是 early-stop 候选，而不是新的 long-run default。
+\item \texttt{max1} 没有退化成 plain \texttt{rule-only}，因为它保住了显著更高的 coverage。
+\item 但完整轨迹表明，它的优势主要停在前中段；和 \texttt{dynamic gather-fix} 相比，它更像一个 budget-constrained early-stop 变体，而不是新的 long-run default。
+\item 这也反过来说明 RQ2 的主结论不是“任意 prefix 都行”，而是：prefix hint 确实有效，但深度、task awareness 和 fixed/adaptive 交互方式都会改变最终 trade-off 的形状。
 \end{itemize}

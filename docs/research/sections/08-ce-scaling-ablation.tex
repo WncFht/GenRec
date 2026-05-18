@@ -1,71 +1,100 @@
-\section{CE Scaling 消融}
+\section{RQ4: 分析后训练中 CE Loss 的影响}
 
-\subsection{fixed CE family 与 dynamic CE trajectory}
+\subsection{RQ4 的比较对象}
 
-fixed CE family 仍然是这节的主体，但现在这条 dynamic CE 线已经补到完整长跑，因此这里统一按“4 条 fixed CE + 1 条 dynamic CE”来读：
+这一节只讨论 fixed prefix-hint family 里的后训练 CE 系数，不把 dynamic CE trajectory 混进主表。对两个数据集，统一比较四条线：
 
 \begin{itemize}
-\item \texttt{hintce}：早期版本，这里记作 batch-mean CE。
-\item \texttt{hintce-2}：和当前公式说明里 strict DAPO CE 更一致的 token-mean 版本。
-\item \texttt{hintce-3}：在 \texttt{hintce-2} 的基础上，把 CE 相对倍率调到 \texttt{0.005}。
-\item \texttt{hintce-4}：把 CE 相对倍率继续抬到 \texttt{0.01} 的更激进版本。
-\item \texttt{dynamic hint + CE(0.005)}：在 canonical \texttt{dynamic gather-fix} 上额外挂 prompt-side CE 的新尝试；当前已经同步到完整 \texttt{checkpoint-3326}。
+\item non-CE baseline：plain \texttt{fixed taskfix}
+\item \texttt{CE=0.001}
+\item \texttt{CE=0.005}
+\item \texttt{CE=0.01}
 \end{itemize}
 
-\subsection{对应脚本}
+因此 RQ4 回答的不是“加不加 CE”，而是“加了 CE 之后，系数怎么改变 top-10 / coverage 的形状，而且这种变化在 Instruments 与 Arts 上是否一致”。
 
-{\footnotesize
-\begin{itemize}
-\item 画图脚本：\path{docs/research/scripts/build_instruments_report_figures.py}
-\item 脚本目录：\path{hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/}
-\item fixed family launcher：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-fixed-hint-ce.sh}
-\item dynamic first-look launcher：\path{Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec-rl-rule-only-dynamic-hint-ce.sh}
-\end{itemize}
-}
-
-\subsection{关键指标}
+\subsection{Instruments：0.005 提升 coverage，0.01 提升 long-run top-10}
 
 \begin{table}[H]
 \centering
 \small
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{p{4.0cm} p{2.2cm} c c c p{2.9cm}}
+\begin{tabular}{p{3.6cm} p{2.2cm} c c c c}
 \toprule
-Variant & Best ckpt & Epoch & NDCG@10 & HR@50 & 备注 \\
+Variant & Best ckpt & NDCG@10 & HR@10 & NDCG@50 & HR@50 \\
 \midrule
-fixed taskfix & checkpoint-2997 & 1.802 & 0.0931 & 0.1941 & non-CE 参考线 \\
-hintce & checkpoint-2664 & 1.602 & 0.0915 & 0.1944 & batch-mean CE \\
-hintce-2 & checkpoint-2664 & 1.602 & 0.0931 & 0.1951 & token-mean / 更符合 DAPO \\
-hintce-3 & checkpoint-1665 & 1.001 & 0.0945 & 0.1985 & 在 hintce-2 基础上把倍率调到 0.005 \\
-hintce-4 & checkpoint-2997 & 1.802 & 0.0953 & 0.1943 & 0.01 倍率；当前已同步到完整可比较后段 \\
-dynamic hint + CE(0.005) & checkpoint-1998 & 1.201 & 0.0917 & 0.1851 & full-trace dynamic CE；peak \texttt{HR@50} 仍在 checkpoint-666 \\
+fixed taskfix (no CE) & checkpoint-2997 & 0.0931 & 0.1189 & 0.1094 & 0.1941 \\
+\texttt{CE=0.001} & checkpoint-2664 & 0.0931 & 0.1168 & 0.1102 & 0.1951 \\
+\texttt{CE=0.005} & checkpoint-1665 & 0.0945 & 0.1180 & 0.1118 & 0.1985 \\
+\texttt{CE=0.01} & checkpoint-2997 & 0.0953 & 0.1204 & 0.1113 & 0.1943 \\
 \bottomrule
 \end{tabular}
-\caption{CE scaling 消融。}
+\caption{Instruments 上的 fixed CE coefficient sweep。}
 \end{table}
-
-\subsection{图表}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.96\textwidth]{ce_scaling_three_variants_curves.png}
-\caption{四条 fixed CE 线与 non-CE fixed baseline 的完整对照。}
+\caption{Instruments 上 fixed CE coefficient 的完整曲线。}
 \end{figure}
+
+\begin{itemize}
+\item \texttt{CE=0.001} 更像一个温和正则：\texttt{NDCG@10} 基本不变，但 \texttt{HR@50} 从 \texttt{0.1941} 提到 \texttt{0.1951}。
+\item \texttt{CE=0.005} 是当前 coverage 最强点，\texttt{HR@50} 来到 \texttt{0.1985}，同时 \texttt{NDCG@10} 也升到 \texttt{0.0945}。
+\item \texttt{CE=0.01} 则把 best \texttt{NDCG@10} 继续抬到 \texttt{0.0953}，而且 best 点回到更晚的 \texttt{checkpoint-2997}；它更像“long-run top-10 强化”，而不是 coverage 最优。
+\end{itemize}
+
+\subsection{Arts：0.001 的 coverage 最强，但 0.005 更稳地保住 headline}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{3.6cm} p{2.2cm} c c c c}
+\toprule
+Variant & Best ckpt & NDCG@10 & HR@10 & NDCG@50 & HR@50 \\
+\midrule
+fixed taskfix (no CE) & checkpoint-3368 & 0.0956 & 0.1248 & 0.1120 & 0.2007 \\
+\texttt{CE=0.001} & checkpoint-2105 & 0.0943 & 0.1244 & 0.1114 & 0.2029 \\
+\texttt{CE=0.005} & checkpoint-2105 & 0.0956 & 0.1257 & 0.1118 & 0.2006 \\
+\texttt{CE=0.01} & checkpoint-2105 & 0.0941 & 0.1228 & 0.1106 & 0.1990 \\
+\bottomrule
+\end{tabular}
+\caption{Arts 上的 fixed CE coefficient sweep。}
+\end{table}
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.96\textwidth]{ce_scaling_dynamic_first_look_curves.png}
-\caption{dynamic hint + CE 的完整轨迹；当前已同步到 \texttt{checkpoint-3326}。}
+\includegraphics[width=0.96\textwidth]{genrec-only-arts-fixed-ce-coefficients-curves.png}
+\caption{Arts 上 fixed CE coefficient 的完整曲线。}
 \end{figure}
 
-\subsection{结论}
+\begin{itemize}
+\item Arts 上最明显的 coverage 增益来自 \texttt{CE=0.001}：\texttt{HR@50} 从 \texttt{0.2007} 提到 \texttt{0.2029}，但 top-10 略有回落。
+\item \texttt{CE=0.005} 则保住了和 non-CE baseline 持平的 \texttt{NDCG@10=0.0956}，同时把 \texttt{HR@10} 拉到四条线里最高的 \texttt{0.1257}。
+\item \texttt{CE=0.01} 在 Arts 上反而没有复制 Instruments 的 long-run top-10 优势，因此它更像一个数据集敏感的高倍率设定。
+\end{itemize}
+
+\subsection{跨数据集读法}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{2.2cm} p{3.0cm} p{3.0cm} p{5.0cm}}
+\toprule
+Dataset & best top-10 coefficient & best coverage coefficient & 读法 \\
+\midrule
+Instruments & \texttt{CE=0.01} & \texttt{CE=0.005} & 更高倍率会把 top-10 往长跑尾段抬，但 coverage 峰值仍出现在中等系数 \\
+Arts & \texttt{CE=0.005} 与 no-CE 并列 & \texttt{CE=0.001} & 较小系数更像 coverage regularizer；过大的 \texttt{0.01} 会同时伤到 top-10 和 coverage \\
+\bottomrule
+\end{tabular}
+\caption{CE 系数的跨数据集 summary。}
+\end{table}
+
+因此，RQ4 的主结论不是“存在一个在所有数据集都最优的 CE 系数”，而是：
 
 \begin{itemize}
-\item full non-CE 仍然是当前 fixed family 的干净参考线。
-\item \texttt{hintce}、\texttt{hintce-2}、\texttt{hintce-3} 和 \texttt{hintce-4} 现在已经能放到同一张图里一起读，不再只讲单条 fixed CE 线。
-\item \texttt{hintce-2} 是当前更稳的 token-mean / DAPO-compatible CE 候选；\texttt{hintce-3} 则是在它基础上把倍率抬到 0.005 后得到的更激进版本。
-\item 当前 `0.01` 倍率的 \texttt{hintce-4} 已经不再只是 early readout：它现在一路补到 `checkpoint-2997`，best \texttt{NDCG@10} 已经来到 `0.0953`，说明这条线不是“偏激后直接失效”，而是真正进入了可比前沿。
-\item 但按当前完整可见轨迹看，\texttt{hintce-4} 和 \texttt{hintce-3} 呈现的是不同形状：\texttt{hintce-4} 更像“把 top-10 往长跑尾段继续抬高”，而 \texttt{hintce-3} 仍然保留更高的 coverage 峰值 `0.1985`。因此现在更合理的说法不是“ce4 不行”，而是“它在 top-10 上已经追平 old fixed 历史上界，但还没有在 coverage 上超过 ce3”。
-\item \texttt{dynamic hint + CE(0.005)} 现在已经补到完整 \texttt{checkpoint-3326}。它的 best \texttt{NDCG@10} 点来到 \texttt{checkpoint-1998 / 0.0917}，但对应 \texttt{HR@50} 只有 `0.1851`；而它的 peak \texttt{HR@50} 仍然停在更早的 \texttt{checkpoint-666 / 0.1910}，后段逐步回落到尾点 `0.1839`。
-\item 因此当前更合理的判断已经不再是“需要继续等后段再看”，而是：这条 dynamic CE 线并没有超过 canonical \texttt{dynamic gather-fix}，也没有改写 dynamic family 排序。它更像一次有信息量的负结果，说明把 fixed-side prompt CE 直接搬到 dynamic gather-fix 上，当前并不会自然带来更好的长跑表现。
+\item CE 确实会系统性改变 fixed prefix-hint family 的后训练轨迹；
+\item 但它改变的是 top-10 与 coverage 的形状，而不是单调地“系数越大越好”；
+\item 当前最稳妥的说法是：\texttt{0.005} 更像跨数据集都还站得住的中间档，\texttt{0.01} 更像 Instruments 特有的 top-10 aggressive setting，\texttt{0.001} 则更像 Arts 上的 mild coverage regularizer。
 \end{itemize}

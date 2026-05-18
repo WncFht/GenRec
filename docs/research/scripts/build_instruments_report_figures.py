@@ -56,8 +56,15 @@ SEVEN_WAY_MAIN_KEYS = [
     "fixed_taskfix",
     "fixed_taskfix_sid_only",
 ]
+PREFIX_HINT_2X2_KEYS = [
+    "fixed_taskfix",
+    "fixed_taskfix_sid_only",
+    "dynamic_gather_fix",
+    "dynamic_sid_only",
+]
 MAX1_ABLATION_KEYS = ["max1", "dynamic_gather_fix", "dynamic_sid_only", "rule_only", "fixed_taskfix_sid_only"]
 MAX1_FOCUS_KEYS = ["fixed_taskfix", "dynamic_gather_fix", "max1", "fixed_old"]
+TASK_SCOPE_ABLATION_KEYS = ["fixed_taskfix", "fixed_taskfix_sid_only", "fixed_dual_task"]
 SINGLE_HINT_FIXED_KEYS = ["fixed_old", "fixed_taskfix", "fixed_taskfix_sid_only", "single_hint_mixed"]
 SINGLE_HINT_CE_KEYS = ["single_hint_mixed_hintce005", "single_hint_mixed", "hintce_coef_005"]
 SINGLE_HINT_BASELINE_KEYS = [
@@ -375,6 +382,15 @@ def main() -> None:
     plot_metric_grid(
         df,
         SPECS,
+        PREFIX_HINT_2X2_KEYS,
+        "Instruments Prefix-Hint Strategy 2x2",
+        ASSET_DIR / "prefix_hint_strategy_2x2_curves.png",
+        sft,
+        legend_cols=3,
+    )
+    plot_metric_grid(
+        df,
+        SPECS,
         ["dynamic_sid_only", "dynamic_gather_fix"],
         "Instruments Dynamic Sid-Only vs Dynamic Gather-Fix",
         ASSET_DIR / "dynamic_sid_only_vs_dynamic_gather_fix_curves.png",
@@ -470,6 +486,15 @@ def main() -> None:
         ASSET_DIR / "single_hint_mixed_ce005_vs_parents_curves.png",
         sft,
         legend_cols=4,
+    )
+    plot_metric_grid(
+        df,
+        SPECS,
+        TASK_SCOPE_ABLATION_KEYS,
+        "Instruments Task-Scope Ablation for Fixed Prefix Hint",
+        ASSET_DIR / "task_scope_ablation_curves.png",
+        sft,
+        legend_cols=3,
     )
     plot_metric_grid(
         df,

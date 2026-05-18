@@ -1,0 +1,69 @@
+\section{RQ3: Ablation Study}
+
+\subsection{RQ3.1 训练任务范围消融}
+
+当前可比较的 fixed prefix-hint 训练数据范围可以压成三档：
+
+\begin{itemize}
+\item \texttt{ours (3-task)}：\texttt{fixed taskfix}，覆盖 mixed 三任务
+\item \texttt{sid-only}：\texttt{fixed taskfix sid-only}
+\item \texttt{sid + item-to-index} 两任务近似：当前仓库里已跑出的 \texttt{sid-title-desc} dual-task 线，用来代表缩窄后的 two-task hint scope
+\end{itemize}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{4.1cm} p{2.3cm} c c c}
+\toprule
+Task scope & Best ckpt & NDCG@10 & HR@10 & HR@50 \\
+\midrule
+\texttt{3-task} / fixed taskfix & checkpoint-2997 & 0.0931 & 0.1189 & 0.1941 \\
+\texttt{sid-only} / fixed sid-only & checkpoint-2652 & 0.0945 & 0.1205 & 0.1935 \\
+\texttt{two-task} / fixed dual-task (\texttt{sid-title-desc}) & checkpoint-3012 & 0.0939 & 0.1169 & 0.1905 \\
+\bottomrule
+\end{tabular}
+\caption{训练任务范围消融：当前已完成结果主要来自 fixed prefix-hint family。}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{task_scope_ablation_curves.png}
+\caption{3-task / sid-only / two-task 的 fixed prefix-hint task-scope ablation。}
+\end{figure}
+
+\begin{itemize}
+\item 从 top-10 看，\texttt{sid-only} 当前最强；这说明 first-token setting 在 Instruments 上并不是弱化版。
+\item 从 coverage 看，完整 \texttt{3-task} mixed 仍然最稳，\texttt{HR@50=0.1941} 略高于 \texttt{sid-only} 的 \texttt{0.1935}。
+\item 当前 two-task 线没有超过前两者，因此现有证据更支持“任务裁剪会改变 trade-off 形状”，而不是“少任务一定更强”。
+\end{itemize}
+
+\subsection{RQ3.2 Loss 设计消融}
+
+这一层只看目标函数本身，不再讨论 hint strategy：
+
+\begin{table}[H]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{p{3.3cm} p{2.1cm} c c Y}
+\toprule
+Loss design & 代表性 run / 状态 & NDCG@10 & HR@50 & 说明 \\
+\midrule
+suffix-only GRPO & \texttt{fixed taskfix} & 0.0931 & 0.1941 & 不加 prefix-side SFT / CE，作为 loss baseline \\
+prefix SFT + suffix-only GRPO & \texttt{fixed+CE} family & up to 0.0953 & up to 0.1985 & 已完成；其中 \texttt{ce=0.01} 给出更高 top-10，\texttt{ce=0.005} 给出更高 coverage；细节放到 RQ4 展开 \\
+full-sequence SFT + GRPO & running & \textemdash & \textemdash & 当前还没有稳定结果可放入主比较表 \\
+\bottomrule
+\end{tabularx}
+\caption{loss 层面当前可比较的三种设定。}
+\end{table}
+
+当前 running 的 full-sequence 线对应 launcher：\path{hope/Instruments-genrec/rl_fixed_full_sequence_sft.sh}。
+
+这张表对应的结论目前也比较明确：
+
+\begin{itemize}
+\item 一旦在 suffix-only GRPO 旁边加入 prefix-side SFT/CE，frontier 就已经发生了可观测变化，否则不会同时看到 \texttt{0.0953} 级别的 top-10 和 \texttt{0.1985} 级别的 coverage 峰值。
+\item 但“fixed + CE”现在还不是单一点，而是一条 coefficient family；因此它在 RQ3 里只能先回答“这个 loss 方向是否有用”，更细的最优系数判断交给 RQ4。
+\item full-sequence SFT + GRPO 目前还处在 running 状态，所以这轮重构只把它明确标进问题定义，不提前写结论。
+\end{itemize}

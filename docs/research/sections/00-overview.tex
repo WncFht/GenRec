@@ -1,50 +1,51 @@
-\section{Instruments 数据集实验范围}
+\section{研究问题、实验范围与阅读地图}
 
-\subsection{本文只讨论什么}
+\subsection{本文回答的四个研究问题}
 
-这份整理稿只讨论 \texttt{Instruments-grec} 数据集上的 RL 实验，不把 Games、跨数据集 sweep、reward form 的完整历史演化和更早期的 exploratory runs 一起混进来。当前主线关注的是：
-
-\begin{itemize}
-\item SFT 与 plain \texttt{rule-only} baseline 的位置
-\item canonical dynamic hint 与 fixed hint family 的相对位置
-\item dynamic / fixed 家族内部几个关键变体的对照
-\item 后续几条最值得继续追的消融与扩展：\texttt{max1}、CE scaling、single-hint mixed、dual-task
-\end{itemize}
-
-\subsection{共享实验背景}
-
-\begin{itemize}
-\item 数据集：\texttt{Instruments-grec}
-\item RL 起点：\texttt{Instruments-grec-sft-qwen4B-4-256-dsz0/checkpoint-495}
-\item Instruments 主线 launcher 目录：\path{hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/}
-\item 主读法：默认先看 best \texttt{NDCG@10}，再看对应的 \texttt{HR@50} 和必要时的 peak \texttt{HR@50}
-\item 进度轴：不同 run 的完整 step horizon 不总相同，因此图里统一转成 epoch 时，需要显式写清楚归一化口径
-\end{itemize}
-
-\subsection{关于结果来源的说明}
-
-本文主表和曲线统一读取本地同步回来的 checkpoint 指标文件：主要来源是各实验目录下的 \path{checkpoint-*/metrics.json}，以及 SFT 参考线对应的 \path{checkpoint-495/metrics.json}。报告里不再附外部平台链接，只保留 \path{model\_dir}、launcher 路径和本地导出的对比表。
-
-\subsection{本文的默认约定}
-
-\begin{enumerate}
-\item \texttt{dynamic gather-fix} 被视为当前正确的 canonical dynamic 实现；后文里如果直接写 “dynamic”，默认指它。
-\item old \texttt{fixed hint mixed-single} 只作为带 bug caveat 的历史参考线，不再把它当作方法定义本身。
-\item corrected \texttt{fixed taskfix sid-only} 被当作当前更干净的 fixed 参考线。
-\end{enumerate}
-
-\subsection{按什么顺序读}
+这版稿子不再按“family 逐段展开”的方式组织，而是直接围绕四个 research questions 展开：
 
 \begin{table}[H]
 \centering
 \small
-\begin{tabular}{p{4.0cm}p{3.0cm}p{5.5cm}}
+\begin{tabularx}{\textwidth}{p{2.1cm} p{3.9cm} Y}
 \toprule
-章节 & 作用 & 当前内容 \\
+RQ & 核心问题 & 本文使用的主要证据 \\
 \midrule
-主表与 baseline & 建立全局地图 & Instruments 上的主表、SFT 与 rule-only baseline、canonical dynamic 与 fixed 的位置 \\
-Hint 家族内部对照 & 看清关键 family 差异 & dynamic sid-only、ranking dynamic、fixed sid-only，以及 old fixed bug 对 corrected fixed 的影响 \\
-专项消融与新探索 & 跟后续值得继续追的方向 & max1、CE scaling、single-hint mixed、dual-task \\
+RQ1 & Overall performance 到底落在什么版图上 & Instruments 主表、主曲线、baseline 与 hint-enabled frontier 对照 \\
+RQ2 & Prefix hint 在训练里是否真的带来有效信号；不同 hint strategy 怎么比较 & rule-only vs hint-conditioned 主线、prefix-hint 2x2、max1 budget 敏感性 \\
+RQ3 & 训练任务范围与 loss 设计各自会带来什么变化 & 3-task / sid-only / two-task task-scope ablation，以及 fixed vs fixed+CE vs full-sequence SFT+GRPO 状态表 \\
+RQ4 & CE loss 系数如何影响后训练表现 & Instruments 与 Arts 上的 \texttt{0.001 / 0.005 / 0.01} fixed CE 对照 \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
+\caption{本文的 RQ 结构。}
 \end{table}
+
+\subsection{共享实验背景}
+
+\begin{itemize}
+\item 主数据集：\texttt{Instruments-grec}
+\item RL 起点：\texttt{Instruments-grec-sft-qwen4B-4-256-dsz0/checkpoint-495}
+\item 主 launcher 目录：\path{hope/Qwen2_5-3B-Isntruct-qwen4B-4-256-MIMIGenRec-grec/}
+\item RQ4 额外引入的第二数据集：\texttt{Arts-grec}，只用来分析 fixed CE 系数的跨数据集稳定性
+\item 主读法：默认先看 best \texttt{NDCG@10}，再看对应的 \texttt{HR@50}、必要时再看整条 epoch 曲线
+\end{itemize}
+
+\subsection{结果来源与默认命名}
+
+本文的表格与曲线统一读取本地同步回来的 checkpoint 指标文件，主要来自各实验目录下的 \path{checkpoint-*/metrics.json}。为避免在 RQ2/RQ3 里反复解释名称，正文统一采用下面的缩写：
+
+\begin{itemize}
+\item \texttt{dynamic gather-fix}：当前默认的 canonical adaptive hinting 实现
+\item \texttt{fixed taskfix}：当前默认的 fixed task-aware prefix hint，实现上对应“ours”主线
+\item \texttt{fixed taskfix sid-only}：fixed first-token hint
+\item \texttt{dynamic sid-only}：adaptive first-token hint
+\item old \texttt{fixed mixed-single}：带 bug caveat 的历史参考线，正文只在必要处提醒，不再把它当 clean evidence
+\end{itemize}
+
+\subsection{正文与附录的边界}
+
+\begin{itemize}
+\item 正文只保留直接服务 RQ1--RQ4 的主证据。
+\item old fixed bug、single-hint mixed、single-hint mixed + CE、hint-token SFT，以及 Games 的 cross-dataset readout，统一放到 appendix。
+\item 因此正文的目标不是“把所有 exploratory line 全都讲一遍”，而是把 prefix hint 这条主故事压成一条可答辩的 RQ 链。 
+\end{itemize}
