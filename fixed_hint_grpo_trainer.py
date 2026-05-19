@@ -350,7 +350,9 @@ class FixedHintRuleOnlyGRPOTrainer(GRPOTrainer):
         )
 
         self._append_masked_ce_metrics(mode, "full_sequence_sft", total_mean, total_global_count)
-        self._append_masked_ce_metrics(mode, "full_sequence_sft/prompt_hint", prompt_hint_mean, prompt_hint_global_count)
+        self._append_masked_ce_metrics(
+            mode, "full_sequence_sft/prompt_hint", prompt_hint_mean, prompt_hint_global_count
+        )
         self._append_masked_ce_metrics(mode, "full_sequence_sft/suffix", suffix_mean, suffix_global_count)
 
         if torch.isclose(total_global_count, zero):

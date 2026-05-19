@@ -139,6 +139,24 @@ venv.bak/
 # mkdocs documentation
 /site
 
+# LaTeX auxiliary files
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.lot
+*.nav
+*.out
+*.run.xml
+*.snm
+*.synctex.gz
+*.toc
+*.vrb
+*.xdv
+
 # mypy
 .mypy_cache/
 .dmypy.json
@@ -201,5 +219,5 @@ rl_outputs/
 temp/
 /state/
 .ace-tool/
-baseline/
+/baseline/
 6a05aa0e765c6308e62efad6/

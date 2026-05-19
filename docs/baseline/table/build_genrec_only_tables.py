@@ -1,0 +1,1654 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import json
+import math
+import re
+from dataclasses import dataclass
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[3]
+TABLE_DIR = Path(__file__).resolve().parent
+RESULTS_DIR = ROOT / "results"
+ASSET_DIR = TABLE_DIR / "assets"
+OUTPUT_TEX = TABLE_DIR / "genrec-only-tables.tex"
+
+METRICS = [
+    "HR@1",
+    "HR@5",
+    "HR@10",
+    "HR@20",
+    "HR@50",
+    "NDCG@5",
+    "NDCG@10",
+    "NDCG@20",
+    "NDCG@50",
+]
+
+SFT_CURVE_METRICS = [
+    "HR@1",
+    "HR@3",
+    "HR@5",
+    "HR@10",
+    "HR@20",
+    "HR@50",
+    "NDCG@1",
+    "NDCG@3",
+    "NDCG@5",
+    "NDCG@10",
+    "NDCG@20",
+    "NDCG@50",
+]
+
+HEADLINE_CURVE_METRICS = [
+    "NDCG@10",
+    "HR@10",
+    "NDCG@50",
+    "HR@50",
+]
+
+
+@dataclass(frozen=True)
+class VariantSpec:
+    column_name: str
+    model_dir: str
+    is_rl: bool = False
+    first_epoch_max_step: int | None = None
+    curve_total_max_step: int | None = None
+
+
+@dataclass(frozen=True)
+class DatasetSpec:
+    dataset: str
+    variants: tuple[VariantSpec, ...]
+    caption: str
+    label: str
+    rl_total_max_step: int
+    overall_best_variants: tuple[VariantSpec, ...] | None = None
+    num_train_epochs: float = 2.0
+    curve_mode: str = "rl_vs_sft"
+
+
+@dataclass(frozen=True)
+class CurveGroupSpec:
+    dataset: str
+    title: str
+    asset_name: str
+    figure_label: str
+    caption: str
+    table_caption: str
+    table_label: str
+    sft_model_dir: str
+    total_max_step: int
+    variants: tuple[VariantSpec, ...]
+    num_train_epochs: float = 2.0
+
+
+DATASET_SPECS = (
+    DatasetSpec(
+        dataset="Instruments",
+        variants=(
+            VariantSpec("GenRec(sft)", "Instruments-grec-sft-qwen4B-4-256-dsz0"),
+            VariantSpec(
+                "GenRec(rule)",
+                "Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495",
+                is_rl=True,
+                first_epoch_max_step=1663,
+            ),
+            VariantSpec(
+                "GenRec(ranking)",
+                "Instruments-grec-grpo-qwen2.5-3b-qwen4B-4-256-from-sft495",
+                is_rl=True,
+                first_epoch_max_step=1663,
+            ),
+            VariantSpec(
+                "GenRec(fixed)",
+                "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
+                is_rl=True,
+                first_epoch_max_step=1663,
+            ),
+            VariantSpec(
+                "GenRec(fixed + ce0.005)",
+                "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-3-sft495",
+                is_rl=True,
+                first_epoch_max_step=1663,
+            ),
+        ),
+        overall_best_variants=(
+            VariantSpec("GenRec(sft)", "Instruments-grec-sft-qwen4B-4-256-dsz0"),
+            VariantSpec(
+                "GenRec(rule)",
+                "Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495",
+                is_rl=True,
+                first_epoch_max_step=1663,
+            ),
+            VariantSpec(
+                "GenRec(ranking)",
+                "Instruments-grec-grpo-qwen2.5-3b-qwen4B-4-256-from-sft495",
+                is_rl=True,
+                first_epoch_max_step=1663,
+            ),
+            VariantSpec(
+                "GenRec(fixed)",
+                "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
+                is_rl=True,
+                first_epoch_max_step=1663,
+            ),
+            VariantSpec(
+                "GenRec(fixed + ce0.001)",
+                "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-2-sft495",
+                is_rl=True,
+                first_epoch_max_step=1663,
+            ),
+            VariantSpec(
+                "GenRec(fixed + ce0.005)",
+                "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-3-sft495",
+                is_rl=True,
+                first_epoch_max_step=1663,
+            ),
+            VariantSpec(
+                "GenRec(fixed + ce0.01)",
+                "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-4-sft495",
+                is_rl=True,
+                first_epoch_max_step=1663,
+            ),
+        ),
+        caption="Instruments 上仅保留 GenRec 系列方法的结果。",
+        label="tab:genrec-only-instruments",
+        rl_total_max_step=3326,
+    ),
+    DatasetSpec(
+        dataset="Games",
+        variants=(
+            VariantSpec("GenRec(sft)", "Games-grec-sft-qwen4B-4-256-dsz0"),
+            VariantSpec(
+                "GenRec(rule)",
+                "Games-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft896",
+                is_rl=True,
+                first_epoch_max_step=4376,
+            ),
+            VariantSpec(
+                "GenRec(ranking)",
+                "Games-grec-genrec-ndcg-from-sft",
+                is_rl=True,
+                first_epoch_max_step=4376,
+            ),
+            VariantSpec(
+                "GenRec(fixed)",
+                "Games-grec-grpo-rule-only-fixedhint-taskfix-b16-sft896",
+                is_rl=True,
+                first_epoch_max_step=4376,
+            ),
+            VariantSpec(
+                "GenRec(fixed + ce0.005)",
+                "Games-grec-genrec-fixed-ce-from-sft",
+                is_rl=True,
+                first_epoch_max_step=4376,
+            ),
+        ),
+        caption="Games 上当前已测到的 GenRec 系列结果。",
+        label="tab:genrec-only-games",
+        rl_total_max_step=8752,
+    ),
+    DatasetSpec(
+        dataset="Arts",
+        variants=(
+            VariantSpec("GenRec(sft)", "Arts-grec-sft-qwen4B-4-256-dsz0"),
+            VariantSpec(
+                "GenRec(rule)",
+                "Arts-grec-genrec-rule-from-sft",
+                is_rl=True,
+                first_epoch_max_step=2103,
+            ),
+            VariantSpec(
+                "GenRec(ranking)",
+                "Arts-grec-genrec-ndcg-from-sft",
+                is_rl=True,
+                first_epoch_max_step=2103,
+            ),
+            VariantSpec(
+                "GenRec(fixed)",
+                "Arts-grec-genrec-fixed-from-sft",
+                is_rl=True,
+                first_epoch_max_step=2103,
+            ),
+            VariantSpec(
+                "GenRec(fixed + ce0.005)",
+                "Arts-grec-genrec-fixed-ce-from-sft",
+                is_rl=True,
+                first_epoch_max_step=2103,
+            ),
+        ),
+        overall_best_variants=(
+            VariantSpec("GenRec(sft)", "Arts-grec-sft-qwen4B-4-256-dsz0"),
+            VariantSpec(
+                "GenRec(rule)",
+                "Arts-grec-genrec-rule-from-sft",
+                is_rl=True,
+                first_epoch_max_step=2103,
+            ),
+            VariantSpec(
+                "GenRec(ranking)",
+                "Arts-grec-genrec-ndcg-from-sft",
+                is_rl=True,
+                first_epoch_max_step=2103,
+            ),
+            VariantSpec(
+                "GenRec(fixed)",
+                "Arts-grec-genrec-fixed-from-sft",
+                is_rl=True,
+                first_epoch_max_step=2103,
+            ),
+            VariantSpec(
+                "GenRec(fixed + ce0.001)",
+                "Arts-grec-genrec-fixed-ce-0001-from-sft",
+                is_rl=True,
+                first_epoch_max_step=2103,
+            ),
+            VariantSpec(
+                "GenRec(fixed + ce0.005)",
+                "Arts-grec-genrec-fixed-ce-from-sft",
+                is_rl=True,
+                first_epoch_max_step=2103,
+            ),
+            VariantSpec(
+                "GenRec(fixed + ce0.01)",
+                "Arts-grec-genrec-fixed-ce-001-from-sft",
+                is_rl=True,
+                first_epoch_max_step=2103,
+            ),
+        ),
+        caption="Arts 上当前已测到的 GenRec 系列结果。",
+        label="tab:genrec-only-arts",
+        rl_total_max_step=4206,
+    ),
+)
+
+VARIANT_STYLES = {
+    "GenRec(sft)": {"color": "#4B5563", "marker": "o"},
+    "GenRec(rule)": {"color": "#9C755F", "marker": "s"},
+    "GenRec(ranking)": {"color": "#4E79A7", "marker": "o"},
+    "GenRec(fixed)": {"color": "#59A14F", "marker": "^"},
+    "GenRec(fixed + ce0.005)": {"color": "#E15759", "marker": "D"},
+    "Rule-only baseline": {"color": "#9C755F", "marker": "s"},
+    "Ours (3-task)": {"color": "#59A14F", "marker": "^"},
+    "Adaptive hinting": {"color": "#4E79A7", "marker": "o"},
+    "Fixed first-token hint": {"color": "#E15759", "marker": "D"},
+    "Adaptive first-token hint": {"color": "#76B7B2", "marker": "s"},
+    "Adaptive hinting max1": {"color": "#F28E2B", "marker": "P"},
+    "Fixed(no CE)": {"color": "#9C755F", "marker": "s"},
+    "CE=0.001": {"color": "#4E79A7", "marker": "o"},
+    "CE=0.005": {"color": "#E15759", "marker": "D"},
+    "CE=0.01": {"color": "#59A14F", "marker": "^"},
+    "Fixed(taskfix)": {"color": "#F4A261", "marker": "^"},
+    "Fixed(sid-only)": {"color": "#E76F51", "marker": "D"},
+    "Fixed(sid+title+desc)": {"color": "#8D99AE", "marker": "o"},
+}
+
+FIXED_HINT_TASK_VARIANTS = (
+    VariantSpec(
+        "Fixed(taskfix)",
+        "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
+        is_rl=True,
+        curve_total_max_step=3326,
+    ),
+    VariantSpec(
+        "Fixed(sid-only)",
+        "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495",
+        is_rl=True,
+        curve_total_max_step=2652,
+    ),
+    VariantSpec(
+        "Fixed(sid+title+desc)",
+        "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-title-desc-sft495",
+        is_rl=True,
+        curve_total_max_step=3012,
+    ),
+)
+
+FIXED_HINT_TASK_SFT_MODEL_DIR = "Instruments-grec-sft-qwen4B-4-256-dsz0"
+FIXED_HINT_TASK_SECTION_TITLE = "Instruments Fixed-Hint Task Variants"
+FIXED_HINT_TASK_SECTION_INTRO = (
+    r"这一节单独抽出三个 fixed-hint taskfix 变体：默认 \texttt{taskfix}、"
+    r"\texttt{sid-only}、以及 \texttt{sid-title-desc}。"
+    r"三列都在各自完整训练轨迹上按 \texttt{NDCG@10} 选出唯一 best checkpoint；"
+    r"下表整行指标与下图曲线中的颜色一一对应。"
+)
+FIXED_HINT_TASK_TABLE_CAPTION = r"Instruments 上三个 fixed-hint taskfix 变体的整体 best 对比。"
+FIXED_HINT_TASK_TABLE_LABEL = "tab:genrec-only-instruments-fixed-task-variants"
+FIXED_HINT_TASK_CURVE_ASSET_NAME = "genrec-only-instruments-fixed-task-variants-curves.png"
+FIXED_HINT_TASK_FIGURE_LABEL = "fig:genrec-only-instruments-fixed-task-variants-curves"
+
+FOCUSED_METRICS = (
+    "NDCG@10",
+    "HR@10",
+    "NDCG@50",
+    "HR@50",
+)
+
+PREFIX_HINT_SIGNAL_VARIANTS = (
+    VariantSpec("GenRec(sft)", "Instruments-grec-sft-qwen4B-4-256-dsz0"),
+    VariantSpec(
+        "Rule-only baseline",
+        "Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495",
+        is_rl=True,
+    ),
+    VariantSpec(
+        "Adaptive hinting",
+        "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495",
+        is_rl=True,
+        curve_total_max_step=3326,
+    ),
+    VariantSpec(
+        "Ours (3-task)",
+        "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
+        is_rl=True,
+        curve_total_max_step=3326,
+    ),
+)
+
+PREFIX_HINT_2X2_SPEC = CurveGroupSpec(
+    dataset="Instruments",
+    title="Instruments prefix-hint strategy 2x2",
+    asset_name="genrec-only-instruments-prefix-hint-2x2-curves.png",
+    figure_label="fig:genrec-only-instruments-prefix-hint-2x2-curves",
+    caption=(
+        r"Instruments 上 prefix-hint strategy 的 \texttt{2x2} 对比。"
+        r"四条线分别对应 \texttt{Ours(3-task)}、\texttt{Adaptive hinting}、"
+        r"\texttt{Fixed first-token hint} 与 \texttt{Adaptive first-token hint}；"
+        r"横轴统一使用 epoch，其中 dynamic / full fixed 按 \texttt{3326 step = 2 epoch} 归一化，"
+        r"两条 first-token 线按 \texttt{2652 step = 2 epoch} 归一化。"
+    ),
+    table_caption=r"Instruments 上 prefix-hint strategy 的 \texttt{2x2} 对比。",
+    table_label="tab:genrec-only-instruments-prefix-hint-2x2",
+    sft_model_dir="Instruments-grec-sft-qwen4B-4-256-dsz0",
+    total_max_step=3326,
+    variants=(
+        VariantSpec(
+            "Ours (3-task)",
+            "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
+            is_rl=True,
+            curve_total_max_step=3326,
+        ),
+        VariantSpec(
+            "Adaptive hinting",
+            "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495",
+            is_rl=True,
+            curve_total_max_step=3326,
+        ),
+        VariantSpec(
+            "Fixed first-token hint",
+            "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495",
+            is_rl=True,
+            curve_total_max_step=2652,
+        ),
+        VariantSpec(
+            "Adaptive first-token hint",
+            "Instruments-grec-grpo-rule-only-dynamic-hint-sid-only-qwen2.5-3b-qwen4B-4-256-from-sft495",
+            is_rl=True,
+            curve_total_max_step=2652,
+        ),
+    ),
+)
+
+MAX1_ABLATION_SPEC = CurveGroupSpec(
+    dataset="Instruments",
+    title="Instruments prefix budget ablation",
+    asset_name="genrec-only-instruments-max1-ablation-curves.png",
+    figure_label="fig:genrec-only-instruments-max1-ablation-curves",
+    caption=(
+        r"Instruments 上 prefix budget 的 \texttt{max1} 消融。"
+        r"图中比较 \texttt{Rule-only baseline}、\texttt{Adaptive hinting}、"
+        r"\texttt{Adaptive hinting max1} 与 \texttt{Fixed first-token hint}；"
+        r"dynamic 主线按 \texttt{3326 step = 2 epoch} 归一化，"
+        r"\texttt{Fixed first-token hint} 按 \texttt{2652 step = 2 epoch} 归一化。"
+    ),
+    table_caption=r"Instruments 上 prefix budget 的 \texttt{max1} 消融。",
+    table_label="tab:genrec-only-instruments-max1-ablation",
+    sft_model_dir="Instruments-grec-sft-qwen4B-4-256-dsz0",
+    total_max_step=3326,
+    variants=(
+        VariantSpec(
+            "Rule-only baseline",
+            "Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495",
+            is_rl=True,
+            curve_total_max_step=3326,
+        ),
+        VariantSpec(
+            "Adaptive hinting",
+            "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495",
+            is_rl=True,
+            curve_total_max_step=3326,
+        ),
+        VariantSpec(
+            "Adaptive hinting max1",
+            "Instruments-grec-grpo-rule-only-dynamic-hint-max1-qwen2.5-3b-qwen4B-4-256-from-sft495",
+            is_rl=True,
+            curve_total_max_step=3326,
+        ),
+        VariantSpec(
+            "Fixed first-token hint",
+            "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495",
+            is_rl=True,
+            curve_total_max_step=2652,
+        ),
+    ),
+)
+
+LOSS_FULL_SEQUENCE_LAUNCHER = "hope/Instruments-genrec/rl_fixed_full_sequence_sft.sh"
+
+CE_SCALING_SECTION_TITLE = "CE Coefficient Ablations"
+CE_SCALING_SECTION_INTRO = (
+    r"这一节单独比较 fixed family 里的 CE 系数。"
+    r"Arts 侧三条线对应 \texttt{0.001 / 0.005 / 0.01}；"
+    r" Instruments 侧的 \texttt{hintce-2 / hintce-3 / hintce-4} 也对应同样三档系数。"
+)
+
+CE_SCALING_GROUP_SPECS = (
+    CurveGroupSpec(
+        dataset="Arts",
+        title="Arts fixed CE coefficients",
+        asset_name="genrec-only-arts-fixed-ce-coefficients-curves.png",
+        figure_label="fig:genrec-only-arts-fixed-ce-coefficients-curves",
+        caption=(
+            r"Arts 上 fixed CE 系数对比曲线。图中同时保留 \texttt{Fixed(no CE)} 基线，"
+            r"另外三条线分别对应 \texttt{CE=0.001 / 0.005 / 0.01}；"
+            r"横轴按 \texttt{4206 step = 2 epoch} 归一化；"
+            r"虚线表示 \texttt{GenRec(sft)} 的整体 best，竖向点线表示第一个 epoch 的 cutoff。"
+        ),
+        table_caption=r"Arts 上 fixed CE 系数对比（含无 CE baseline）。",
+        table_label="tab:genrec-only-arts-fixed-ce-coefficients",
+        sft_model_dir="Arts-grec-sft-qwen4B-4-256-dsz0",
+        total_max_step=4206,
+        variants=(
+            VariantSpec("Fixed(no CE)", "Arts-grec-genrec-fixed-from-sft", is_rl=True),
+            VariantSpec("CE=0.001", "Arts-grec-genrec-fixed-ce-0001-from-sft", is_rl=True),
+            VariantSpec("CE=0.005", "Arts-grec-genrec-fixed-ce-from-sft", is_rl=True),
+            VariantSpec("CE=0.01", "Arts-grec-genrec-fixed-ce-001-from-sft", is_rl=True),
+        ),
+    ),
+    CurveGroupSpec(
+        dataset="Instruments",
+        title="Instruments fixed CE coefficients",
+        asset_name="genrec-only-instruments-fixed-ce-coefficients-curves.png",
+        figure_label="fig:genrec-only-instruments-fixed-ce-coefficients-curves",
+        caption=(
+            r"Instruments 上 fixed-hint CE 系数对比曲线。图中同时保留 \texttt{Fixed(no CE)} 基线，"
+            r"另外三条线分别对应 \texttt{CE=0.001 / 0.005 / 0.01}；"
+            r"横轴按 \texttt{3326 step = 2 epoch} 归一化；"
+            r"虚线表示 \texttt{GenRec(sft)} 的整体 best，竖向点线表示第一个 epoch 的 cutoff。"
+        ),
+        table_caption=r"Instruments 上 fixed-hint CE 系数对比（含无 CE baseline）。",
+        table_label="tab:genrec-only-instruments-fixed-ce-coefficients",
+        sft_model_dir="Instruments-grec-sft-qwen4B-4-256-dsz0",
+        total_max_step=3326,
+        variants=(
+            VariantSpec(
+                "Fixed(no CE)",
+                "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
+                is_rl=True,
+            ),
+            VariantSpec(
+                "CE=0.001",
+                "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-2-sft495",
+                is_rl=True,
+            ),
+            VariantSpec(
+                "CE=0.005",
+                "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-3-sft495",
+                is_rl=True,
+            ),
+            VariantSpec(
+                "CE=0.01",
+                "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-4-sft495",
+                is_rl=True,
+            ),
+        ),
+    ),
+)
+
+
+def checkpoint_step(name: str) -> int:
+    match = re.search(r"checkpoint-(\d+)", name)
+    if not match:
+        return -1
+    return int(match.group(1))
+
+
+def read_metrics_json(path: Path) -> dict[str, float]:
+    with path.open() as f:
+        data = json.load(f)
+    return {key: float(value) for key, value in data.items()}
+
+
+def collect_metrics_dir(model_dir: str) -> list[tuple[str, dict[str, float]]]:
+    root = RESULTS_DIR / model_dir
+    if not root.exists():
+        return []
+    direct_metrics_path = root / "metrics.json"
+    if direct_metrics_path.exists():
+        return [(root.name, read_metrics_json(direct_metrics_path))]
+
+    entries: list[tuple[str, dict[str, float]]] = []
+    for ckpt_dir in sorted(root.glob("checkpoint-*"), key=lambda path: checkpoint_step(path.name)):
+        metrics_path = ckpt_dir / "metrics.json"
+        if metrics_path.exists():
+            entries.append((ckpt_dir.name, read_metrics_json(metrics_path)))
+    return entries
+
+
+def resolve_model_dir_best(model_dir: str) -> tuple[str, dict[str, float]] | None:
+    return select_best(collect_metrics_dir(model_dir))
+
+
+def select_best(entries: list[tuple[str, dict[str, float]]]) -> tuple[str, dict[str, float]] | None:
+    if not entries:
+        return None
+    return max(entries, key=lambda item: (item[1].get("NDCG@10", float("-inf")), checkpoint_step(item[0])))
+
+
+def checkpoint_epoch(step: int, max_step: int, num_train_epochs: float) -> float:
+    if step <= 0 or max_step <= 0:
+        return float("nan")
+    return step / max_step * num_train_epochs
+
+
+def maybe_value(metrics: dict[str, float], key: str) -> float | None:
+    value = metrics.get(key)
+    if value is None or math.isnan(value):
+        return None
+    return value
+
+
+def fmt_metric(value: float | None) -> str:
+    if value is None:
+        return r"\textemdash"
+    return f"{value:.4f}"
+
+
+def fmt_checkpoint_name(checkpoint_name: str) -> str:
+    return r"\texttt{" + checkpoint_name + "}"
+
+
+def select_rl_first_epoch_best(
+    variant: VariantSpec, entries: list[tuple[str, dict[str, float]]]
+) -> tuple[str, dict[str, float]] | None:
+    if not entries:
+        return None
+    if not variant.is_rl or variant.first_epoch_max_step is None:
+        return select_best(entries)
+
+    first_epoch_entries = [entry for entry in entries if checkpoint_step(entry[0]) <= variant.first_epoch_max_step]
+    return select_best(first_epoch_entries)
+
+
+def resolve_variants(
+    variants: tuple[VariantSpec, ...],
+    *,
+    rl_first_epoch_only: bool = False,
+) -> list[tuple[VariantSpec, str, dict[str, float]]]:
+    resolved: list[tuple[VariantSpec, str, dict[str, float]]] = []
+    for variant in variants:
+        entries = collect_metrics_dir(variant.model_dir)
+        best = select_rl_first_epoch_best(variant, entries) if rl_first_epoch_only else select_best(entries)
+        if best is None:
+            continue
+        checkpoint_name, metrics = best
+        resolved.append((variant, checkpoint_name, metrics))
+    return resolved
+
+
+def resolve_dataset(
+    spec: DatasetSpec,
+    *,
+    variants: tuple[VariantSpec, ...] | None = None,
+    rl_first_epoch_only: bool = False,
+) -> list[tuple[VariantSpec, str, dict[str, float]]]:
+    return resolve_variants(variants or spec.variants, rl_first_epoch_only=rl_first_epoch_only)
+
+
+def resolve_variant_best(
+    spec: DatasetSpec,
+    column_name: str,
+    *,
+    rl_first_epoch_only: bool = False,
+) -> tuple[VariantSpec, str, dict[str, float]] | None:
+    resolved = resolve_dataset(spec, rl_first_epoch_only=rl_first_epoch_only)
+    for variant, checkpoint_name, metrics in resolved:
+        if variant.column_name == column_name:
+            return variant, checkpoint_name, metrics
+    return None
+
+
+def rl_first_epoch_limit(spec: DatasetSpec) -> int | None:
+    limits = [variant.first_epoch_max_step for variant in spec.variants if variant.is_rl and variant.first_epoch_max_step]
+    if not limits:
+        return None
+    return max(limits)
+
+
+def has_rl_variants(spec: DatasetSpec) -> bool:
+    return any(variant.is_rl for variant in spec.variants)
+
+
+def collect_variant_curve_points(
+    variant: VariantSpec,
+    *,
+    total_max_step: int | None = None,
+    num_train_epochs: float = 2.0,
+) -> list[dict[str, object]]:
+    points: list[dict[str, object]] = []
+    curve_max_step = variant.curve_total_max_step or total_max_step
+    for checkpoint_name, metrics in collect_metrics_dir(variant.model_dir):
+        step = checkpoint_step(checkpoint_name)
+        if step < 0:
+            continue
+        effective_max_step = curve_max_step or step
+        points.append(
+            {
+                "checkpoint": checkpoint_name,
+                "step": step,
+                "epoch": checkpoint_epoch(step, effective_max_step, num_train_epochs),
+                "metrics": metrics,
+            }
+        )
+    return points
+
+
+def collect_rl_curve_series(spec: DatasetSpec) -> list[tuple[VariantSpec, list[dict[str, object]]]]:
+    series: list[tuple[VariantSpec, list[dict[str, object]]]] = []
+    for variant in spec.variants:
+        if not variant.is_rl:
+            continue
+        points = collect_variant_curve_points(
+            variant,
+            total_max_step=spec.rl_total_max_step,
+            num_train_epochs=spec.num_train_epochs,
+        )
+        if points:
+            series.append((variant, points))
+    return series
+
+
+def get_matplotlib_pyplot():
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except ModuleNotFoundError as exc:
+        raise SystemExit(
+            "matplotlib is required to build checkpoint curves. "
+            "Run `uv run --no-project --with matplotlib python docs/baseline/table/build_genrec_only_tables.py` "
+            "or install matplotlib in the active Python environment."
+        ) from exc
+
+    return plt
+
+
+def build_rl_curve_asset(spec: DatasetSpec) -> Path | None:
+    sft_best = resolve_variant_best(spec, "GenRec(sft)")
+    rl_series = collect_rl_curve_series(spec)
+    if sft_best is None or not rl_series:
+        return None
+
+    _, sft_checkpoint, sft_metrics = sft_best
+    plt = get_matplotlib_pyplot()
+    ASSET_DIR.mkdir(parents=True, exist_ok=True)
+    asset_path = ASSET_DIR / f"genrec-only-{spec.dataset.lower()}-curves.png"
+
+    fig, axes = plt.subplots(5, 2, figsize=(11.6, 14.0), sharex=True)
+    axes_flat = list(axes.flat)
+
+    for ax, metric in zip(axes_flat, METRICS):
+        for variant, points in rl_series:
+            xs: list[float] = []
+            ys: list[float] = []
+            for point in points:
+                value = maybe_value(point["metrics"], metric)  # type: ignore[arg-type]
+                if value is None:
+                    continue
+                xs.append(float(point["epoch"]))  # type: ignore[arg-type]
+                ys.append(value)
+
+            style = VARIANT_STYLES.get(variant.column_name, {"color": "#4B5563", "marker": "o"})
+            ax.plot(
+                xs,
+                ys,
+                color=style["color"],
+                marker=style["marker"],
+                linewidth=2.0,
+                markersize=4.5,
+                label=variant.column_name,
+            )
+
+        sft_value = maybe_value(sft_metrics, metric)
+        if sft_value is not None:
+            ax.axhline(
+                sft_value,
+                linestyle="--",
+                linewidth=1.4,
+                color="#6B7280",
+                label=f"GenRec(sft) best ({sft_checkpoint})",
+            )
+
+        ax.axvline(
+            1.0,
+            linestyle=":",
+            linewidth=1.2,
+            color="#111827",
+            alpha=0.7,
+            label="Epoch 1 cutoff",
+        )
+        ax.set_title(metric)
+        ax.set_xlabel("Epoch")
+        ax.set_ylabel(metric)
+        ax.set_xlim(0.0, spec.num_train_epochs)
+        ax.grid(alpha=0.22)
+
+    for ax in axes_flat[len(METRICS):]:
+        ax.axis("off")
+
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    unique: dict[str, object] = {}
+    for handle, label in zip(handles, labels, strict=False):
+        if label not in unique:
+            unique[label] = handle
+
+    legend_cols = 3
+    legend_rows = math.ceil(len(unique) / legend_cols) if unique else 1
+    legend_y = 1.012 if legend_rows > 1 else 0.992
+    suptitle_y = 0.95 if legend_rows > 1 else 0.965
+    tight_layout_top = 0.905 if legend_rows > 1 else 0.94
+
+    fig.legend(
+        unique.values(),
+        unique.keys(),
+        loc="upper center",
+        bbox_to_anchor=(0.5, legend_y),
+        ncol=legend_cols,
+        frameon=False,
+    )
+    fig.suptitle(f"{spec.dataset} GenRec checkpoint curves by metric", y=suptitle_y)
+    fig.tight_layout(rect=(0, 0, 1, tight_layout_top))
+    fig.savefig(asset_path, dpi=180)
+    plt.close(fig)
+    return asset_path
+
+
+def build_sft_curve_asset(spec: DatasetSpec) -> Path | None:
+    sft_best = resolve_variant_best(spec, "GenRec(sft)")
+    if sft_best is None:
+        return None
+
+    variant, sft_checkpoint, sft_metrics = sft_best
+    entries = collect_metrics_dir(variant.model_dir)
+    if not entries:
+        return None
+
+    plt = get_matplotlib_pyplot()
+    ASSET_DIR.mkdir(parents=True, exist_ok=True)
+    asset_path = ASSET_DIR / f"genrec-only-{spec.dataset.lower()}-sft-curves.png"
+    style = VARIANT_STYLES["GenRec(sft)"]
+
+    num_cols = 2
+    num_rows = math.ceil(len(SFT_CURVE_METRICS) / num_cols)
+    fig, axes = plt.subplots(num_rows, num_cols, figsize=(11.2, 15.0), sharex=True)
+    axes_flat = list(axes.flat)
+
+    for ax, metric in zip(axes_flat, SFT_CURVE_METRICS):
+        xs: list[int] = []
+        ys: list[float] = []
+        for checkpoint_name, metrics in entries:
+            value = maybe_value(metrics, metric)
+            step = checkpoint_step(checkpoint_name)
+            if value is None or step < 0:
+                continue
+            xs.append(step)
+            ys.append(value)
+
+        if not xs:
+            ax.axis("off")
+            continue
+
+        ax.plot(
+            xs,
+            ys,
+            color=style["color"],
+            marker=style["marker"],
+            linewidth=2.0,
+            markersize=4.5,
+            label="GenRec(sft)",
+        )
+        best_value = maybe_value(sft_metrics, metric)
+        if best_value is not None:
+            ax.axhline(
+                best_value,
+                linestyle="--",
+                linewidth=1.4,
+                color="#6B7280",
+                label=f"SFT best ({sft_checkpoint})",
+            )
+        best_step = checkpoint_step(sft_checkpoint)
+        if best_step >= 0:
+            ax.axvline(
+                best_step,
+                linestyle=":",
+                linewidth=1.2,
+                color="#111827",
+                alpha=0.7,
+                label="Best checkpoint",
+            )
+
+        ax.set_title(metric)
+        ax.set_xlabel("Checkpoint step")
+        ax.set_ylabel(metric)
+        ax.set_xlim(0.0, max(xs))
+        ax.grid(alpha=0.22)
+
+    for ax in axes_flat[len(SFT_CURVE_METRICS):]:
+        ax.axis("off")
+
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    unique: dict[str, object] = {}
+    for handle, label in zip(handles, labels, strict=False):
+        if label not in unique:
+            unique[label] = handle
+
+    fig.legend(
+        unique.values(),
+        unique.keys(),
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.992),
+        ncol=3,
+        frameon=False,
+    )
+    fig.suptitle(f"{spec.dataset} GenRec SFT checkpoint curves by metric", y=0.968)
+    fig.tight_layout(rect=(0, 0, 1, 0.94))
+    fig.savefig(asset_path, dpi=180)
+    plt.close(fig)
+    return asset_path
+
+
+def build_curve_asset(spec: DatasetSpec) -> Path | None:
+    if spec.curve_mode == "sft_only":
+        return build_sft_curve_asset(spec)
+    return build_rl_curve_asset(spec)
+
+
+def build_curve_assets() -> dict[str, Path]:
+    assets: dict[str, Path] = {}
+    for spec in DATASET_SPECS:
+        asset = build_curve_asset(spec)
+        if asset is not None:
+            assets[spec.dataset] = asset
+    return assets
+
+
+def build_fixed_hint_task_curve_asset() -> Path | None:
+    sft_best = resolve_model_dir_best(FIXED_HINT_TASK_SFT_MODEL_DIR)
+    if sft_best is None:
+        return None
+
+    sft_checkpoint, sft_metrics = sft_best
+    series: list[tuple[VariantSpec, list[dict[str, object]]]] = []
+    for variant in FIXED_HINT_TASK_VARIANTS:
+        points = collect_variant_curve_points(variant, num_train_epochs=2.0)
+        if points:
+            series.append((variant, points))
+    if not series:
+        return None
+
+    plt = get_matplotlib_pyplot()
+    ASSET_DIR.mkdir(parents=True, exist_ok=True)
+    asset_path = ASSET_DIR / FIXED_HINT_TASK_CURVE_ASSET_NAME
+    fig, axes = plt.subplots(2, 2, figsize=(11.2, 8.2), sharex=True)
+
+    for ax, metric in zip(axes.flat, HEADLINE_CURVE_METRICS, strict=True):
+        for variant, points in series:
+            xs: list[float] = []
+            ys: list[float] = []
+            for point in points:
+                value = maybe_value(point["metrics"], metric)  # type: ignore[arg-type]
+                if value is None:
+                    continue
+                xs.append(float(point["epoch"]))  # type: ignore[arg-type]
+                ys.append(value)
+
+            style = VARIANT_STYLES.get(variant.column_name, {"color": "#4B5563", "marker": "o"})
+            ax.plot(
+                xs,
+                ys,
+                color=style["color"],
+                marker=style["marker"],
+                linewidth=2.0,
+                markersize=4.5,
+                label=variant.column_name,
+            )
+
+        sft_value = maybe_value(sft_metrics, metric)
+        if sft_value is not None:
+            ax.axhline(
+                sft_value,
+                linestyle="--",
+                linewidth=1.4,
+                color="#6B7280",
+                label=f"GenRec(sft) best ({sft_checkpoint})",
+            )
+
+        ax.set_title(metric)
+        ax.set_xlabel("Epoch")
+        ax.set_ylabel(metric)
+        ax.set_xlim(0.0, 2.0)
+        ax.grid(alpha=0.22)
+
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    unique: dict[str, object] = {}
+    for handle, label in zip(handles, labels, strict=False):
+        if label not in unique:
+            unique[label] = handle
+
+    fig.legend(
+        unique.values(),
+        unique.keys(),
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.995),
+        ncol=2,
+        frameon=False,
+    )
+    fig.suptitle("Instruments fixed-hint task variants", y=0.94)
+    fig.tight_layout(rect=(0, 0, 1, 0.885))
+    fig.savefig(asset_path, dpi=180)
+    plt.close(fig)
+    return asset_path
+
+
+def build_curve_group_asset(spec: CurveGroupSpec) -> Path | None:
+    sft_best = resolve_model_dir_best(spec.sft_model_dir)
+    if sft_best is None:
+        return None
+
+    sft_checkpoint, sft_metrics = sft_best
+    series: list[tuple[VariantSpec, list[dict[str, object]]]] = []
+    for variant in spec.variants:
+        points = collect_variant_curve_points(
+            variant,
+            total_max_step=spec.total_max_step,
+            num_train_epochs=spec.num_train_epochs,
+        )
+        if points:
+            series.append((variant, points))
+    if not series:
+        return None
+
+    plt = get_matplotlib_pyplot()
+    ASSET_DIR.mkdir(parents=True, exist_ok=True)
+    asset_path = ASSET_DIR / spec.asset_name
+    fig, axes = plt.subplots(2, 2, figsize=(11.2, 8.2), sharex=True)
+
+    for ax, metric in zip(axes.flat, HEADLINE_CURVE_METRICS, strict=True):
+        for variant, points in series:
+            xs: list[float] = []
+            ys: list[float] = []
+            for point in points:
+                value = maybe_value(point["metrics"], metric)  # type: ignore[arg-type]
+                if value is None:
+                    continue
+                xs.append(float(point["epoch"]))  # type: ignore[arg-type]
+                ys.append(value)
+
+            style = VARIANT_STYLES.get(variant.column_name, {"color": "#4B5563", "marker": "o"})
+            ax.plot(
+                xs,
+                ys,
+                color=style["color"],
+                marker=style["marker"],
+                linewidth=2.0,
+                markersize=4.5,
+                label=variant.column_name,
+            )
+
+        sft_value = maybe_value(sft_metrics, metric)
+        if sft_value is not None:
+            ax.axhline(
+                sft_value,
+                linestyle="--",
+                linewidth=1.4,
+                color="#6B7280",
+                label=f"GenRec(sft) best ({sft_checkpoint})",
+            )
+        ax.axvline(
+            1.0,
+            linestyle=":",
+            linewidth=1.2,
+            color="#111827",
+            alpha=0.7,
+            label="Epoch 1 cutoff",
+        )
+
+        ax.set_title(metric)
+        ax.set_xlabel("Epoch")
+        ax.set_ylabel(metric)
+        ax.set_xlim(0.0, spec.num_train_epochs)
+        ax.grid(alpha=0.22)
+
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    unique: dict[str, object] = {}
+    for handle, label in zip(handles, labels, strict=False):
+        if label not in unique:
+            unique[label] = handle
+
+    fig.legend(
+        unique.values(),
+        unique.keys(),
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.995),
+        ncol=3,
+        frameon=False,
+    )
+    fig.suptitle(spec.title, y=0.94)
+    fig.tight_layout(rect=(0, 0, 1, 0.885))
+    fig.savefig(asset_path, dpi=180)
+    plt.close(fig)
+    return asset_path
+
+
+def build_ce_scaling_assets() -> dict[str, Path]:
+    assets: dict[str, Path] = {}
+    for spec in CE_SCALING_GROUP_SPECS:
+        asset = build_curve_group_asset(spec)
+        if asset is not None:
+            assets[spec.figure_label] = asset
+    return assets
+
+
+def build_optional_curve_group_assets(*specs: CurveGroupSpec) -> dict[str, Path]:
+    assets: dict[str, Path] = {}
+    for spec in specs:
+        asset = build_curve_group_asset(spec)
+        if asset is not None:
+            assets[spec.figure_label] = asset
+    return assets
+
+
+def best_and_second_columns_for_metric(
+    resolved_variants: list[tuple[VariantSpec, str, dict[str, float]]], metric: str
+) -> tuple[set[str], set[str]]:
+    measured: list[tuple[str, float]] = []
+    for variant, _, metrics in resolved_variants:
+        value = maybe_value(metrics, metric)
+        if value is not None:
+            measured.append((variant.column_name, value))
+    if not measured:
+        return set(), set()
+
+    unique_values = sorted({value for _, value in measured}, reverse=True)
+    best_value = unique_values[0]
+    second_value = unique_values[1] if len(unique_values) > 1 else None
+    best_columns = {column_name for column_name, value in measured if abs(value - best_value) < 1e-12}
+    second_columns = (
+        {column_name for column_name, value in measured if abs(value - second_value) < 1e-12}
+        if second_value is not None
+        else set()
+    )
+    return best_columns, second_columns
+
+
+def render_results_table(
+    resolved_variants: list[tuple[VariantSpec, str, dict[str, float]]],
+    *,
+    caption: str,
+    label: str,
+    metrics_list: tuple[str, ...] | list[str] = METRICS,
+) -> str:
+    columns = [variant.column_name for variant, _, _ in resolved_variants]
+    col_spec = "l" + "c" * len(columns)
+    should_resize = len(columns) >= 5
+
+    parts: list[str] = []
+    parts.append(r"\begin{table}[H]")
+    parts.append(r"\centering")
+    parts.append(r"\scriptsize")
+    parts.append(r"\setlength{\tabcolsep}{4pt}")
+    parts.append(r"\renewcommand{\arraystretch}{1.08}")
+    if should_resize:
+        parts.append(r"\resizebox{\textwidth}{!}{%")
+    parts.append(r"\begin{tabular}{" + col_spec + r"}")
+    parts.append(r"\toprule")
+    parts.append("Metric & " + " & ".join(columns) + r" \\")
+    parts.append(r"\midrule")
+
+    for metric in metrics_list:
+        best_columns, second_columns = best_and_second_columns_for_metric(resolved_variants, metric)
+        rendered_cells = []
+        for variant, _, metrics in resolved_variants:
+            text = fmt_metric(maybe_value(metrics, metric))
+            if variant.column_name in best_columns and text != r"\textemdash":
+                text = r"\textbf{" + text + "}"
+            elif variant.column_name in second_columns and text != r"\textemdash":
+                text = r"\underline{" + text + "}"
+            rendered_cells.append(text)
+        parts.append(metric + " & " + " & ".join(rendered_cells) + r" \\")
+
+    parts.append(r"\midrule")
+    parts.append(
+        "Selected ckpt & "
+        + " & ".join(fmt_checkpoint_name(checkpoint_name) for _, checkpoint_name, _ in resolved_variants)
+        + r" \\"
+    )
+    parts.append(r"\bottomrule")
+    parts.append(r"\end{tabular}" + ("%" if should_resize else ""))
+    if should_resize:
+        parts.append(r"}")
+    parts.append(r"\caption{" + caption + r"}")
+    parts.append(r"\label{" + label + r"}")
+    parts.append(r"\end{table}")
+    parts.append("")
+    return "\n".join(parts)
+
+
+def render_heading(level: str, title: str) -> str:
+    return rf"\{level}{{{title}}}"
+
+
+def render_dataset_table(
+    spec: DatasetSpec,
+    resolved_variants: list[tuple[VariantSpec, str, dict[str, float]]],
+    *,
+    caption_suffix: str = "",
+    label_suffix: str = "",
+) -> str:
+    return render_results_table(
+        resolved_variants,
+        caption=spec.caption + caption_suffix,
+        label=spec.label + label_suffix,
+    )
+
+
+def build_section(
+    title: str,
+    intro: str,
+    *,
+    rl_first_epoch_only: bool,
+    caption_suffix: str = "",
+    label_suffix: str = "",
+) -> list[str]:
+    parts: list[str] = []
+    parts.append(render_heading("section", title))
+    parts.append("")
+    parts.append(intro)
+    parts.append("")
+
+    for spec in DATASET_SPECS:
+        if rl_first_epoch_only and not has_rl_variants(spec):
+            continue
+        section_variants = spec.overall_best_variants if not rl_first_epoch_only else None
+        resolved_variants = resolve_dataset(
+            spec,
+            variants=section_variants,
+            rl_first_epoch_only=rl_first_epoch_only,
+        )
+        if resolved_variants:
+            parts.append(render_heading("subsection", spec.dataset))
+            parts.append("")
+            parts.append(
+                render_dataset_table(
+                    spec,
+                    resolved_variants,
+                    caption_suffix=caption_suffix,
+                    label_suffix=label_suffix,
+                )
+            )
+
+    return parts
+
+
+def build_rl_first_epoch_intro() -> str:
+    clauses = [r"这一节只对 RL 变体收紧选点范围："]
+    for spec in DATASET_SPECS:
+        limit = rl_first_epoch_limit(spec)
+        if limit is None:
+            continue
+        clauses.append(rf" {spec.dataset} 的 RL 列只在 \texttt{{checkpoint step <= {limit}}} 内选 best；")
+    clauses.append(
+        r" 非 RL 的 \texttt{GenRec(sft)} 仍保持其整体 best。"
+        r" 每个变体一旦按 \texttt{NDCG@10} 选出 checkpoint，整行指标与最后一行列出的 \texttt{ckpt} 都固定来自这个同一个 checkpoint。"
+    )
+    return "".join(clauses)
+
+
+def render_curve_figure(spec: DatasetSpec, asset_path: Path) -> str:
+    relative_asset_path = asset_path.relative_to(TABLE_DIR).as_posix()
+
+    parts: list[str] = []
+    parts.append(r"\begin{figure}[p]")
+    parts.append(r"\centering")
+    parts.append(r"\includegraphics[width=\textwidth]{" + relative_asset_path + r"}")
+    if spec.curve_mode == "sft_only":
+        sft_best = resolve_variant_best(spec, "GenRec(sft)")
+        best_checkpoint = sft_best[1] if sft_best is not None else "best"
+        parts.append(
+            r"\caption{"
+            + spec.dataset
+            + r" 上 \texttt{GenRec(sft)} 的 checkpoint 曲线。图中统一展示 12 个指标："
+            + r"\texttt{HR@1/3/5/10/20/50} 与 \texttt{NDCG@1/3/5/10/20/50}；"
+            + r"横轴直接使用 checkpoint step；"
+            + rf"虚线和竖向点线共同标出按 \texttt{{NDCG@10}} 选出的整体 best checkpoint（\texttt{{{best_checkpoint}}}）。"
+            + r"}"
+        )
+        parts.append(r"\label{fig:genrec-only-" + spec.dataset.lower() + r"-sft-curves}")
+    else:
+        first_epoch_step = rl_first_epoch_limit(spec) or (spec.rl_total_max_step // 2)
+        parts.append(
+            r"\caption{"
+            + spec.dataset
+            + r" 上 GenRec RL 变体的完整 checkpoint 曲线。图中统一展示 9 个指标："
+            + r"\texttt{HR@1/5/10/20/50} 与 \texttt{NDCG@5/10/20/50}；"
+            + rf"横轴按 {spec.dataset} RL 主线的 \texttt{{{spec.rl_total_max_step} step = {spec.num_train_epochs:.0f} epoch}} 归一化；"
+            + r"虚线表示 \texttt{GenRec(sft)} 的整体 best，"
+            + rf"竖向点线表示第一个 epoch 的 cutoff（\texttt{{step <= {first_epoch_step}}}）。"
+            + r"}"
+        )
+        parts.append(r"\label{fig:genrec-only-" + spec.dataset.lower() + r"-curves}")
+    parts.append(r"\end{figure}")
+    parts.append("")
+    return "\n".join(parts)
+
+
+def build_curve_section(curve_assets: dict[str, Path]) -> list[str]:
+    parts: list[str] = []
+    parts.append(render_heading("section", "Supplementary Full Curves"))
+    parts.append("")
+    parts.append(
+        r"这一节保留完整 checkpoint 曲线，作为 RQ1--RQ4 正文之外的补充证据。"
+        r" Instruments、Games 与 Arts 都保留 RL 全轨迹并标出 first-epoch 边界；"
+        r" 各图中的虚线统一表示 \texttt{GenRec(sft)} 的整体 best。"
+    )
+    parts.append("")
+
+    for spec in DATASET_SPECS:
+        asset_path = curve_assets.get(spec.dataset)
+        if asset_path is not None:
+            parts.append(render_heading("subsection", spec.dataset))
+            parts.append("")
+            parts.append(render_curve_figure(spec, asset_path))
+
+    return parts
+
+
+def render_curve_group_figure(spec: CurveGroupSpec, asset_path: Path) -> str:
+    relative_asset_path = asset_path.relative_to(TABLE_DIR).as_posix()
+
+    parts: list[str] = []
+    parts.append(r"\begin{figure}[p]")
+    parts.append(r"\centering")
+    parts.append(r"\includegraphics[width=\textwidth]{" + relative_asset_path + r"}")
+    parts.append(r"\caption{" + spec.caption + r"}")
+    parts.append(r"\label{" + spec.figure_label + r"}")
+    parts.append(r"\end{figure}")
+    parts.append("")
+    return "\n".join(parts)
+
+
+def build_ce_scaling_section(ce_scaling_assets: dict[str, Path]) -> list[str]:
+    parts: list[str] = []
+    parts.append(render_heading("section", CE_SCALING_SECTION_TITLE))
+    parts.append("")
+    parts.append(CE_SCALING_SECTION_INTRO)
+    parts.append("")
+
+    for spec in CE_SCALING_GROUP_SPECS:
+        resolved_variants = resolve_variants(spec.variants)
+        if resolved_variants:
+            parts.append(render_heading("subsection", spec.dataset))
+            parts.append("")
+            parts.append(
+                render_results_table(
+                    resolved_variants,
+                    caption=spec.table_caption,
+                    label=spec.table_label,
+                )
+            )
+        asset_path = ce_scaling_assets.get(spec.figure_label)
+        if asset_path is not None:
+            parts.append(render_curve_group_figure(spec, asset_path))
+
+    return parts
+
+
+def build_rq2_section(rq2_assets: dict[str, Path]) -> list[str]:
+    parts: list[str] = []
+    parts.append(render_heading("section", "RQ2: Deep Analysis for Prefix Hint"))
+    parts.append("")
+    parts.append(
+        r"这一节聚焦两个问题：其一，hint-conditioned training signal 是否真的有效；"
+        r"其二，prefix hint strategy 在 fixed / adaptive 与 task-aware / first-token 两个轴上如何比较。"
+    )
+    parts.append("")
+
+    parts.append(render_heading("subsection", "Hint-conditioned Training Signal"))
+    parts.append("")
+    parts.append(
+        r"先把问题压缩到最核心的四条线："
+        r"\texttt{GenRec(sft)}、\texttt{Rule-only baseline}、"
+        r"\texttt{Adaptive hinting} 和 \texttt{Ours(3-task)}。"
+    )
+    parts.append("")
+    signal_variants = resolve_variants(PREFIX_HINT_SIGNAL_VARIANTS)
+    if signal_variants:
+        parts.append(
+            render_results_table(
+                signal_variants,
+                caption=r"Instruments 上 hint-conditioned training signal 的第一层证据。",
+                label="tab:genrec-only-instruments-prefix-hint-signal",
+                metrics_list=FOCUSED_METRICS,
+            )
+        )
+    parts.append(
+        r"\texttt{Rule-only baseline} 继续提供最高的无 hint top-10，"
+        r"但 \texttt{Adaptive hinting} 和 \texttt{Ours(3-task)} 都把 coverage 拉回到了 SFT 以上；"
+        r"这说明 prefix hint 的训练信号不是表面装饰，而是会真实改变 RL frontier 的形状。"
+    )
+    parts.append("")
+
+    parts.append(render_heading("subsection", "Hint Strategy 2x2"))
+    parts.append("")
+    parts.append(
+        r"这里把当前最核心的四条 prefix-hint strategy 压缩成一个 \texttt{2x2}。"
+        r"四条线分别是 \texttt{Ours(3-task)}、\texttt{Adaptive hinting}、"
+        r"\texttt{Fixed first-token hint} 和 \texttt{Adaptive first-token hint}。"
+    )
+    parts.append("")
+    prefix_variants = resolve_variants(PREFIX_HINT_2X2_SPEC.variants)
+    if prefix_variants:
+        parts.append(
+            render_results_table(
+                prefix_variants,
+                caption=PREFIX_HINT_2X2_SPEC.table_caption,
+                label=PREFIX_HINT_2X2_SPEC.table_label,
+                metrics_list=FOCUSED_METRICS,
+            )
+        )
+    prefix_asset = rq2_assets.get(PREFIX_HINT_2X2_SPEC.figure_label)
+    if prefix_asset is not None:
+        parts.append(render_curve_group_figure(PREFIX_HINT_2X2_SPEC, prefix_asset))
+
+    parts.append(render_heading("subsection", "Max1 Budget Sensitivity"))
+    parts.append("")
+    parts.append(
+        r"最后单独看 \texttt{max1}：如果只允许 adaptive hint 最多暴露 1 个 prefix token，"
+        r"它会不会退化回 plain \texttt{rule-only}。"
+    )
+    parts.append("")
+    max1_variants = resolve_variants(MAX1_ABLATION_SPEC.variants)
+    if max1_variants:
+        parts.append(
+            render_results_table(
+                max1_variants,
+                caption=MAX1_ABLATION_SPEC.table_caption,
+                label=MAX1_ABLATION_SPEC.table_label,
+                metrics_list=FOCUSED_METRICS,
+            )
+        )
+    max1_asset = rq2_assets.get(MAX1_ABLATION_SPEC.figure_label)
+    if max1_asset is not None:
+        parts.append(render_curve_group_figure(MAX1_ABLATION_SPEC, max1_asset))
+    return parts
+
+
+def render_loss_ablation_table() -> str:
+    parts: list[str] = []
+    parts.append(r"\begin{table}[H]")
+    parts.append(r"\centering")
+    parts.append(r"\scriptsize")
+    parts.append(r"\setlength{\tabcolsep}{4pt}")
+    parts.append(r"\renewcommand{\arraystretch}{1.08}")
+    parts.append(r"\begin{tabular}{p{3.4cm} p{2.4cm} c c p{4.6cm}}")
+    parts.append(r"\toprule")
+    parts.append(r"Loss design & Instruments readout & Best NDCG@10 & Best HR@50 & Status / note \\")
+    parts.append(r"\midrule")
+    parts.append(
+        r"suffix-only GRPO & \texttt{GenRec(fixed)} & 0.0931 & 0.1941 & non-CE fixed baseline \\"
+    )
+    parts.append(
+        r"prefix SFT + suffix-only GRPO & \texttt{fixed+CE} family & 0.0953 & 0.1985 & completed; top-10 best currently comes from \texttt{CE=0.01}, coverage best from \texttt{CE=0.005} \\"
+    )
+    parts.append(
+        r"full-sequence SFT + GRPO & \texttt{running} & \textemdash & \textemdash & 当前仍在跑，稳定结果尚未回填 \\"
+    )
+    parts.append(r"\bottomrule")
+    parts.append(r"\end{tabular}")
+    parts.append(r"\caption{RQ3 中 loss 设计的当前状态表。}")
+    parts.append(r"\label{tab:genrec-only-rq3-loss-design}")
+    parts.append(r"\end{table}")
+    parts.append("")
+    parts.append(
+        r"当前 running 的 full-sequence 线对应 launcher：\texttt{"
+        + LOSS_FULL_SEQUENCE_LAUNCHER.replace("_", r"\_")
+        + r"}。"
+    )
+    parts.append("")
+    return "\n".join(parts)
+
+
+def build_rq3_section(fixed_hint_task_asset: Path | None) -> list[str]:
+    parts: list[str] = []
+    parts.append(render_heading("section", "RQ3: Ablation Study"))
+    parts.append("")
+    parts.append(
+        r"这一节把消融分成两层：训练任务范围，以及 loss 设计。"
+        r"前者只比较当前已经跑完的 three-way fixed prefix variants；"
+        r"后者则把 \texttt{fixed}、\texttt{fixed+CE} 和正在跑的 full-sequence 线并列放进同一张状态表。"
+    )
+    parts.append("")
+
+    parts.append(render_heading("subsection", "Training Task Scope"))
+    parts.append("")
+    parts.append(
+        r"当前已经落地的三档训练数据范围是：\texttt{Ours(3-task)}、"
+        r"\texttt{Fixed first-token hint}，以及当前仓库里实际已跑出的两任务变体 "
+        r"\texttt{Fixed(sid+title+desc)}。"
+    )
+    parts.append("")
+    resolved_variants = resolve_variants(FIXED_HINT_TASK_VARIANTS)
+    if resolved_variants:
+        parts.append(
+            render_results_table(
+                resolved_variants,
+                caption=r"Instruments 上训练任务范围的 three-way ablation。",
+                label="tab:genrec-only-rq3-task-scope",
+                metrics_list=FOCUSED_METRICS,
+            )
+        )
+    if fixed_hint_task_asset is not None:
+        parts.append(render_fixed_hint_task_figure(fixed_hint_task_asset))
+
+    parts.append(render_heading("subsection", "Loss Design"))
+    parts.append("")
+    parts.append(
+        r"loss 层面的比较只保留三种口径："
+        r"\texttt{suffix-only GRPO}、\texttt{prefix SFT + suffix-only GRPO}、"
+        r"以及 \texttt{Full-sequence SFT + GRPO}。"
+    )
+    parts.append("")
+    parts.append(render_loss_ablation_table())
+    return parts
+
+
+def build_rq4_section(ce_scaling_assets: dict[str, Path]) -> list[str]:
+    parts: list[str] = []
+    parts.append(render_heading("section", "RQ4: CE Loss Influence"))
+    parts.append("")
+    parts.append(
+        r"这一节专门分析 fixed CE coefficient 对后训练结果的影响。"
+        r"正文只保留 \texttt{Instruments} 和 \texttt{Arts} 两个数据集上的"
+        r" \texttt{0.001 / 0.005 / 0.01} sweep。"
+    )
+    parts.append("")
+
+    for spec in CE_SCALING_GROUP_SPECS:
+        resolved_variants = resolve_variants(spec.variants)
+        if resolved_variants:
+            parts.append(render_heading("subsection", spec.dataset))
+            parts.append("")
+            parts.append(
+                render_results_table(
+                    resolved_variants,
+                    caption=spec.table_caption,
+                    label=spec.table_label,
+                    metrics_list=FOCUSED_METRICS,
+                )
+            )
+        asset_path = ce_scaling_assets.get(spec.figure_label)
+        if asset_path is not None:
+            parts.append(render_curve_group_figure(spec, asset_path))
+
+    parts.append(render_heading("subsection", "Cross-Dataset Summary"))
+    parts.append("")
+    parts.append(r"\begin{table}[H]")
+    parts.append(r"\centering")
+    parts.append(r"\scriptsize")
+    parts.append(r"\setlength{\tabcolsep}{4pt}")
+    parts.append(r"\renewcommand{\arraystretch}{1.08}")
+    parts.append(r"\begin{tabular}{p{2.0cm} p{3.0cm} p{3.0cm} p{5.0cm}}")
+    parts.append(r"\toprule")
+    parts.append(r"Dataset & Best top-10 coefficient & Best coverage coefficient & Reading \\")
+    parts.append(r"\midrule")
+    parts.append(
+        r"Instruments & \texttt{CE=0.01} & \texttt{CE=0.005} & 大系数继续抬高 long-run top-10，但 coverage 峰值仍出现在中档系数 \\"
+    )
+    parts.append(
+        r"Arts & \texttt{CE=0.005} / no-CE tie & \texttt{CE=0.001} & 小系数更像 mild coverage regularizer，\texttt{CE=0.01} 没有复制 Instruments 的 top-10 收益 \\"
+    )
+    parts.append(r"\bottomrule")
+    parts.append(r"\end{tabular}")
+    parts.append(r"\caption{RQ4 的跨数据集 summary。}")
+    parts.append(r"\label{tab:genrec-only-rq4-cross-dataset-summary}")
+    parts.append(r"\end{table}")
+    parts.append("")
+    return parts
+
+
+def render_fixed_hint_task_figure(asset_path: Path) -> str:
+    relative_asset_path = asset_path.relative_to(TABLE_DIR).as_posix()
+    sft_best = resolve_model_dir_best(FIXED_HINT_TASK_SFT_MODEL_DIR)
+    sft_checkpoint = sft_best[0] if sft_best is not None else "best"
+
+    parts: list[str] = []
+    parts.append(r"\begin{figure}[p]")
+    parts.append(r"\centering")
+    parts.append(r"\includegraphics[width=\textwidth]{" + relative_asset_path + r"}")
+    parts.append(
+        r"\caption{"
+        r"Instruments 上三个 fixed-hint taskfix 变体的 headline checkpoint 曲线。"
+        r"图中展示 \texttt{NDCG@10}、\texttt{HR@10}、\texttt{NDCG@50} 与 \texttt{HR@50}；"
+        r"横轴统一使用 epoch，并分别按 \texttt{3326 / 2652 / 3012 step = 2 epoch} 归一化；"
+        + rf"虚线表示 \texttt{{GenRec(sft)}} 的整体 best（\texttt{{{sft_checkpoint}}}）。"
+        + r"}"
+    )
+    parts.append(r"\label{" + FIXED_HINT_TASK_FIGURE_LABEL + r"}")
+    parts.append(r"\end{figure}")
+    parts.append("")
+    return "\n".join(parts)
+
+
+def build_fixed_hint_task_section(asset_path: Path | None) -> list[str]:
+    parts: list[str] = []
+    parts.append(render_heading("section", FIXED_HINT_TASK_SECTION_TITLE))
+    parts.append("")
+    parts.append(FIXED_HINT_TASK_SECTION_INTRO)
+    parts.append("")
+
+    resolved_variants = resolve_variants(FIXED_HINT_TASK_VARIANTS)
+    if resolved_variants:
+        parts.append(render_heading("subsection", "Overall Best Table"))
+        parts.append("")
+        parts.append(
+            render_results_table(
+                resolved_variants,
+                caption=FIXED_HINT_TASK_TABLE_CAPTION,
+                label=FIXED_HINT_TASK_TABLE_LABEL,
+            )
+        )
+
+    if asset_path is not None:
+        parts.append(render_heading("subsection", "Headline Curves"))
+        parts.append("")
+        parts.append(render_fixed_hint_task_figure(asset_path))
+
+    return parts
+
+
+def build_document(
+    curve_assets: dict[str, Path],
+    fixed_hint_task_asset: Path | None,
+    ce_scaling_assets: dict[str, Path],
+    rq2_assets: dict[str, Path],
+) -> str:
+    parts: list[str] = []
+    parts.append(r"\documentclass[11pt,a4paper]{ctexart}")
+    parts.append("")
+    parts.append(r"\usepackage[margin=2.2cm]{geometry}")
+    parts.append(r"\usepackage{booktabs}")
+    parts.append(r"\usepackage{float}")
+    parts.append(r"\usepackage{graphicx}")
+    parts.append(r"\usepackage[unicode,hidelinks,bookmarksopen,bookmarksdepth=2]{hyperref}")
+    parts.append("")
+    parts.append(r"\begin{document}")
+    parts.append("")
+    parts.append(r"\setcounter{secnumdepth}{2}")
+    parts.append("")
+    parts.append(r"\section{GenRec-Only Tables}")
+    parts.append("")
+    parts.append(
+        r"本文件由 \texttt{build\_genrec\_only\_tables.py} 自动生成。"
+        r"本轮重排按 \texttt{RQ1--RQ4} 组织，只保留当前 index 下已测到的 GenRec 系列结果，"
+        r"并把 full curves / first-epoch tables 统一放到 appendix。"
+    )
+    parts.append("")
+    parts.append(r"\tableofcontents")
+    parts.append(r"\newpage")
+    parts.append("")
+
+    parts.extend(
+        build_section(
+            "RQ1: Overall Performance",
+            r"这一节沿用当前默认口径：每个变体都在其全部已同步 checkpoint 中按 \texttt{NDCG@10} 选出唯一 best checkpoint。"
+            r" Games 仍保留当前已有的主线五列；Instruments 与 Arts 额外纳入 \texttt{ce0.001 / ce0.01}，"
+            r"从而把 overall frontier 一次放全。",
+            rl_first_epoch_only=False,
+        )
+    )
+    parts.extend(build_rq2_section(rq2_assets))
+    parts.extend(build_rq3_section(fixed_hint_task_asset))
+    parts.extend(build_rq4_section(ce_scaling_assets))
+    parts.append(r"\clearpage")
+    parts.append(r"\appendix")
+    parts.append("")
+    parts.extend(build_curve_section(curve_assets))
+    parts.extend(
+        build_section(
+            "RL First-Epoch Best",
+            build_rl_first_epoch_intro(),
+            rl_first_epoch_only=True,
+            caption_suffix=r"（RL 列仅在第一个 epoch 内按 \texttt{NDCG@10} 选 best）。",
+            label_suffix="-rl-first-epoch",
+        )
+    )
+
+    parts.append(r"\end{document}")
+    parts.append("")
+    return "\n".join(parts)
+
+
+def main() -> None:
+    curve_assets = build_curve_assets()
+    fixed_hint_task_asset = build_fixed_hint_task_curve_asset()
+    ce_scaling_assets = build_ce_scaling_assets()
+    rq2_assets = build_optional_curve_group_assets(PREFIX_HINT_2X2_SPEC, MAX1_ABLATION_SPEC)
+    OUTPUT_TEX.write_text(build_document(curve_assets, fixed_hint_task_asset, ce_scaling_assets, rq2_assets))
+
+
+if __name__ == "__main__":
+    main()

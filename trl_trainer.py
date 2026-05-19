@@ -10,8 +10,8 @@ from transformers.trainer_utils import get_last_checkpoint
 from trl import GRPOTrainer
 
 from cli_utils import coerce_bool_arg, format_typed_value
-from fixed_hint_utils import apply_fixed_hint_depth_to_example, load_fixed_hint_depth_map
 from fixed_hint_grpo_trainer import DynamicHintRuleOnlyGRPOTrainer, FixedHintRuleOnlyGRPOTrainer
+from fixed_hint_utils import apply_fixed_hint_depth_to_example, load_fixed_hint_depth_map
 from MIMIGenRec import MIMIGenRec, get_grpo_config
 from rewards.ranking_reward import build_reward_setup
 from token_prefix_grpo_trainer import TokenPrefixGRPOTrainer
@@ -256,7 +256,9 @@ def main(
         fixed_hint_map = load_fixed_hint_depth_map(fixed_hint_depth_map_path)
         resolved_fixed_hint_task_names = _parse_task_names(fixed_hint_task_names)
         if resolved_fixed_hint_task_names is not None:
-            unknown_fixed_hint_task_names = sorted(set(resolved_fixed_hint_task_names) - set(train_available_task_names))
+            unknown_fixed_hint_task_names = sorted(
+                set(resolved_fixed_hint_task_names) - set(train_available_task_names)
+            )
             if unknown_fixed_hint_task_names:
                 raise ValueError(
                     "unknown fixed-hint task names: "
@@ -288,7 +290,9 @@ def main(
         if fixed_hint_apply_to_eval:
             eval_dataset = eval_dataset.map(_inject_hint, desc="Inject fixed oracle hints into eval dataset")
         else:
-            eval_dataset = eval_dataset.map(_build_zero_hint_example, desc="Attach zero-depth fixed hint metadata to eval dataset")
+            eval_dataset = eval_dataset.map(
+                _build_zero_hint_example, desc="Attach zero-depth fixed hint metadata to eval dataset"
+            )
 
         train_hint_depths = train_dataset["oracle_hint_depth"]
         hint_depth_hist = {depth: train_hint_depths.count(depth) for depth in sorted(set(train_hint_depths))}
