@@ -128,10 +128,15 @@ Selected ckpt & \texttt{checkpoint-522} & \texttt{checkpoint-2105} & \texttt{che
 \toprule
 Metric & GenRec(sft) & Rule-only baseline & Adaptive hinting & Ours (3-task) \\
 \midrule
-NDCG@10 & 0.0823 & \textbf{0.0960} & \underline{0.0936} & 0.0931 \\
+HR@1 & 0.0588 & \textbf{0.0788} & \underline{0.0760} & 0.0722 \\
+HR@5 & 0.0932 & \textbf{0.1027} & 0.0997 & \underline{0.1014} \\
 HR@10 & 0.1094 & \underline{0.1179} & 0.1169 & \textbf{0.1189} \\
-NDCG@50 & 0.0985 & 0.1070 & \underline{0.1083} & \textbf{0.1094} \\
+HR@20 & 0.1344 & 0.1373 & \underline{0.1394} & \textbf{0.1447} \\
 HR@50 & 0.1844 & 0.1681 & \underline{0.1855} & \textbf{0.1941} \\
+NDCG@5 & 0.0771 & \textbf{0.0911} & \underline{0.0880} & 0.0875 \\
+NDCG@10 & 0.0823 & \textbf{0.0960} & \underline{0.0936} & 0.0931 \\
+NDCG@20 & 0.0886 & \textbf{0.1009} & 0.0992 & \underline{0.0995} \\
+NDCG@50 & 0.0985 & 0.1070 & \underline{0.1083} & \textbf{0.1094} \\
 \midrule
 Selected ckpt & \texttt{checkpoint-495} & \texttt{checkpoint-2997} & \texttt{checkpoint-2997} & \texttt{checkpoint-2997} \\
 \bottomrule
@@ -142,41 +147,9 @@ Selected ckpt & \texttt{checkpoint-495} & \texttt{checkpoint-2997} & \texttt{che
 
 \texttt{Rule-only baseline} 继续提供最高的无 hint top-10，但 \texttt{Adaptive hinting} 和 \texttt{Ours(3-task)} 都把 coverage 拉回到了 SFT 以上；这说明 prefix hint 的训练信号不是表面装饰，而是会真实改变 RL frontier 的形状。
 
-\subsection{Hint Strategy 2x2}
+\subsection{Hint Strategy Comparison}
 
-这里把当前最核心的四条 prefix-hint strategy 压缩成一个 \texttt{2x2}。四条线分别是 \texttt{Ours(3-task)}、\texttt{Adaptive hinting}、\texttt{Fixed first-token hint} 和 \texttt{Adaptive first-token hint}。
-
-\begin{table}[H]
-\centering
-\scriptsize
-\setlength{\tabcolsep}{4pt}
-\renewcommand{\arraystretch}{1.08}
-\begin{tabular}{lcccc}
-\toprule
-Metric & Ours (3-task) & Adaptive hinting & Fixed first-token hint & Adaptive first-token hint \\
-\midrule
-NDCG@10 & 0.0931 & \underline{0.0936} & \textbf{0.0945} & 0.0921 \\
-HR@10 & \underline{0.1189} & 0.1169 & \textbf{0.1205} & 0.1155 \\
-NDCG@50 & \underline{0.1094} & 0.1083 & \textbf{0.1103} & 0.1065 \\
-HR@50 & \textbf{0.1941} & 0.1855 & \underline{0.1935} & 0.1830 \\
-\midrule
-Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-2997} & \texttt{checkpoint-2652} & \texttt{checkpoint-2394} \\
-\bottomrule
-\end{tabular}
-\caption{Instruments 上 prefix-hint strategy 的 \texttt{2x2} 对比。}
-\label{tab:genrec-only-instruments-prefix-hint-2x2}
-\end{table}
-
-\begin{figure}[p]
-\centering
-\includegraphics[width=\textwidth]{assets/genrec-only-instruments-prefix-hint-2x2-curves.png}
-\caption{Instruments 上 prefix-hint strategy 的 \texttt{2x2} 对比。四条线分别对应 \texttt{Ours(3-task)}、\texttt{Adaptive hinting}、\texttt{Fixed first-token hint} 与 \texttt{Adaptive first-token hint}；横轴统一使用 epoch，其中 dynamic / full fixed 按 \texttt{3326 step = 2 epoch} 归一化，两条 first-token 线按 \texttt{2652 step = 2 epoch} 归一化。}
-\label{fig:genrec-only-instruments-prefix-hint-2x2-curves}
-\end{figure}
-
-\subsection{Max1 Budget Sensitivity}
-
-最后单独看 \texttt{max1}：如果只允许 adaptive hint 最多暴露 1 个 prefix token，它会不会退化回 plain \texttt{rule-only}。
+这里直接比较四条你当前最关心的线：\texttt{Ours(fixed hint)}、\texttt{dynamic hint}、\texttt{fixed hint max1} 与 \texttt{dynamic hint max1}。这组对照把 fixed / dynamic 与 full-hint / max1 两个轴放进同一张表。
 
 \begin{table}[H]
 \centering
@@ -185,25 +158,30 @@ Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-2997} & \texttt{ch
 \renewcommand{\arraystretch}{1.08}
 \begin{tabular}{lcccc}
 \toprule
-Metric & Rule-only baseline & Adaptive hinting & Adaptive hinting max1 & Fixed first-token hint \\
+Metric & Ours (fixed hint) & Dynamic hint & Fixed hint max1 & Dynamic hint max1 \\
 \midrule
-NDCG@10 & \textbf{0.0960} & 0.0936 & 0.0934 & \underline{0.0945} \\
-HR@10 & \underline{0.1179} & 0.1169 & 0.1158 & \textbf{0.1205} \\
-NDCG@50 & 0.1070 & 0.1083 & \underline{0.1095} & \textbf{0.1103} \\
-HR@50 & 0.1681 & 0.1855 & \underline{0.1905} & \textbf{0.1935} \\
+HR@1 & 0.0722 & \underline{0.0760} & 0.0743 & \textbf{0.0761} \\
+HR@5 & \underline{0.1014} & 0.0997 & \textbf{0.1017} & 0.0992 \\
+HR@10 & \underline{0.1189} & 0.1169 & \textbf{0.1205} & 0.1158 \\
+HR@20 & \underline{0.1447} & 0.1394 & \textbf{0.1456} & 0.1402 \\
+HR@50 & \textbf{0.1941} & 0.1855 & \underline{0.1935} & 0.1905 \\
+NDCG@5 & 0.0875 & 0.0880 & \textbf{0.0885} & \underline{0.0881} \\
+NDCG@10 & 0.0931 & \underline{0.0936} & \textbf{0.0945} & 0.0934 \\
+NDCG@20 & \underline{0.0995} & 0.0992 & \textbf{0.1008} & \underline{0.0995} \\
+NDCG@50 & 0.1094 & 0.1083 & \textbf{0.1103} & \underline{0.1095} \\
 \midrule
-Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-2997} & \texttt{checkpoint-1332} & \texttt{checkpoint-2652} \\
+Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-2997} & \texttt{checkpoint-2652} & \texttt{checkpoint-1332} \\
 \bottomrule
 \end{tabular}
-\caption{Instruments 上 prefix budget 的 \texttt{max1} 消融。}
-\label{tab:genrec-only-instruments-max1-ablation}
+\caption{Instruments 上 \texttt{Ours(fixed hint)}、\texttt{dynamic hint}、\texttt{fixed hint max1} 与 \texttt{dynamic hint max1} 的对比。}
+\label{tab:genrec-only-instruments-hint-comparison}
 \end{table}
 
 \begin{figure}[p]
 \centering
-\includegraphics[width=\textwidth]{assets/genrec-only-instruments-max1-ablation-curves.png}
-\caption{Instruments 上 prefix budget 的 \texttt{max1} 消融。图中比较 \texttt{Rule-only baseline}、\texttt{Adaptive hinting}、\texttt{Adaptive hinting max1} 与 \texttt{Fixed first-token hint}；dynamic 主线按 \texttt{3326 step = 2 epoch} 归一化，\texttt{Fixed first-token hint} 按 \texttt{2652 step = 2 epoch} 归一化。}
-\label{fig:genrec-only-instruments-max1-ablation-curves}
+\includegraphics[width=\textwidth]{assets/genrec-only-instruments-hint-comparison-curves.png}
+\caption{Instruments 上 \texttt{Ours(fixed hint)}、\texttt{dynamic hint}、\texttt{fixed hint max1} 与 \texttt{dynamic hint max1} 的完整曲线对比。图中统一展示 9 个指标；横轴统一使用 epoch，其中 full hint / dynamic 主线按 \texttt{3326 step = 2 epoch} 归一化，\texttt{fixed hint max1} 按 \texttt{2652 step = 2 epoch} 归一化。}
+\label{fig:genrec-only-instruments-hint-comparison-curves}
 \end{figure}
 
 \section{RQ3: Ablation Study}
@@ -223,10 +201,15 @@ Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-2997} & \texttt{ch
 \toprule
 Metric & Fixed(taskfix) & Fixed(sid-only) & Fixed(sid+title+desc) \\
 \midrule
-NDCG@10 & 0.0931 & \textbf{0.0945} & \underline{0.0939} \\
+HR@1 & 0.0722 & \underline{0.0743} & \textbf{0.0758} \\
+HR@5 & \underline{0.1014} & \textbf{0.1017} & 0.1001 \\
 HR@10 & \underline{0.1189} & \textbf{0.1205} & 0.1169 \\
-NDCG@50 & 0.1094 & \textbf{0.1103} & \underline{0.1098} \\
+HR@20 & \underline{0.1447} & \textbf{0.1456} & 0.1416 \\
 HR@50 & \textbf{0.1941} & \underline{0.1935} & 0.1905 \\
+NDCG@5 & \underline{0.0875} & \textbf{0.0885} & \textbf{0.0885} \\
+NDCG@10 & 0.0931 & \textbf{0.0945} & \underline{0.0939} \\
+NDCG@20 & 0.0995 & \textbf{0.1008} & \underline{0.1001} \\
+NDCG@50 & 0.1094 & \textbf{0.1103} & \underline{0.1098} \\
 \midrule
 Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-2652} & \texttt{checkpoint-3012} \\
 \bottomrule
@@ -238,7 +221,7 @@ Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-2652} & \texttt{ch
 \begin{figure}[p]
 \centering
 \includegraphics[width=\textwidth]{assets/genrec-only-instruments-fixed-task-variants-curves.png}
-\caption{Instruments 上三个 fixed-hint taskfix 变体的 headline checkpoint 曲线。图中展示 \texttt{NDCG@10}、\texttt{HR@10}、\texttt{NDCG@50} 与 \texttt{HR@50}；横轴统一使用 epoch，并分别按 \texttt{3326 / 2652 / 3012 step = 2 epoch} 归一化；虚线表示 \texttt{GenRec(sft)} 的整体 best（\texttt{checkpoint-495}）。}
+\caption{Instruments 上三个 fixed-hint taskfix 变体的完整 checkpoint 曲线。图中统一展示 9 个指标：\texttt{HR@1/5/10/20/50} 与 \texttt{NDCG@5/10/20/50}；横轴统一使用 epoch，并分别按 \texttt{3326 / 2652 / 3012 step = 2 epoch} 归一化；虚线表示 \texttt{GenRec(sft)} 的整体 best（\texttt{checkpoint-495}）。}
 \label{fig:genrec-only-instruments-fixed-task-variants-curves}
 \end{figure}
 
@@ -251,20 +234,30 @@ loss 层面的比较只保留三种口径：\texttt{suffix-only GRPO}、\texttt{
 \scriptsize
 \setlength{\tabcolsep}{4pt}
 \renewcommand{\arraystretch}{1.08}
-\begin{tabular}{p{3.4cm} p{2.4cm} c c p{4.6cm}}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccc}
 \toprule
-Loss design & Instruments readout & Best NDCG@10 & Best HR@50 & Status / note \\
+Metric & Suffix-only GRPO & Prefix SFT + suffix-only GRPO & Full-sequence SFT + GRPO \\
 \midrule
-suffix-only GRPO & \texttt{GenRec(fixed)} & 0.0931 & 0.1941 & non-CE fixed baseline \\
-prefix SFT + suffix-only GRPO & \texttt{fixed+CE} family & 0.0953 & 0.1985 & completed; top-10 best currently comes from \texttt{CE=0.01}, coverage best from \texttt{CE=0.005} \\
-full-sequence SFT + GRPO & \texttt{running} & \textemdash & \textemdash & 当前仍在跑，稳定结果尚未回填 \\
+HR@1 & 0.0722 & 0.0764 & \textemdash \\
+HR@5 & 0.1014 & 0.1009 & \textemdash \\
+HR@10 & 0.1189 & 0.1180 & \textemdash \\
+HR@20 & 0.1447 & 0.1435 & \textemdash \\
+HR@50 & 0.1941 & 0.1985 & \textemdash \\
+NDCG@5 & 0.0875 & 0.0890 & \textemdash \\
+NDCG@10 & 0.0931 & 0.0945 & \textemdash \\
+NDCG@20 & 0.0995 & 0.1009 & \textemdash \\
+NDCG@50 & 0.1094 & 0.1118 & \textemdash \\
+\midrule
+Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-1665} & \texttt{running} \\
 \bottomrule
 \end{tabular}
+}
 \caption{RQ3 中 loss 设计的当前状态表。}
 \label{tab:genrec-only-rq3-loss-design}
 \end{table}
 
-当前 running 的 full-sequence 线对应 launcher：\texttt{hope/Instruments-genrec/rl\_fixed\_full\_sequence\_sft.sh}。
+当前 full-sequence 列仍在跑，对应 launcher：\texttt{hope/Instruments-genrec/rl\_fixed\_full\_sequence\_sft.sh}；已完成的 prefix-SFT 列这里使用 \texttt{CE=0.005} 作为代表性 fixed+CE readout。
 
 \section{RQ4: CE Loss Influence}
 
@@ -281,10 +274,15 @@ full-sequence SFT + GRPO & \texttt{running} & \textemdash & \textemdash & 当前
 \toprule
 Metric & Fixed(no CE) & CE=0.001 & CE=0.005 & CE=0.01 \\
 \midrule
-NDCG@10 & \textbf{0.0956} & 0.0943 & \textbf{0.0956} & \underline{0.0946} \\
+HR@1 & \underline{0.0730} & 0.0710 & 0.0720 & \textbf{0.0734} \\
+HR@5 & \underline{0.1041} & 0.1031 & \textbf{0.1048} & 0.1025 \\
 HR@10 & \underline{0.1248} & 0.1244 & \textbf{0.1257} & 0.1216 \\
-NDCG@50 & \textbf{0.1120} & 0.1114 & \underline{0.1118} & 0.1111 \\
+HR@20 & 0.1504 & \textbf{0.1537} & \underline{0.1518} & 0.1496 \\
 HR@50 & \underline{0.2007} & \textbf{0.2029} & 0.2006 & 0.1978 \\
+NDCG@5 & \textbf{0.0890} & 0.0874 & \underline{0.0889} & 0.0884 \\
+NDCG@10 & \textbf{0.0956} & 0.0943 & \textbf{0.0956} & \underline{0.0946} \\
+NDCG@20 & \textbf{0.1021} & \underline{0.1017} & \textbf{0.1021} & 0.1016 \\
+NDCG@50 & \textbf{0.1120} & 0.1114 & \underline{0.1118} & 0.1111 \\
 \midrule
 Selected ckpt & \texttt{checkpoint-3368} & \texttt{checkpoint-2105} & \texttt{checkpoint-2105} & \texttt{checkpoint-4206} \\
 \bottomrule
@@ -311,10 +309,15 @@ Selected ckpt & \texttt{checkpoint-3368} & \texttt{checkpoint-2105} & \texttt{ch
 \toprule
 Metric & Fixed(no CE) & CE=0.001 & CE=0.005 & CE=0.01 \\
 \midrule
-NDCG@10 & 0.0931 & 0.0931 & \underline{0.0945} & \textbf{0.0953} \\
+HR@1 & 0.0722 & 0.0747 & \textbf{0.0764} & \underline{0.0761} \\
+HR@5 & \underline{0.1014} & 0.0993 & 0.1009 & \textbf{0.1016} \\
 HR@10 & \underline{0.1189} & 0.1168 & 0.1180 & \textbf{0.1204} \\
-NDCG@50 & 0.1094 & 0.1102 & \textbf{0.1118} & \underline{0.1113} \\
+HR@20 & 0.1447 & \underline{0.1449} & 0.1435 & \textbf{0.1456} \\
 HR@50 & 0.1941 & \underline{0.1951} & \textbf{0.1985} & 0.1943 \\
+NDCG@5 & 0.0875 & 0.0875 & \underline{0.0890} & \textbf{0.0893} \\
+NDCG@10 & 0.0931 & 0.0931 & \underline{0.0945} & \textbf{0.0953} \\
+NDCG@20 & 0.0995 & 0.1002 & \underline{0.1009} & \textbf{0.1016} \\
+NDCG@50 & 0.1094 & 0.1102 & \textbf{0.1118} & \underline{0.1113} \\
 \midrule
 Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-2664} & \texttt{checkpoint-1665} & \texttt{checkpoint-2997} \\
 \bottomrule

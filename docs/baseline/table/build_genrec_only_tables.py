@@ -41,12 +41,12 @@ SFT_CURVE_METRICS = [
     "NDCG@50",
 ]
 
-HEADLINE_CURVE_METRICS = [
+HEADLINE_CURVE_METRICS = (
     "NDCG@10",
     "HR@10",
     "NDCG@50",
     "HR@50",
-]
+)
 
 
 @dataclass(frozen=True)
@@ -83,6 +83,7 @@ class CurveGroupSpec:
     total_max_step: int
     variants: tuple[VariantSpec, ...]
     num_train_epochs: float = 2.0
+    curve_metrics: tuple[str, ...] = HEADLINE_CURVE_METRICS
 
 
 DATASET_SPECS = (
@@ -273,10 +274,14 @@ VARIANT_STYLES = {
     "GenRec(fixed + ce0.005)": {"color": "#E15759", "marker": "D"},
     "Rule-only baseline": {"color": "#9C755F", "marker": "s"},
     "Ours (3-task)": {"color": "#59A14F", "marker": "^"},
+    "Ours (fixed hint)": {"color": "#59A14F", "marker": "^"},
     "Adaptive hinting": {"color": "#4E79A7", "marker": "o"},
+    "Dynamic hint": {"color": "#4E79A7", "marker": "o"},
     "Fixed first-token hint": {"color": "#E15759", "marker": "D"},
+    "Fixed hint max1": {"color": "#E15759", "marker": "D"},
     "Adaptive first-token hint": {"color": "#76B7B2", "marker": "s"},
     "Adaptive hinting max1": {"color": "#F28E2B", "marker": "P"},
+    "Dynamic hint max1": {"color": "#F28E2B", "marker": "P"},
     "Fixed(no CE)": {"color": "#9C755F", "marker": "s"},
     "CE=0.001": {"color": "#4E79A7", "marker": "o"},
     "CE=0.005": {"color": "#E15759", "marker": "D"},
@@ -320,13 +325,6 @@ FIXED_HINT_TASK_TABLE_LABEL = "tab:genrec-only-instruments-fixed-task-variants"
 FIXED_HINT_TASK_CURVE_ASSET_NAME = "genrec-only-instruments-fixed-task-variants-curves.png"
 FIXED_HINT_TASK_FIGURE_LABEL = "fig:genrec-only-instruments-fixed-task-variants-curves"
 
-FOCUSED_METRICS = (
-    "NDCG@10",
-    "HR@10",
-    "NDCG@50",
-    "HR@50",
-)
-
 PREFIX_HINT_SIGNAL_VARIANTS = (
     VariantSpec("GenRec(sft)", "Instruments-grec-sft-qwen4B-4-256-dsz0"),
     VariantSpec(
@@ -350,90 +348,47 @@ PREFIX_HINT_SIGNAL_VARIANTS = (
 
 PREFIX_HINT_2X2_SPEC = CurveGroupSpec(
     dataset="Instruments",
-    title="Instruments prefix-hint strategy 2x2",
-    asset_name="genrec-only-instruments-prefix-hint-2x2-curves.png",
-    figure_label="fig:genrec-only-instruments-prefix-hint-2x2-curves",
+    title="Instruments hint comparison",
+    asset_name="genrec-only-instruments-hint-comparison-curves.png",
+    figure_label="fig:genrec-only-instruments-hint-comparison-curves",
     caption=(
-        r"Instruments 上 prefix-hint strategy 的 \texttt{2x2} 对比。"
-        r"四条线分别对应 \texttt{Ours(3-task)}、\texttt{Adaptive hinting}、"
-        r"\texttt{Fixed first-token hint} 与 \texttt{Adaptive first-token hint}；"
-        r"横轴统一使用 epoch，其中 dynamic / full fixed 按 \texttt{3326 step = 2 epoch} 归一化，"
-        r"两条 first-token 线按 \texttt{2652 step = 2 epoch} 归一化。"
+        r"Instruments 上 \texttt{Ours(fixed hint)}、\texttt{dynamic hint}、"
+        r"\texttt{fixed hint max1} 与 \texttt{dynamic hint max1} 的完整曲线对比。"
+        r"图中统一展示 9 个指标；横轴统一使用 epoch，其中"
+        r" full hint / dynamic 主线按 \texttt{3326 step = 2 epoch} 归一化，"
+        r"\texttt{fixed hint max1} 按 \texttt{2652 step = 2 epoch} 归一化。"
     ),
-    table_caption=r"Instruments 上 prefix-hint strategy 的 \texttt{2x2} 对比。",
-    table_label="tab:genrec-only-instruments-prefix-hint-2x2",
+    table_caption=r"Instruments 上 \texttt{Ours(fixed hint)}、\texttt{dynamic hint}、\texttt{fixed hint max1} 与 \texttt{dynamic hint max1} 的对比。",
+    table_label="tab:genrec-only-instruments-hint-comparison",
     sft_model_dir="Instruments-grec-sft-qwen4B-4-256-dsz0",
     total_max_step=3326,
     variants=(
         VariantSpec(
-            "Ours (3-task)",
+            "Ours (fixed hint)",
             "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
             is_rl=True,
             curve_total_max_step=3326,
         ),
         VariantSpec(
-            "Adaptive hinting",
+            "Dynamic hint",
             "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495",
             is_rl=True,
             curve_total_max_step=3326,
         ),
         VariantSpec(
-            "Fixed first-token hint",
+            "Fixed hint max1",
             "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495",
             is_rl=True,
             curve_total_max_step=2652,
         ),
         VariantSpec(
-            "Adaptive first-token hint",
-            "Instruments-grec-grpo-rule-only-dynamic-hint-sid-only-qwen2.5-3b-qwen4B-4-256-from-sft495",
-            is_rl=True,
-            curve_total_max_step=2652,
-        ),
-    ),
-)
-
-MAX1_ABLATION_SPEC = CurveGroupSpec(
-    dataset="Instruments",
-    title="Instruments prefix budget ablation",
-    asset_name="genrec-only-instruments-max1-ablation-curves.png",
-    figure_label="fig:genrec-only-instruments-max1-ablation-curves",
-    caption=(
-        r"Instruments 上 prefix budget 的 \texttt{max1} 消融。"
-        r"图中比较 \texttt{Rule-only baseline}、\texttt{Adaptive hinting}、"
-        r"\texttt{Adaptive hinting max1} 与 \texttt{Fixed first-token hint}；"
-        r"dynamic 主线按 \texttt{3326 step = 2 epoch} 归一化，"
-        r"\texttt{Fixed first-token hint} 按 \texttt{2652 step = 2 epoch} 归一化。"
-    ),
-    table_caption=r"Instruments 上 prefix budget 的 \texttt{max1} 消融。",
-    table_label="tab:genrec-only-instruments-max1-ablation",
-    sft_model_dir="Instruments-grec-sft-qwen4B-4-256-dsz0",
-    total_max_step=3326,
-    variants=(
-        VariantSpec(
-            "Rule-only baseline",
-            "Instruments-grec-grpo-rule-only-rerun-quietlog-qwen2.5-3b-qwen4B-4-256-from-sft495",
-            is_rl=True,
-            curve_total_max_step=3326,
-        ),
-        VariantSpec(
-            "Adaptive hinting",
-            "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495",
-            is_rl=True,
-            curve_total_max_step=3326,
-        ),
-        VariantSpec(
-            "Adaptive hinting max1",
+            "Dynamic hint max1",
             "Instruments-grec-grpo-rule-only-dynamic-hint-max1-qwen2.5-3b-qwen4B-4-256-from-sft495",
             is_rl=True,
             curve_total_max_step=3326,
         ),
-        VariantSpec(
-            "Fixed first-token hint",
-            "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495",
-            is_rl=True,
-            curve_total_max_step=2652,
-        ),
     ),
+    curve_metrics=tuple(METRICS),
 )
 
 LOSS_FULL_SEQUENCE_LAUNCHER = "hope/Instruments-genrec/rl_fixed_full_sequence_sft.sh"
@@ -467,6 +422,7 @@ CE_SCALING_GROUP_SPECS = (
             VariantSpec("CE=0.005", "Arts-grec-genrec-fixed-ce-from-sft", is_rl=True),
             VariantSpec("CE=0.01", "Arts-grec-genrec-fixed-ce-001-from-sft", is_rl=True),
         ),
+        curve_metrics=tuple(METRICS),
     ),
     CurveGroupSpec(
         dataset="Instruments",
@@ -505,6 +461,7 @@ CE_SCALING_GROUP_SPECS = (
                 is_rl=True,
             ),
         ),
+        curve_metrics=tuple(METRICS),
     ),
 )
 
@@ -903,9 +860,10 @@ def build_fixed_hint_task_curve_asset() -> Path | None:
     plt = get_matplotlib_pyplot()
     ASSET_DIR.mkdir(parents=True, exist_ok=True)
     asset_path = ASSET_DIR / FIXED_HINT_TASK_CURVE_ASSET_NAME
-    fig, axes = plt.subplots(2, 2, figsize=(11.2, 8.2), sharex=True)
+    fig, axes = plt.subplots(5, 2, figsize=(11.6, 14.0), sharex=True)
+    axes_flat = list(axes.flat)
 
-    for ax, metric in zip(axes.flat, HEADLINE_CURVE_METRICS, strict=True):
+    for ax, metric in zip(axes_flat, METRICS):
         for variant, points in series:
             xs: list[float] = []
             ys: list[float] = []
@@ -943,22 +901,31 @@ def build_fixed_hint_task_curve_asset() -> Path | None:
         ax.set_xlim(0.0, 2.0)
         ax.grid(alpha=0.22)
 
+    for ax in axes_flat[len(METRICS):]:
+        ax.axis("off")
+
     handles, labels = axes[0, 0].get_legend_handles_labels()
     unique: dict[str, object] = {}
     for handle, label in zip(handles, labels, strict=False):
         if label not in unique:
             unique[label] = handle
 
+    legend_cols = 3
+    legend_rows = math.ceil(len(unique) / legend_cols) if unique else 1
+    legend_y = 1.012 if legend_rows > 1 else 0.992
+    suptitle_y = 0.95 if legend_rows > 1 else 0.965
+    tight_layout_top = 0.905 if legend_rows > 1 else 0.94
+
     fig.legend(
         unique.values(),
         unique.keys(),
         loc="upper center",
-        bbox_to_anchor=(0.5, 0.995),
-        ncol=2,
+        bbox_to_anchor=(0.5, legend_y),
+        ncol=legend_cols,
         frameon=False,
     )
-    fig.suptitle("Instruments fixed-hint task variants", y=0.94)
-    fig.tight_layout(rect=(0, 0, 1, 0.885))
+    fig.suptitle("Instruments fixed-hint task variants", y=suptitle_y)
+    fig.tight_layout(rect=(0, 0, 1, tight_layout_top))
     fig.savefig(asset_path, dpi=180)
     plt.close(fig)
     return asset_path
@@ -985,9 +952,13 @@ def build_curve_group_asset(spec: CurveGroupSpec) -> Path | None:
     plt = get_matplotlib_pyplot()
     ASSET_DIR.mkdir(parents=True, exist_ok=True)
     asset_path = ASSET_DIR / spec.asset_name
-    fig, axes = plt.subplots(2, 2, figsize=(11.2, 8.2), sharex=True)
+    num_cols = 2
+    num_rows = math.ceil(len(spec.curve_metrics) / num_cols)
+    fig_height = 8.2 if len(spec.curve_metrics) <= 4 else 14.0
+    fig, axes = plt.subplots(num_rows, num_cols, figsize=(11.2, fig_height), sharex=True)
+    axes_flat = list(axes.flat)
 
-    for ax, metric in zip(axes.flat, HEADLINE_CURVE_METRICS, strict=True):
+    for ax, metric in zip(axes_flat, spec.curve_metrics):
         for variant, points in series:
             xs: list[float] = []
             ys: list[float] = []
@@ -1033,22 +1004,31 @@ def build_curve_group_asset(spec: CurveGroupSpec) -> Path | None:
         ax.set_xlim(0.0, spec.num_train_epochs)
         ax.grid(alpha=0.22)
 
+    for ax in axes_flat[len(spec.curve_metrics):]:
+        ax.axis("off")
+
     handles, labels = axes[0, 0].get_legend_handles_labels()
     unique: dict[str, object] = {}
     for handle, label in zip(handles, labels, strict=False):
         if label not in unique:
             unique[label] = handle
 
+    legend_cols = 3
+    legend_rows = math.ceil(len(unique) / legend_cols) if unique else 1
+    legend_y = 1.012 if legend_rows > 1 else 0.992
+    suptitle_y = 0.95 if legend_rows > 1 else 0.965
+    tight_layout_top = 0.905 if legend_rows > 1 else 0.94
+
     fig.legend(
         unique.values(),
         unique.keys(),
         loc="upper center",
-        bbox_to_anchor=(0.5, 0.995),
-        ncol=3,
+        bbox_to_anchor=(0.5, legend_y),
+        ncol=legend_cols,
         frameon=False,
     )
-    fig.suptitle(spec.title, y=0.94)
-    fig.tight_layout(rect=(0, 0, 1, 0.885))
+    fig.suptitle(spec.title, y=suptitle_y)
+    fig.tight_layout(rect=(0, 0, 1, tight_layout_top))
     fig.savefig(asset_path, dpi=180)
     plt.close(fig)
     return asset_path
@@ -1342,7 +1322,6 @@ def build_rq2_section(rq2_assets: dict[str, Path]) -> list[str]:
                 signal_variants,
                 caption=r"Instruments 上 hint-conditioned training signal 的第一层证据。",
                 label="tab:genrec-only-instruments-prefix-hint-signal",
-                metrics_list=FOCUSED_METRICS,
             )
         )
     parts.append(
@@ -1352,12 +1331,12 @@ def build_rq2_section(rq2_assets: dict[str, Path]) -> list[str]:
     )
     parts.append("")
 
-    parts.append(render_heading("subsection", "Hint Strategy 2x2"))
+    parts.append(render_heading("subsection", "Hint Strategy Comparison"))
     parts.append("")
     parts.append(
-        r"这里把当前最核心的四条 prefix-hint strategy 压缩成一个 \texttt{2x2}。"
-        r"四条线分别是 \texttt{Ours(3-task)}、\texttt{Adaptive hinting}、"
-        r"\texttt{Fixed first-token hint} 和 \texttt{Adaptive first-token hint}。"
+        r"这里直接比较四条你当前最关心的线：\texttt{Ours(fixed hint)}、"
+        r"\texttt{dynamic hint}、\texttt{fixed hint max1} 与 \texttt{dynamic hint max1}。"
+        r"这组对照把 fixed / dynamic 与 full-hint / max1 两个轴放进同一张表。"
     )
     parts.append("")
     prefix_variants = resolve_variants(PREFIX_HINT_2X2_SPEC.variants)
@@ -1367,66 +1346,70 @@ def build_rq2_section(rq2_assets: dict[str, Path]) -> list[str]:
                 prefix_variants,
                 caption=PREFIX_HINT_2X2_SPEC.table_caption,
                 label=PREFIX_HINT_2X2_SPEC.table_label,
-                metrics_list=FOCUSED_METRICS,
             )
         )
     prefix_asset = rq2_assets.get(PREFIX_HINT_2X2_SPEC.figure_label)
     if prefix_asset is not None:
         parts.append(render_curve_group_figure(PREFIX_HINT_2X2_SPEC, prefix_asset))
-
-    parts.append(render_heading("subsection", "Max1 Budget Sensitivity"))
-    parts.append("")
-    parts.append(
-        r"最后单独看 \texttt{max1}：如果只允许 adaptive hint 最多暴露 1 个 prefix token，"
-        r"它会不会退化回 plain \texttt{rule-only}。"
-    )
-    parts.append("")
-    max1_variants = resolve_variants(MAX1_ABLATION_SPEC.variants)
-    if max1_variants:
-        parts.append(
-            render_results_table(
-                max1_variants,
-                caption=MAX1_ABLATION_SPEC.table_caption,
-                label=MAX1_ABLATION_SPEC.table_label,
-                metrics_list=FOCUSED_METRICS,
-            )
-        )
-    max1_asset = rq2_assets.get(MAX1_ABLATION_SPEC.figure_label)
-    if max1_asset is not None:
-        parts.append(render_curve_group_figure(MAX1_ABLATION_SPEC, max1_asset))
     return parts
 
 
 def render_loss_ablation_table() -> str:
+    suffix_best = resolve_model_dir_best("Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495")
+    prefix_best = resolve_model_dir_best("Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-3-sft495")
+    columns = [
+        ("Suffix-only GRPO", suffix_best),
+        ("Prefix SFT + suffix-only GRPO", prefix_best),
+        ("Full-sequence SFT + GRPO", None),
+    ]
+
     parts: list[str] = []
     parts.append(r"\begin{table}[H]")
     parts.append(r"\centering")
     parts.append(r"\scriptsize")
     parts.append(r"\setlength{\tabcolsep}{4pt}")
     parts.append(r"\renewcommand{\arraystretch}{1.08}")
-    parts.append(r"\begin{tabular}{p{3.4cm} p{2.4cm} c c p{4.6cm}}")
+    parts.append(r"\resizebox{\textwidth}{!}{%")
+    parts.append(r"\begin{tabular}{lccc}")
     parts.append(r"\toprule")
-    parts.append(r"Loss design & Instruments readout & Best NDCG@10 & Best HR@50 & Status / note \\")
+    parts.append(
+        "Metric & "
+        + " & ".join(label for label, _ in columns)
+        + r" \\"
+    )
     parts.append(r"\midrule")
-    parts.append(
-        r"suffix-only GRPO & \texttt{GenRec(fixed)} & 0.0931 & 0.1941 & non-CE fixed baseline \\"
-    )
-    parts.append(
-        r"prefix SFT + suffix-only GRPO & \texttt{fixed+CE} family & 0.0953 & 0.1985 & completed; top-10 best currently comes from \texttt{CE=0.01}, coverage best from \texttt{CE=0.005} \\"
-    )
-    parts.append(
-        r"full-sequence SFT + GRPO & \texttt{running} & \textemdash & \textemdash & 当前仍在跑，稳定结果尚未回填 \\"
-    )
+
+    for metric in METRICS:
+        rendered_cells = []
+        for _, best in columns:
+            if best is None:
+                rendered_cells.append(r"\textemdash")
+            else:
+                _, metrics = best
+                rendered_cells.append(fmt_metric(maybe_value(metrics, metric)))
+        parts.append(metric + " & " + " & ".join(rendered_cells) + r" \\")
+
+    parts.append(r"\midrule")
+    selected_ckpts = []
+    for _, best in columns:
+        if best is None:
+            selected_ckpts.append(r"\texttt{running}")
+        else:
+            checkpoint_name, _ = best
+            selected_ckpts.append(fmt_checkpoint_name(checkpoint_name))
+    parts.append("Selected ckpt & " + " & ".join(selected_ckpts) + r" \\")
     parts.append(r"\bottomrule")
     parts.append(r"\end{tabular}")
+    parts.append(r"}")
     parts.append(r"\caption{RQ3 中 loss 设计的当前状态表。}")
     parts.append(r"\label{tab:genrec-only-rq3-loss-design}")
     parts.append(r"\end{table}")
     parts.append("")
     parts.append(
-        r"当前 running 的 full-sequence 线对应 launcher：\texttt{"
+        r"当前 full-sequence 列仍在跑，对应 launcher：\texttt{"
         + LOSS_FULL_SEQUENCE_LAUNCHER.replace("_", r"\_")
-        + r"}。"
+        + r"}；"
+        r"已完成的 prefix-SFT 列这里使用 \texttt{CE=0.005} 作为代表性 fixed+CE readout。"
     )
     parts.append("")
     return "\n".join(parts)
@@ -1458,7 +1441,6 @@ def build_rq3_section(fixed_hint_task_asset: Path | None) -> list[str]:
                 resolved_variants,
                 caption=r"Instruments 上训练任务范围的 three-way ablation。",
                 label="tab:genrec-only-rq3-task-scope",
-                metrics_list=FOCUSED_METRICS,
             )
         )
     if fixed_hint_task_asset is not None:
@@ -1497,7 +1479,6 @@ def build_rq4_section(ce_scaling_assets: dict[str, Path]) -> list[str]:
                     resolved_variants,
                     caption=spec.table_caption,
                     label=spec.table_label,
-                    metrics_list=FOCUSED_METRICS,
                 )
             )
         asset_path = ce_scaling_assets.get(spec.figure_label)
@@ -1541,8 +1522,8 @@ def render_fixed_hint_task_figure(asset_path: Path) -> str:
     parts.append(r"\includegraphics[width=\textwidth]{" + relative_asset_path + r"}")
     parts.append(
         r"\caption{"
-        r"Instruments 上三个 fixed-hint taskfix 变体的 headline checkpoint 曲线。"
-        r"图中展示 \texttt{NDCG@10}、\texttt{HR@10}、\texttt{NDCG@50} 与 \texttt{HR@50}；"
+        r"Instruments 上三个 fixed-hint taskfix 变体的完整 checkpoint 曲线。"
+        r"图中统一展示 9 个指标：\texttt{HR@1/5/10/20/50} 与 \texttt{NDCG@5/10/20/50}；"
         r"横轴统一使用 epoch，并分别按 \texttt{3326 / 2652 / 3012 step = 2 epoch} 归一化；"
         + rf"虚线表示 \texttt{{GenRec(sft)}} 的整体 best（\texttt{{{sft_checkpoint}}}）。"
         + r"}"
@@ -1573,7 +1554,7 @@ def build_fixed_hint_task_section(asset_path: Path | None) -> list[str]:
         )
 
     if asset_path is not None:
-        parts.append(render_heading("subsection", "Headline Curves"))
+        parts.append(render_heading("subsection", "Full Curves"))
         parts.append("")
         parts.append(render_fixed_hint_task_figure(asset_path))
 
@@ -1646,7 +1627,7 @@ def main() -> None:
     curve_assets = build_curve_assets()
     fixed_hint_task_asset = build_fixed_hint_task_curve_asset()
     ce_scaling_assets = build_ce_scaling_assets()
-    rq2_assets = build_optional_curve_group_assets(PREFIX_HINT_2X2_SPEC, MAX1_ABLATION_SPEC)
+    rq2_assets = build_optional_curve_group_assets(PREFIX_HINT_2X2_SPEC)
     OUTPUT_TEX.write_text(build_document(curve_assets, fixed_hint_task_asset, ce_scaling_assets, rq2_assets))
 
 
