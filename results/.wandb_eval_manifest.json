@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-19T04:56:46+00:00",
+  "generated_at": "2026-05-20T06:07:48+00:00",
   "results_root": "/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/results",
   "models": [
     {
@@ -32,6 +32,21 @@
       "wandb_entity": null,
       "wandb_run_id": "eval-3a7363a4c355c264e257",
       "wandb_run_name": "Arts-grec-genrec-fixed-ce-001-from-sft-eval"
+    },
+    {
+      "model_dir": "Arts-grec-genrec-fixed-ce-01-from-sft",
+      "dataset": "Arts_grec_genrec_fixed_ce_01_from_sft",
+      "cb_setting": "none",
+      "eval_split": "test",
+      "seed": 42,
+      "num_beams": 50,
+      "sid_levels": -1,
+      "num_train_epochs": null,
+      "wandb_group": null,
+      "wandb_project": "MIMIGenRec-Eval",
+      "wandb_entity": null,
+      "wandb_run_id": "eval-75349b7cc15e97905b54",
+      "wandb_run_name": "Arts-grec-genrec-fixed-ce-01-from-sft-eval"
     },
     {
       "model_dir": "Arts-grec-genrec-fixed-ce-from-sft",
@@ -287,6 +302,21 @@
       "wandb_entity": null,
       "wandb_run_id": "eval-3b75717cf2e5262ab9db",
       "wandb_run_name": "Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu-eval"
+    },
+    {
+      "model_dir": "Instruments-grec-genrec-fixed-full-sequence-sft-from-sft",
+      "dataset": "Instruments_grec_genrec_fixed_full_sequence",
+      "cb_setting": "none",
+      "eval_split": "test",
+      "seed": 42,
+      "num_beams": 50,
+      "sid_levels": -1,
+      "num_train_epochs": null,
+      "wandb_group": null,
+      "wandb_project": "MIMIGenRec-Eval",
+      "wandb_entity": null,
+      "wandb_run_id": "eval-e6aae34a6e05c6baea03",
+      "wandb_run_name": "Instruments-grec-genrec-fixed-full-sequence-sft-from-sft-eval"
     },
     {
       "model_dir": "Instruments-grec-grpo-prefix-qwen2.5-3b-qwen4B-4-256-from-sft495",

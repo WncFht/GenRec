@@ -259,6 +259,12 @@ DATASET_SPECS = (
                 is_rl=True,
                 first_epoch_max_step=2103,
             ),
+            VariantSpec(
+                "GenRec(fixed + ce0.1)",
+                "Arts-grec-genrec-fixed-ce-01-from-sft",
+                is_rl=True,
+                first_epoch_max_step=2103,
+            ),
         ),
         caption="Arts 上当前已测到的 GenRec 系列结果。",
         label="tab:genrec-only-arts",
@@ -272,6 +278,10 @@ VARIANT_STYLES = {
     "GenRec(ranking)": {"color": "#4E79A7", "marker": "o"},
     "GenRec(fixed)": {"color": "#59A14F", "marker": "^"},
     "GenRec(fixed + ce0.005)": {"color": "#E15759", "marker": "D"},
+    "GenRec(fixed + ce0.1)": {"color": "#F28E2B", "marker": "P"},
+    "Suffix-only GRPO": {"color": "#9C755F", "marker": "s"},
+    "Prefix SFT + suffix-only GRPO": {"color": "#E15759", "marker": "D"},
+    "Full-sequence SFT + GRPO": {"color": "#4E79A7", "marker": "o"},
     "Rule-only baseline": {"color": "#9C755F", "marker": "s"},
     "Ours (3-task)": {"color": "#59A14F", "marker": "^"},
     "Ours (fixed hint)": {"color": "#59A14F", "marker": "^"},
@@ -286,6 +296,7 @@ VARIANT_STYLES = {
     "CE=0.001": {"color": "#4E79A7", "marker": "o"},
     "CE=0.005": {"color": "#E15759", "marker": "D"},
     "CE=0.01": {"color": "#59A14F", "marker": "^"},
+    "CE=0.1": {"color": "#F28E2B", "marker": "P"},
     "Fixed(taskfix)": {"color": "#F4A261", "marker": "^"},
     "Fixed(sid-only)": {"color": "#E76F51", "marker": "D"},
     "Fixed(sid+title+desc)": {"color": "#8D99AE", "marker": "o"},
@@ -296,18 +307,21 @@ FIXED_HINT_TASK_VARIANTS = (
         "Fixed(taskfix)",
         "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
         is_rl=True,
+        first_epoch_max_step=1663,
         curve_total_max_step=3326,
     ),
     VariantSpec(
         "Fixed(sid-only)",
         "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495",
         is_rl=True,
+        first_epoch_max_step=1326,
         curve_total_max_step=2652,
     ),
     VariantSpec(
         "Fixed(sid+title+desc)",
         "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-title-desc-sft495",
         is_rl=True,
+        first_epoch_max_step=1506,
         curve_total_max_step=3012,
     ),
 )
@@ -353,12 +367,12 @@ PREFIX_HINT_2X2_SPEC = CurveGroupSpec(
     figure_label="fig:genrec-only-instruments-hint-comparison-curves",
     caption=(
         r"Instruments 上 \texttt{Ours(fixed hint)}、\texttt{dynamic hint}、"
-        r"\texttt{fixed hint max1} 与 \texttt{dynamic hint max1} 的完整曲线对比。"
+        r"\texttt{dynamic hint max1} 的完整曲线对比。"
         r"图中统一展示 9 个指标；横轴统一使用 epoch，其中"
         r" full hint / dynamic 主线按 \texttt{3326 step = 2 epoch} 归一化，"
-        r"\texttt{fixed hint max1} 按 \texttt{2652 step = 2 epoch} 归一化。"
+        r"\texttt{dynamic hint max1} 也按 \texttt{3326 step = 2 epoch} 归一化。"
     ),
-    table_caption=r"Instruments 上 \texttt{Ours(fixed hint)}、\texttt{dynamic hint}、\texttt{fixed hint max1} 与 \texttt{dynamic hint max1} 的对比。",
+    table_caption=r"Instruments 上 \texttt{Ours(fixed hint)}、\texttt{dynamic hint} 与 \texttt{dynamic hint max1} 的对比。",
     table_label="tab:genrec-only-instruments-hint-comparison",
     sft_model_dir="Instruments-grec-sft-qwen4B-4-256-dsz0",
     total_max_step=3326,
@@ -367,24 +381,21 @@ PREFIX_HINT_2X2_SPEC = CurveGroupSpec(
             "Ours (fixed hint)",
             "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
             is_rl=True,
+            first_epoch_max_step=1663,
             curve_total_max_step=3326,
         ),
         VariantSpec(
             "Dynamic hint",
             "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495",
             is_rl=True,
+            first_epoch_max_step=1663,
             curve_total_max_step=3326,
-        ),
-        VariantSpec(
-            "Fixed hint max1",
-            "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495",
-            is_rl=True,
-            curve_total_max_step=2652,
         ),
         VariantSpec(
             "Dynamic hint max1",
             "Instruments-grec-grpo-rule-only-dynamic-hint-max1-qwen2.5-3b-qwen4B-4-256-from-sft495",
             is_rl=True,
+            first_epoch_max_step=1663,
             curve_total_max_step=3326,
         ),
     ),
@@ -392,11 +403,55 @@ PREFIX_HINT_2X2_SPEC = CurveGroupSpec(
 )
 
 LOSS_FULL_SEQUENCE_LAUNCHER = "hope/Instruments-genrec/rl_fixed_full_sequence_sft.sh"
+LOSS_DESIGN_TABLE_CAPTION = r"RQ3 中 loss 设计的当前状态表。"
+LOSS_DESIGN_TABLE_LABEL = "tab:genrec-only-rq3-loss-design"
+LOSS_DESIGN_FULL_SEQUENCE_MODEL_DIR = "Instruments-grec-genrec-fixed-full-sequence-sft-from-sft"
+LOSS_DESIGN_GROUP_SPEC = CurveGroupSpec(
+    dataset="Instruments",
+    title="Instruments loss design",
+    asset_name="genrec-only-instruments-loss-design-curves.png",
+    figure_label="fig:genrec-only-instruments-loss-design-curves",
+    caption=(
+        r"Instruments 上 loss design 对比曲线。图中同时比较 \texttt{suffix-only GRPO}、"
+        r"\texttt{prefix SFT + suffix-only GRPO} 与 \texttt{full-sequence SFT + GRPO}；"
+        r"横轴按 \texttt{3326 step = 2 epoch} 归一化；"
+        r"虚线表示 \texttt{GenRec(sft)} 的整体 best，竖向点线表示第一个 epoch 的 cutoff。"
+        r"如果某条线当前只同步到少量 checkpoint，则图中会表现为短线或单点。"
+    ),
+    table_caption=LOSS_DESIGN_TABLE_CAPTION,
+    table_label=LOSS_DESIGN_TABLE_LABEL,
+    sft_model_dir="Instruments-grec-sft-qwen4B-4-256-dsz0",
+    total_max_step=3326,
+    variants=(
+        VariantSpec(
+            "Suffix-only GRPO",
+            "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
+            is_rl=True,
+            first_epoch_max_step=1663,
+            curve_total_max_step=3326,
+        ),
+        VariantSpec(
+            "Prefix SFT + suffix-only GRPO",
+            "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-3-sft495",
+            is_rl=True,
+            first_epoch_max_step=1663,
+            curve_total_max_step=3326,
+        ),
+        VariantSpec(
+            "Full-sequence SFT + GRPO",
+            LOSS_DESIGN_FULL_SEQUENCE_MODEL_DIR,
+            is_rl=True,
+            first_epoch_max_step=1663,
+            curve_total_max_step=3326,
+        ),
+    ),
+    curve_metrics=tuple(METRICS),
+)
 
 CE_SCALING_SECTION_TITLE = "CE Coefficient Ablations"
 CE_SCALING_SECTION_INTRO = (
     r"这一节单独比较 fixed family 里的 CE 系数。"
-    r"Arts 侧三条线对应 \texttt{0.001 / 0.005 / 0.01}；"
+    r"Arts 侧四条 CE 线对应 \texttt{0.001 / 0.005 / 0.01 / 0.1}；"
     r" Instruments 侧的 \texttt{hintce-2 / hintce-3 / hintce-4} 也对应同样三档系数。"
 )
 
@@ -408,7 +463,7 @@ CE_SCALING_GROUP_SPECS = (
         figure_label="fig:genrec-only-arts-fixed-ce-coefficients-curves",
         caption=(
             r"Arts 上 fixed CE 系数对比曲线。图中同时保留 \texttt{Fixed(no CE)} 基线，"
-            r"另外三条线分别对应 \texttt{CE=0.001 / 0.005 / 0.01}；"
+            r"另外四条 CE 线分别对应 \texttt{CE=0.001 / 0.005 / 0.01 / 0.1}；"
             r"横轴按 \texttt{4206 step = 2 epoch} 归一化；"
             r"虚线表示 \texttt{GenRec(sft)} 的整体 best，竖向点线表示第一个 epoch 的 cutoff。"
         ),
@@ -421,6 +476,7 @@ CE_SCALING_GROUP_SPECS = (
             VariantSpec("CE=0.001", "Arts-grec-genrec-fixed-ce-0001-from-sft", is_rl=True),
             VariantSpec("CE=0.005", "Arts-grec-genrec-fixed-ce-from-sft", is_rl=True),
             VariantSpec("CE=0.01", "Arts-grec-genrec-fixed-ce-001-from-sft", is_rl=True),
+            VariantSpec("CE=0.1", "Arts-grec-genrec-fixed-ce-01-from-sft", is_rl=True),
         ),
         curve_metrics=tuple(METRICS),
     ),
@@ -540,6 +596,18 @@ def select_rl_first_epoch_best(
     return select_best(first_epoch_entries)
 
 
+def select_nearest_step(
+    entries: list[tuple[str, dict[str, float]]], target_step: int
+) -> tuple[str, dict[str, float]] | None:
+    if not entries:
+        return None
+
+    return min(
+        entries,
+        key=lambda item: (abs(checkpoint_step(item[0]) - target_step), checkpoint_step(item[0])),
+    )
+
+
 def resolve_variants(
     variants: tuple[VariantSpec, ...],
     *,
@@ -552,6 +620,23 @@ def resolve_variants(
         if best is None:
             continue
         checkpoint_name, metrics = best
+        resolved.append((variant, checkpoint_name, metrics))
+    return resolved
+
+
+def resolve_variants_near_first_epoch(
+    variants: tuple[VariantSpec, ...],
+) -> list[tuple[VariantSpec, str, dict[str, float]]]:
+    resolved: list[tuple[VariantSpec, str, dict[str, float]]] = []
+    for variant in variants:
+        entries = collect_metrics_dir(variant.model_dir)
+        if variant.first_epoch_max_step is None:
+            selected = select_best(entries)
+        else:
+            selected = select_nearest_step(entries, variant.first_epoch_max_step)
+        if selected is None:
+            continue
+        checkpoint_name, metrics = selected
         resolved.append((variant, checkpoint_name, metrics))
     return resolved
 
@@ -644,6 +729,15 @@ def get_matplotlib_pyplot():
     return plt
 
 
+def save_figure(fig, asset_path: Path, dpi: int = 180) -> None:
+    save_kwargs = {
+        "bbox_inches": "tight",
+        "pad_inches": 0.02,
+    }
+    fig.savefig(asset_path, dpi=dpi, **save_kwargs)
+    fig.savefig(asset_path.with_suffix(".pdf"), **save_kwargs)
+
+
 def build_rl_curve_asset(spec: DatasetSpec) -> Path | None:
     sft_best = resolve_variant_best(spec, "GenRec(sft)")
     rl_series = collect_rl_curve_series(spec)
@@ -729,7 +823,7 @@ def build_rl_curve_asset(spec: DatasetSpec) -> Path | None:
     )
     fig.suptitle(f"{spec.dataset} GenRec checkpoint curves by metric", y=suptitle_y)
     fig.tight_layout(rect=(0, 0, 1, tight_layout_top))
-    fig.savefig(asset_path, dpi=180)
+    save_figure(fig, asset_path, dpi=180)
     plt.close(fig)
     return asset_path
 
@@ -823,7 +917,7 @@ def build_sft_curve_asset(spec: DatasetSpec) -> Path | None:
     )
     fig.suptitle(f"{spec.dataset} GenRec SFT checkpoint curves by metric", y=0.968)
     fig.tight_layout(rect=(0, 0, 1, 0.94))
-    fig.savefig(asset_path, dpi=180)
+    save_figure(fig, asset_path, dpi=180)
     plt.close(fig)
     return asset_path
 
@@ -926,7 +1020,7 @@ def build_fixed_hint_task_curve_asset() -> Path | None:
     )
     fig.suptitle("Instruments fixed-hint task variants", y=suptitle_y)
     fig.tight_layout(rect=(0, 0, 1, tight_layout_top))
-    fig.savefig(asset_path, dpi=180)
+    save_figure(fig, asset_path, dpi=180)
     plt.close(fig)
     return asset_path
 
@@ -1029,7 +1123,7 @@ def build_curve_group_asset(spec: CurveGroupSpec) -> Path | None:
     )
     fig.suptitle(spec.title, y=suptitle_y)
     fig.tight_layout(rect=(0, 0, 1, tight_layout_top))
-    fig.savefig(asset_path, dpi=180)
+    save_figure(fig, asset_path, dpi=180)
     plt.close(fig)
     return asset_path
 
@@ -1334,9 +1428,9 @@ def build_rq2_section(rq2_assets: dict[str, Path]) -> list[str]:
     parts.append(render_heading("subsection", "Hint Strategy Comparison"))
     parts.append("")
     parts.append(
-        r"这里直接比较四条你当前最关心的线：\texttt{Ours(fixed hint)}、"
-        r"\texttt{dynamic hint}、\texttt{fixed hint max1} 与 \texttt{dynamic hint max1}。"
-        r"这组对照把 fixed / dynamic 与 full-hint / max1 两个轴放进同一张表。"
+        r"这里把对照收缩为三条主线：\texttt{Ours(fixed hint)}、"
+        r"\texttt{dynamic hint} 与 \texttt{dynamic hint max1}。"
+        r"对应的目标是回答两个问题：fixed 是否优于 dynamic，以及 dynamic 在线索收缩到 max1 后会不会更强。"
     )
     parts.append("")
     prefix_variants = resolve_variants(PREFIX_HINT_2X2_SPEC.variants)
@@ -1348,6 +1442,14 @@ def build_rq2_section(rq2_assets: dict[str, Path]) -> list[str]:
                 label=PREFIX_HINT_2X2_SPEC.table_label,
             )
         )
+    parts.append(
+        r"在完整 2 epoch 口径下，\texttt{Ours(fixed hint)} 仍然保住最高的"
+        r" \texttt{HR@5 / HR@10 / HR@20 / HR@50}，"
+        r"\texttt{dynamic hint max1} 则拿到最高的"
+        r" \texttt{HR@1 / NDCG@5 / NDCG@10 / NDCG@20 / NDCG@50}。"
+        r"\texttt{dynamic hint} 主线整体落在这两条线之后，说明真正有竞争力的 dynamic 版本来自 max1 收缩，而不是 full-hint dynamic 本身。"
+    )
+    parts.append("")
     prefix_asset = rq2_assets.get(PREFIX_HINT_2X2_SPEC.figure_label)
     if prefix_asset is not None:
         parts.append(render_curve_group_figure(PREFIX_HINT_2X2_SPEC, prefix_asset))
@@ -1355,58 +1457,41 @@ def build_rq2_section(rq2_assets: dict[str, Path]) -> list[str]:
 
 
 def render_loss_ablation_table() -> str:
-    suffix_best = resolve_model_dir_best("Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495")
-    prefix_best = resolve_model_dir_best("Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-3-sft495")
-    columns = [
-        ("Suffix-only GRPO", suffix_best),
-        ("Prefix SFT + suffix-only GRPO", prefix_best),
-        ("Full-sequence SFT + GRPO", None),
-    ]
-
+    resolved_variants = resolve_variants(LOSS_DESIGN_GROUP_SPEC.variants)
     parts: list[str] = []
-    parts.append(r"\begin{table}[H]")
-    parts.append(r"\centering")
-    parts.append(r"\scriptsize")
-    parts.append(r"\setlength{\tabcolsep}{4pt}")
-    parts.append(r"\renewcommand{\arraystretch}{1.08}")
-    parts.append(r"\resizebox{\textwidth}{!}{%")
-    parts.append(r"\begin{tabular}{lccc}")
-    parts.append(r"\toprule")
-    parts.append(
-        "Metric & "
-        + " & ".join(label for label, _ in columns)
-        + r" \\"
+    if resolved_variants:
+        parts.append(
+            render_results_table(
+                resolved_variants,
+                caption=LOSS_DESIGN_TABLE_CAPTION,
+                label=LOSS_DESIGN_TABLE_LABEL,
+            )
+        )
+
+    full_sequence_variant = next(
+        variant
+        for variant in LOSS_DESIGN_GROUP_SPEC.variants
+        if variant.column_name == "Full-sequence SFT + GRPO"
     )
-    parts.append(r"\midrule")
+    full_sequence_entries = collect_metrics_dir(LOSS_DESIGN_FULL_SEQUENCE_MODEL_DIR)
+    full_sequence_best = select_best(full_sequence_entries)
+    if full_sequence_best is None:
+        full_sequence_status = r"当前 full-sequence 列还没有同步到可读的 \texttt{metrics.json}。"
+    else:
+        full_sequence_ckpt, _ = full_sequence_best
+        full_sequence_status = (
+            r"当前 full-sequence 列已经接入 \texttt{results/"
+            + LOSS_DESIGN_FULL_SEQUENCE_MODEL_DIR.replace("_", r"\_")
+            + r"}；"
+            + rf"当前共同步到 \texttt{{{len(full_sequence_entries)}}} 个 checkpoint，"
+            + rf"按 \texttt{{NDCG@10}} 选出的 readout 是 \texttt{{{full_sequence_ckpt}}}。"
+        )
+        if len(full_sequence_entries) == 1:
+            full_sequence_status += r"因此曲线图里它暂时会表现为一个早期单点。"
 
-    for metric in METRICS:
-        rendered_cells = []
-        for _, best in columns:
-            if best is None:
-                rendered_cells.append(r"\textemdash")
-            else:
-                _, metrics = best
-                rendered_cells.append(fmt_metric(maybe_value(metrics, metric)))
-        parts.append(metric + " & " + " & ".join(rendered_cells) + r" \\")
-
-    parts.append(r"\midrule")
-    selected_ckpts = []
-    for _, best in columns:
-        if best is None:
-            selected_ckpts.append(r"\texttt{running}")
-        else:
-            checkpoint_name, _ = best
-            selected_ckpts.append(fmt_checkpoint_name(checkpoint_name))
-    parts.append("Selected ckpt & " + " & ".join(selected_ckpts) + r" \\")
-    parts.append(r"\bottomrule")
-    parts.append(r"\end{tabular}")
-    parts.append(r"}")
-    parts.append(r"\caption{RQ3 中 loss 设计的当前状态表。}")
-    parts.append(r"\label{tab:genrec-only-rq3-loss-design}")
-    parts.append(r"\end{table}")
-    parts.append("")
     parts.append(
-        r"当前 full-sequence 列仍在跑，对应 launcher：\texttt{"
+        full_sequence_status
+        + r" 对应 launcher：\texttt{"
         + LOSS_FULL_SEQUENCE_LAUNCHER.replace("_", r"\_")
         + r"}；"
         r"已完成的 prefix-SFT 列这里使用 \texttt{CE=0.005} 作为代表性 fixed+CE readout。"
@@ -1415,23 +1500,23 @@ def render_loss_ablation_table() -> str:
     return "\n".join(parts)
 
 
-def build_rq3_section(fixed_hint_task_asset: Path | None) -> list[str]:
+def build_rq3_section(fixed_hint_task_asset: Path | None, loss_design_asset: Path | None) -> list[str]:
     parts: list[str] = []
     parts.append(render_heading("section", "RQ3: Ablation Study"))
     parts.append("")
     parts.append(
         r"这一节把消融分成两层：训练任务范围，以及 loss 设计。"
         r"前者只比较当前已经跑完的 three-way fixed prefix variants；"
-        r"后者则把 \texttt{fixed}、\texttt{fixed+CE} 和正在跑的 full-sequence 线并列放进同一张状态表。"
+        r"后者则把 \texttt{fixed}、\texttt{fixed+CE} 和 full-sequence 线并列放进同一张表与同一张曲线图。"
     )
     parts.append("")
 
     parts.append(render_heading("subsection", "Training Task Scope"))
     parts.append("")
     parts.append(
-        r"当前已经落地的三档训练数据范围是：\texttt{Ours(3-task)}、"
-        r"\texttt{Fixed first-token hint}，以及当前仓库里实际已跑出的两任务变体 "
-        r"\texttt{Fixed(sid+title+desc)}。"
+        r"这一小节回到完整 2 epoch 里按 \texttt{NDCG@10} 选 best 的默认口径。"
+        r"当前已经落地的三档训练任务范围是：默认 \texttt{taskfix}、"
+        r"\texttt{sid-only}，以及两任务变体 \texttt{sid-title-desc}。"
     )
     parts.append("")
     resolved_variants = resolve_variants(FIXED_HINT_TASK_VARIANTS)
@@ -1443,18 +1528,37 @@ def build_rq3_section(fixed_hint_task_asset: Path | None) -> list[str]:
                 label="tab:genrec-only-rq3-task-scope",
             )
         )
+    parts.append(
+        r"回到完整 2 epoch 的 best-checkpoint 口径后，\texttt{sid-only} 重新成为最强主线："
+        r"它拿到最高的 \texttt{HR@5 / HR@10 / HR@20} 与全部 \texttt{NDCG} 指标。"
+        r"\texttt{taskfix} 只在 \texttt{HR@50} 上略占优，"
+        r"\texttt{sid-title-desc} 则只保留 \texttt{HR@1} 的领先。"
+        r"也就是说，长程训练结束后，最稳的 task scope 仍然是更窄、更聚焦的 \texttt{sid-only}。"
+    )
+    parts.append("")
     if fixed_hint_task_asset is not None:
         parts.append(render_fixed_hint_task_figure(fixed_hint_task_asset))
 
     parts.append(render_heading("subsection", "Loss Design"))
     parts.append("")
     parts.append(
+        r"这一小节也回到完整 2 epoch 里按 \texttt{NDCG@10} 选 best 的默认口径。"
         r"loss 层面的比较只保留三种口径："
         r"\texttt{suffix-only GRPO}、\texttt{prefix SFT + suffix-only GRPO}、"
         r"以及 \texttt{Full-sequence SFT + GRPO}。"
     )
     parts.append("")
     parts.append(render_loss_ablation_table())
+    parts.append(
+        r"回到完整 2 epoch 的 best-checkpoint 口径后，\texttt{prefix SFT + suffix-only GRPO} 仍然是最稳的一条线："
+        r"它拿到最高的 \texttt{HR@1 / HR@50} 与全部 \texttt{NDCG} 指标。"
+        r"\texttt{suffix-only GRPO} 只在 \texttt{HR@5 / HR@10 / HR@20} 上保有优势，"
+        r"\texttt{full-sequence SFT + GRPO} 则整体落后于前两者。"
+        r"因此在当前结果里，最有性价比的 loss design 仍然是 prefix-SFT 这一条。"
+    )
+    parts.append("")
+    if loss_design_asset is not None:
+        parts.append(render_curve_group_figure(LOSS_DESIGN_GROUP_SPEC, loss_design_asset))
     return parts
 
 
@@ -1465,7 +1569,7 @@ def build_rq4_section(ce_scaling_assets: dict[str, Path]) -> list[str]:
     parts.append(
         r"这一节专门分析 fixed CE coefficient 对后训练结果的影响。"
         r"正文只保留 \texttt{Instruments} 和 \texttt{Arts} 两个数据集上的"
-        r" \texttt{0.001 / 0.005 / 0.01} sweep。"
+        r" CE sweep；其中 \texttt{Arts} 额外补入 \texttt{CE=0.1}。"
     )
     parts.append("")
 
@@ -1500,7 +1604,7 @@ def build_rq4_section(ce_scaling_assets: dict[str, Path]) -> list[str]:
         r"Instruments & \texttt{CE=0.01} & \texttt{CE=0.005} & 大系数继续抬高 long-run top-10，但 coverage 峰值仍出现在中档系数 \\"
     )
     parts.append(
-        r"Arts & \texttt{CE=0.005} / no-CE tie & \texttt{CE=0.001} & 小系数更像 mild coverage regularizer，\texttt{CE=0.01} 没有复制 Instruments 的 top-10 收益 \\"
+        r"Arts & \texttt{CE=0.005} / no-CE tie & \texttt{CE=0.001} & 小系数更像 mild coverage regularizer，\texttt{CE=0.1} 则在 top-10 与 coverage 上都明显退化 \\"
     )
     parts.append(r"\bottomrule")
     parts.append(r"\end{tabular}")
@@ -1566,6 +1670,7 @@ def build_document(
     fixed_hint_task_asset: Path | None,
     ce_scaling_assets: dict[str, Path],
     rq2_assets: dict[str, Path],
+    rq3_assets: dict[str, Path],
 ) -> str:
     parts: list[str] = []
     parts.append(r"\documentclass[11pt,a4paper]{ctexart}")
@@ -1596,13 +1701,14 @@ def build_document(
         build_section(
             "RQ1: Overall Performance",
             r"这一节沿用当前默认口径：每个变体都在其全部已同步 checkpoint 中按 \texttt{NDCG@10} 选出唯一 best checkpoint。"
-            r" Games 仍保留当前已有的主线五列；Instruments 与 Arts 额外纳入 \texttt{ce0.001 / ce0.01}，"
+            r" Games 仍保留当前已有的主线五列；Instruments 额外纳入 \texttt{ce0.001 / ce0.01}，"
+            r" Arts 则进一步补入 \texttt{ce0.1}，"
             r"从而把 overall frontier 一次放全。",
             rl_first_epoch_only=False,
         )
     )
     parts.extend(build_rq2_section(rq2_assets))
-    parts.extend(build_rq3_section(fixed_hint_task_asset))
+    parts.extend(build_rq3_section(fixed_hint_task_asset, rq3_assets.get(LOSS_DESIGN_GROUP_SPEC.figure_label)))
     parts.extend(build_rq4_section(ce_scaling_assets))
     parts.append(r"\clearpage")
     parts.append(r"\appendix")
@@ -1628,7 +1734,8 @@ def main() -> None:
     fixed_hint_task_asset = build_fixed_hint_task_curve_asset()
     ce_scaling_assets = build_ce_scaling_assets()
     rq2_assets = build_optional_curve_group_assets(PREFIX_HINT_2X2_SPEC)
-    OUTPUT_TEX.write_text(build_document(curve_assets, fixed_hint_task_asset, ce_scaling_assets, rq2_assets))
+    rq3_assets = build_optional_curve_group_assets(LOSS_DESIGN_GROUP_SPEC)
+    OUTPUT_TEX.write_text(build_document(curve_assets, fixed_hint_task_asset, ce_scaling_assets, rq2_assets, rq3_assets))
 
 
 if __name__ == "__main__":

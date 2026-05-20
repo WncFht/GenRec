@@ -153,6 +153,7 @@ venv.bak/
 *.run.xml
 *.snm
 *.synctex.gz
+*.synctex(busy)
 *.toc
 *.vrb
 *.xdv
@@ -221,3 +222,4 @@ temp/
 .ace-tool/
 /baseline/
 6a05aa0e765c6308e62efad6/
+/arXiv/

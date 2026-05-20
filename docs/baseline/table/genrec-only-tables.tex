@@ -19,7 +19,7 @@
 
 \section{RQ1: Overall Performance}
 
-这一节沿用当前默认口径：每个变体都在其全部已同步 checkpoint 中按 \texttt{NDCG@10} 选出唯一 best checkpoint。 Games 仍保留当前已有的主线五列；Instruments 与 Arts 额外纳入 \texttt{ce0.001 / ce0.01}，从而把 overall frontier 一次放全。
+这一节沿用当前默认口径：每个变体都在其全部已同步 checkpoint 中按 \texttt{NDCG@10} 选出唯一 best checkpoint。 Games 仍保留当前已有的主线五列；Instruments 额外纳入 \texttt{ce0.001 / ce0.01}， Arts 则进一步补入 \texttt{ce0.1}，从而把 overall frontier 一次放全。
 
 \subsection{Instruments}
 
@@ -89,21 +89,21 @@ Selected ckpt & \texttt{checkpoint-768} & \texttt{checkpoint-8752} & \texttt{che
 \setlength{\tabcolsep}{4pt}
 \renewcommand{\arraystretch}{1.08}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{lccccccc}
+\begin{tabular}{lcccccccc}
 \toprule
-Metric & GenRec(sft) & GenRec(rule) & GenRec(ranking) & GenRec(fixed) & GenRec(fixed + ce0.001) & GenRec(fixed + ce0.005) & GenRec(fixed + ce0.01) \\
+Metric & GenRec(sft) & GenRec(rule) & GenRec(ranking) & GenRec(fixed) & GenRec(fixed + ce0.001) & GenRec(fixed + ce0.005) & GenRec(fixed + ce0.01) & GenRec(fixed + ce0.1) \\
 \midrule
-HR@1 & 0.0643 & \textbf{0.0743} & 0.0728 & 0.0730 & 0.0710 & 0.0720 & \underline{0.0734} \\
-HR@5 & 0.0949 & 0.1031 & 0.1018 & \underline{0.1041} & 0.1031 & \textbf{0.1048} & 0.1025 \\
-HR@10 & 0.1164 & 0.1215 & 0.1189 & \underline{0.1248} & 0.1244 & \textbf{0.1257} & 0.1216 \\
-HR@20 & 0.1433 & 0.1454 & 0.1412 & 0.1504 & \textbf{0.1537} & \underline{0.1518} & 0.1496 \\
-HR@50 & 0.1941 & 0.1906 & 0.1839 & \underline{0.2007} & \textbf{0.2029} & 0.2006 & 0.1978 \\
-NDCG@5 & 0.0801 & \textbf{0.0893} & 0.0876 & \underline{0.0890} & 0.0874 & 0.0889 & 0.0884 \\
-NDCG@10 & 0.0870 & \underline{0.0952} & 0.0931 & \textbf{0.0956} & 0.0943 & \textbf{0.0956} & 0.0946 \\
-NDCG@20 & 0.0938 & 0.1012 & 0.0987 & \textbf{0.1021} & \underline{0.1017} & \textbf{0.1021} & 0.1016 \\
-NDCG@50 & 0.1038 & 0.1102 & 0.1071 & \textbf{0.1120} & 0.1114 & \underline{0.1118} & 0.1111 \\
+HR@1 & 0.0643 & \textbf{0.0743} & 0.0728 & 0.0730 & 0.0728 & 0.0720 & \underline{0.0734} & 0.0702 \\
+HR@5 & 0.0949 & 0.1031 & 0.1018 & \underline{0.1041} & 0.1035 & \textbf{0.1048} & 0.1025 & 0.0974 \\
+HR@10 & 0.1164 & 0.1215 & 0.1189 & \underline{0.1248} & 0.1239 & \textbf{0.1257} & 0.1216 & 0.1158 \\
+HR@20 & 0.1433 & 0.1454 & 0.1412 & 0.1504 & \underline{0.1513} & \textbf{0.1518} & 0.1496 & 0.1405 \\
+HR@50 & 0.1941 & 0.1906 & 0.1839 & \underline{0.2007} & \textbf{0.2015} & 0.2006 & 0.1978 & 0.1861 \\
+NDCG@5 & 0.0801 & \textbf{0.0893} & 0.0876 & \underline{0.0890} & 0.0885 & 0.0889 & 0.0884 & 0.0843 \\
+NDCG@10 & 0.0870 & \underline{0.0952} & 0.0931 & \textbf{0.0956} & 0.0951 & \textbf{0.0956} & 0.0946 & 0.0902 \\
+NDCG@20 & 0.0938 & 0.1012 & 0.0987 & \textbf{0.1021} & \underline{0.1020} & \textbf{0.1021} & 0.1016 & 0.0964 \\
+NDCG@50 & 0.1038 & 0.1102 & 0.1071 & \textbf{0.1120} & \underline{0.1119} & 0.1118 & 0.1111 & 0.1054 \\
 \midrule
-Selected ckpt & \texttt{checkpoint-522} & \texttt{checkpoint-2105} & \texttt{checkpoint-1684} & \texttt{checkpoint-3368} & \texttt{checkpoint-2105} & \texttt{checkpoint-2105} & \texttt{checkpoint-4206} \\
+Selected ckpt & \texttt{checkpoint-522} & \texttt{checkpoint-2105} & \texttt{checkpoint-1684} & \texttt{checkpoint-3368} & \texttt{checkpoint-4206} & \texttt{checkpoint-2105} & \texttt{checkpoint-4206} & \texttt{checkpoint-2105} \\
 \bottomrule
 \end{tabular}%
 }
@@ -149,48 +149,50 @@ Selected ckpt & \texttt{checkpoint-495} & \texttt{checkpoint-2997} & \texttt{che
 
 \subsection{Hint Strategy Comparison}
 
-这里直接比较四条你当前最关心的线：\texttt{Ours(fixed hint)}、\texttt{dynamic hint}、\texttt{fixed hint max1} 与 \texttt{dynamic hint max1}。这组对照把 fixed / dynamic 与 full-hint / max1 两个轴放进同一张表。
+这里把对照收缩为三条主线：\texttt{Ours(fixed hint)}、\texttt{dynamic hint} 与 \texttt{dynamic hint max1}。对应的目标是回答两个问题：fixed 是否优于 dynamic，以及 dynamic 在线索收缩到 max1 后会不会更强。
 
 \begin{table}[H]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{4pt}
 \renewcommand{\arraystretch}{1.08}
-\begin{tabular}{lcccc}
+\begin{tabular}{lccc}
 \toprule
-Metric & Ours (fixed hint) & Dynamic hint & Fixed hint max1 & Dynamic hint max1 \\
+Metric & Ours (fixed hint) & Dynamic hint & Dynamic hint max1 \\
 \midrule
-HR@1 & 0.0722 & \underline{0.0760} & 0.0743 & \textbf{0.0761} \\
-HR@5 & \underline{0.1014} & 0.0997 & \textbf{0.1017} & 0.0992 \\
-HR@10 & \underline{0.1189} & 0.1169 & \textbf{0.1205} & 0.1158 \\
-HR@20 & \underline{0.1447} & 0.1394 & \textbf{0.1456} & 0.1402 \\
-HR@50 & \textbf{0.1941} & 0.1855 & \underline{0.1935} & 0.1905 \\
-NDCG@5 & 0.0875 & 0.0880 & \textbf{0.0885} & \underline{0.0881} \\
-NDCG@10 & 0.0931 & \underline{0.0936} & \textbf{0.0945} & 0.0934 \\
-NDCG@20 & \underline{0.0995} & 0.0992 & \textbf{0.1008} & \underline{0.0995} \\
-NDCG@50 & 0.1094 & 0.1083 & \textbf{0.1103} & \underline{0.1095} \\
+HR@1 & 0.0722 & \underline{0.0760} & \textbf{0.0761} \\
+HR@5 & \textbf{0.1014} & \underline{0.0997} & 0.0992 \\
+HR@10 & \textbf{0.1189} & \underline{0.1169} & 0.1158 \\
+HR@20 & \textbf{0.1447} & 0.1394 & \underline{0.1402} \\
+HR@50 & \textbf{0.1941} & 0.1855 & \underline{0.1905} \\
+NDCG@5 & 0.0875 & \underline{0.0880} & \textbf{0.0881} \\
+NDCG@10 & 0.0931 & \textbf{0.0936} & \underline{0.0934} \\
+NDCG@20 & \textbf{0.0995} & \underline{0.0992} & \textbf{0.0995} \\
+NDCG@50 & \underline{0.1094} & 0.1083 & \textbf{0.1095} \\
 \midrule
-Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-2997} & \texttt{checkpoint-2652} & \texttt{checkpoint-1332} \\
+Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-2997} & \texttt{checkpoint-1332} \\
 \bottomrule
 \end{tabular}
-\caption{Instruments 上 \texttt{Ours(fixed hint)}、\texttt{dynamic hint}、\texttt{fixed hint max1} 与 \texttt{dynamic hint max1} 的对比。}
+\caption{Instruments 上 \texttt{Ours(fixed hint)}、\texttt{dynamic hint} 与 \texttt{dynamic hint max1} 的对比。}
 \label{tab:genrec-only-instruments-hint-comparison}
 \end{table}
+
+在完整 2 epoch 口径下，\texttt{Ours(fixed hint)} 仍然保住最高的 \texttt{HR@5 / HR@10 / HR@20 / HR@50}，\texttt{dynamic hint max1} 则拿到最高的 \texttt{HR@1 / NDCG@5 / NDCG@10 / NDCG@20 / NDCG@50}。\texttt{dynamic hint} 主线整体落在这两条线之后，说明真正有竞争力的 dynamic 版本来自 max1 收缩，而不是 full-hint dynamic 本身。
 
 \begin{figure}[p]
 \centering
 \includegraphics[width=\textwidth]{assets/genrec-only-instruments-hint-comparison-curves.png}
-\caption{Instruments 上 \texttt{Ours(fixed hint)}、\texttt{dynamic hint}、\texttt{fixed hint max1} 与 \texttt{dynamic hint max1} 的完整曲线对比。图中统一展示 9 个指标；横轴统一使用 epoch，其中 full hint / dynamic 主线按 \texttt{3326 step = 2 epoch} 归一化，\texttt{fixed hint max1} 按 \texttt{2652 step = 2 epoch} 归一化。}
+\caption{Instruments 上 \texttt{Ours(fixed hint)}、\texttt{dynamic hint}、\texttt{dynamic hint max1} 的完整曲线对比。图中统一展示 9 个指标；横轴统一使用 epoch，其中 full hint / dynamic 主线按 \texttt{3326 step = 2 epoch} 归一化，\texttt{dynamic hint max1} 也按 \texttt{3326 step = 2 epoch} 归一化。}
 \label{fig:genrec-only-instruments-hint-comparison-curves}
 \end{figure}
 
 \section{RQ3: Ablation Study}
 
-这一节把消融分成两层：训练任务范围，以及 loss 设计。前者只比较当前已经跑完的 three-way fixed prefix variants；后者则把 \texttt{fixed}、\texttt{fixed+CE} 和正在跑的 full-sequence 线并列放进同一张状态表。
+这一节把消融分成两层：训练任务范围，以及 loss 设计。前者只比较当前已经跑完的 three-way fixed prefix variants；后者则把 \texttt{fixed}、\texttt{fixed+CE} 和 full-sequence 线并列放进同一张表与同一张曲线图。
 
 \subsection{Training Task Scope}
 
-当前已经落地的三档训练数据范围是：\texttt{Ours(3-task)}、\texttt{Fixed first-token hint}，以及当前仓库里实际已跑出的两任务变体 \texttt{Fixed(sid+title+desc)}。
+这一小节回到完整 2 epoch 里按 \texttt{NDCG@10} 选 best 的默认口径。当前已经落地的三档训练任务范围是：默认 \texttt{taskfix}、\texttt{sid-only}，以及两任务变体 \texttt{sid-title-desc}。
 
 \begin{table}[H]
 \centering
@@ -218,6 +220,8 @@ Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-2652} & \texttt{ch
 \label{tab:genrec-only-rq3-task-scope}
 \end{table}
 
+回到完整 2 epoch 的 best-checkpoint 口径后，\texttt{sid-only} 重新成为最强主线：它拿到最高的 \texttt{HR@5 / HR@10 / HR@20} 与全部 \texttt{NDCG} 指标。\texttt{taskfix} 只在 \texttt{HR@50} 上略占优，\texttt{sid-title-desc} 则只保留 \texttt{HR@1} 的领先。也就是说，长程训练结束后，最稳的 task scope 仍然是更窄、更聚焦的 \texttt{sid-only}。
+
 \begin{figure}[p]
 \centering
 \includegraphics[width=\textwidth]{assets/genrec-only-instruments-fixed-task-variants-curves.png}
@@ -227,41 +231,48 @@ Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-2652} & \texttt{ch
 
 \subsection{Loss Design}
 
-loss 层面的比较只保留三种口径：\texttt{suffix-only GRPO}、\texttt{prefix SFT + suffix-only GRPO}、以及 \texttt{Full-sequence SFT + GRPO}。
+这一小节也回到完整 2 epoch 里按 \texttt{NDCG@10} 选 best 的默认口径。loss 层面的比较只保留三种口径：\texttt{suffix-only GRPO}、\texttt{prefix SFT + suffix-only GRPO}、以及 \texttt{Full-sequence SFT + GRPO}。
 
 \begin{table}[H]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{4pt}
 \renewcommand{\arraystretch}{1.08}
-\resizebox{\textwidth}{!}{%
 \begin{tabular}{lccc}
 \toprule
 Metric & Suffix-only GRPO & Prefix SFT + suffix-only GRPO & Full-sequence SFT + GRPO \\
 \midrule
-HR@1 & 0.0722 & 0.0764 & \textemdash \\
-HR@5 & 0.1014 & 0.1009 & \textemdash \\
-HR@10 & 0.1189 & 0.1180 & \textemdash \\
-HR@20 & 0.1447 & 0.1435 & \textemdash \\
-HR@50 & 0.1941 & 0.1985 & \textemdash \\
-NDCG@5 & 0.0875 & 0.0890 & \textemdash \\
-NDCG@10 & 0.0931 & 0.0945 & \textemdash \\
-NDCG@20 & 0.0995 & 0.1009 & \textemdash \\
-NDCG@50 & 0.1094 & 0.1118 & \textemdash \\
+HR@1 & \underline{0.0722} & \textbf{0.0764} & 0.0720 \\
+HR@5 & \textbf{0.1014} & \underline{0.1009} & 0.0972 \\
+HR@10 & \textbf{0.1189} & \underline{0.1180} & 0.1168 \\
+HR@20 & \textbf{0.1447} & \underline{0.1435} & 0.1404 \\
+HR@50 & \underline{0.1941} & \textbf{0.1985} & 0.1923 \\
+NDCG@5 & \underline{0.0875} & \textbf{0.0890} & 0.0852 \\
+NDCG@10 & \underline{0.0931} & \textbf{0.0945} & 0.0914 \\
+NDCG@20 & \underline{0.0995} & \textbf{0.1009} & 0.0973 \\
+NDCG@50 & \underline{0.1094} & \textbf{0.1118} & 0.1075 \\
 \midrule
-Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-1665} & \texttt{running} \\
+Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-1665} & \texttt{checkpoint-999} \\
 \bottomrule
 \end{tabular}
-}
 \caption{RQ3 中 loss 设计的当前状态表。}
 \label{tab:genrec-only-rq3-loss-design}
 \end{table}
 
-当前 full-sequence 列仍在跑，对应 launcher：\texttt{hope/Instruments-genrec/rl\_fixed\_full\_sequence\_sft.sh}；已完成的 prefix-SFT 列这里使用 \texttt{CE=0.005} 作为代表性 fixed+CE readout。
+当前 full-sequence 列已经接入 \texttt{results/Instruments-grec-genrec-fixed-full-sequence-sft-from-sft}；当前共同步到 \texttt{3} 个 checkpoint，按 \texttt{NDCG@10} 选出的 readout 是 \texttt{checkpoint-999}。 对应 launcher：\texttt{hope/Instruments-genrec/rl\_fixed\_full\_sequence\_sft.sh}；已完成的 prefix-SFT 列这里使用 \texttt{CE=0.005} 作为代表性 fixed+CE readout。
+
+回到完整 2 epoch 的 best-checkpoint 口径后，\texttt{prefix SFT + suffix-only GRPO} 仍然是最稳的一条线：它拿到最高的 \texttt{HR@1 / HR@50} 与全部 \texttt{NDCG} 指标。\texttt{suffix-only GRPO} 只在 \texttt{HR@5 / HR@10 / HR@20} 上保有优势，\texttt{full-sequence SFT + GRPO} 则整体落后于前两者。因此在当前结果里，最有性价比的 loss design 仍然是 prefix-SFT 这一条。
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=\textwidth]{assets/genrec-only-instruments-loss-design-curves.png}
+\caption{Instruments 上 loss design 对比曲线。图中同时比较 \texttt{suffix-only GRPO}、\texttt{prefix SFT + suffix-only GRPO} 与 \texttt{full-sequence SFT + GRPO}；横轴按 \texttt{3326 step = 2 epoch} 归一化；虚线表示 \texttt{GenRec(sft)} 的整体 best，竖向点线表示第一个 epoch 的 cutoff。如果某条线当前只同步到少量 checkpoint，则图中会表现为短线或单点。}
+\label{fig:genrec-only-instruments-loss-design-curves}
+\end{figure}
 
 \section{RQ4: CE Loss Influence}
 
-这一节专门分析 fixed CE coefficient 对后训练结果的影响。正文只保留 \texttt{Instruments} 和 \texttt{Arts} 两个数据集上的 \texttt{0.001 / 0.005 / 0.01} sweep。
+这一节专门分析 fixed CE coefficient 对后训练结果的影响。正文只保留 \texttt{Instruments} 和 \texttt{Arts} 两个数据集上的 CE sweep；其中 \texttt{Arts} 额外补入 \texttt{CE=0.1}。
 
 \subsection{Arts}
 
@@ -270,23 +281,25 @@ Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-1665} & \texttt{ru
 \scriptsize
 \setlength{\tabcolsep}{4pt}
 \renewcommand{\arraystretch}{1.08}
-\begin{tabular}{lcccc}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccc}
 \toprule
-Metric & Fixed(no CE) & CE=0.001 & CE=0.005 & CE=0.01 \\
+Metric & Fixed(no CE) & CE=0.001 & CE=0.005 & CE=0.01 & CE=0.1 \\
 \midrule
-HR@1 & \underline{0.0730} & 0.0710 & 0.0720 & \textbf{0.0734} \\
-HR@5 & \underline{0.1041} & 0.1031 & \textbf{0.1048} & 0.1025 \\
-HR@10 & \underline{0.1248} & 0.1244 & \textbf{0.1257} & 0.1216 \\
-HR@20 & 0.1504 & \textbf{0.1537} & \underline{0.1518} & 0.1496 \\
-HR@50 & \underline{0.2007} & \textbf{0.2029} & 0.2006 & 0.1978 \\
-NDCG@5 & \textbf{0.0890} & 0.0874 & \underline{0.0889} & 0.0884 \\
-NDCG@10 & \textbf{0.0956} & 0.0943 & \textbf{0.0956} & \underline{0.0946} \\
-NDCG@20 & \textbf{0.1021} & \underline{0.1017} & \textbf{0.1021} & 0.1016 \\
-NDCG@50 & \textbf{0.1120} & 0.1114 & \underline{0.1118} & 0.1111 \\
+HR@1 & \underline{0.0730} & 0.0728 & 0.0720 & \textbf{0.0734} & 0.0702 \\
+HR@5 & \underline{0.1041} & 0.1035 & \textbf{0.1048} & 0.1025 & 0.0974 \\
+HR@10 & \underline{0.1248} & 0.1239 & \textbf{0.1257} & 0.1216 & 0.1158 \\
+HR@20 & 0.1504 & \underline{0.1513} & \textbf{0.1518} & 0.1496 & 0.1405 \\
+HR@50 & \underline{0.2007} & \textbf{0.2015} & 0.2006 & 0.1978 & 0.1861 \\
+NDCG@5 & \textbf{0.0890} & 0.0885 & \underline{0.0889} & 0.0884 & 0.0843 \\
+NDCG@10 & \textbf{0.0956} & \underline{0.0951} & \textbf{0.0956} & 0.0946 & 0.0902 \\
+NDCG@20 & \textbf{0.1021} & \underline{0.1020} & \textbf{0.1021} & 0.1016 & 0.0964 \\
+NDCG@50 & \textbf{0.1120} & \underline{0.1119} & 0.1118 & 0.1111 & 0.1054 \\
 \midrule
-Selected ckpt & \texttt{checkpoint-3368} & \texttt{checkpoint-2105} & \texttt{checkpoint-2105} & \texttt{checkpoint-4206} \\
+Selected ckpt & \texttt{checkpoint-3368} & \texttt{checkpoint-4206} & \texttt{checkpoint-2105} & \texttt{checkpoint-4206} & \texttt{checkpoint-2105} \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \caption{Arts 上 fixed CE 系数对比（含无 CE baseline）。}
 \label{tab:genrec-only-arts-fixed-ce-coefficients}
 \end{table}
@@ -294,7 +307,7 @@ Selected ckpt & \texttt{checkpoint-3368} & \texttt{checkpoint-2105} & \texttt{ch
 \begin{figure}[p]
 \centering
 \includegraphics[width=\textwidth]{assets/genrec-only-arts-fixed-ce-coefficients-curves.png}
-\caption{Arts 上 fixed CE 系数对比曲线。图中同时保留 \texttt{Fixed(no CE)} 基线，另外三条线分别对应 \texttt{CE=0.001 / 0.005 / 0.01}；横轴按 \texttt{4206 step = 2 epoch} 归一化；虚线表示 \texttt{GenRec(sft)} 的整体 best，竖向点线表示第一个 epoch 的 cutoff。}
+\caption{Arts 上 fixed CE 系数对比曲线。图中同时保留 \texttt{Fixed(no CE)} 基线，另外四条 CE 线分别对应 \texttt{CE=0.001 / 0.005 / 0.01 / 0.1}；横轴按 \texttt{4206 step = 2 epoch} 归一化；虚线表示 \texttt{GenRec(sft)} 的整体 best，竖向点线表示第一个 epoch 的 cutoff。}
 \label{fig:genrec-only-arts-fixed-ce-coefficients-curves}
 \end{figure}
 
@@ -345,7 +358,7 @@ Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-2664} & \texttt{ch
 Dataset & Best top-10 coefficient & Best coverage coefficient & Reading \\
 \midrule
 Instruments & \texttt{CE=0.01} & \texttt{CE=0.005} & 大系数继续抬高 long-run top-10，但 coverage 峰值仍出现在中档系数 \\
-Arts & \texttt{CE=0.005} / no-CE tie & \texttt{CE=0.001} & 小系数更像 mild coverage regularizer，\texttt{CE=0.01} 没有复制 Instruments 的 top-10 收益 \\
+Arts & \texttt{CE=0.005} / no-CE tie & \texttt{CE=0.001} & 小系数更像 mild coverage regularizer，\texttt{CE=0.1} 则在 top-10 与 coverage 上都明显退化 \\
 \bottomrule
 \end{tabular}
 \caption{RQ4 的跨数据集 summary。}
