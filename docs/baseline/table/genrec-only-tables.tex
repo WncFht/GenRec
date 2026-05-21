@@ -33,15 +33,15 @@
 \toprule
 Metric & Caser & GRU4Rec & BERT4Rec & SASRec & TIGER & LC-Rec & MiniOnerec & GenRec(rule) & GenRec(fixed + ce0.005) \\
 \midrule
-HR@1 & 0.0422 & 0.0671 & 0.0578 & 0.0436 & 0.0389 & 0.0588 & \textbf{0.0808} & \underline{0.0788} & 0.0764 \\
-HR@5 & 0.0645 & 0.0793 & 0.0790 & 0.0684 & 0.0684 & 0.0932 & 0.1002 & \textbf{0.1027} & \underline{0.1009} \\
-HR@10 & 0.0825 & 0.0880 & 0.0937 & 0.0869 & 0.0806 & 0.1094 & 0.1145 & \underline{0.1179} & \textbf{0.1180} \\
-HR@20 & 0.1097 & 0.1000 & 0.1141 & 0.1155 & 0.1026 & 0.1344 & 0.1337 & \underline{0.1373} & \textbf{0.1435} \\
-HR@50 & 0.1593 & 0.1291 & 0.1541 & 0.1657 & 0.1467 & \underline{0.1844} & 0.1696 & 0.1681 & \textbf{0.1985} \\
-NDCG@5 & 0.0533 & 0.0735 & 0.0689 & 0.0568 & 0.0545 & 0.0771 & \underline{0.0906} & \textbf{0.0911} & 0.0890 \\
-NDCG@10 & 0.0591 & 0.0763 & 0.0735 & 0.0628 & 0.0585 & 0.0823 & \underline{0.0952} & \textbf{0.0960} & 0.0945 \\
-NDCG@20 & 0.0659 & 0.0793 & 0.0787 & 0.0699 & 0.0639 & 0.0886 & \underline{0.1000} & \textbf{0.1009} & \textbf{0.1009} \\
-NDCG@50 & 0.0757 & 0.0850 & 0.0865 & 0.0799 & 0.0727 & 0.0985 & \underline{0.1071} & 0.1070 & \textbf{0.1118} \\
+HR@1 & 0.0422 & 0.0671 & 0.0578 & 0.0436 & 0.0628 & 0.0588 & \textbf{0.0808} & \underline{0.0788} & 0.0764 \\
+HR@5 & 0.0645 & 0.0793 & 0.0790 & 0.0684 & 0.0871 & 0.0932 & 0.1002 & \textbf{0.1027} & \underline{0.1009} \\
+HR@10 & 0.0825 & 0.0880 & 0.0937 & 0.0869 & 0.1021 & 0.1094 & 0.1145 & \underline{0.1179} & \textbf{0.1180} \\
+HR@20 & 0.1097 & 0.1000 & 0.1141 & 0.1155 & 0.1279 & 0.1344 & 0.1337 & \underline{0.1373} & \textbf{0.1435} \\
+HR@50 & 0.1593 & 0.1291 & 0.1541 & 0.1657 & 0.1755 & \underline{0.1844} & 0.1696 & 0.1681 & \textbf{0.1985} \\
+NDCG@5 & 0.0533 & 0.0735 & 0.0689 & 0.0568 & 0.0754 & 0.0771 & \underline{0.0906} & \textbf{0.0911} & 0.0890 \\
+NDCG@10 & 0.0591 & 0.0763 & 0.0735 & 0.0628 & 0.0801 & 0.0823 & \underline{0.0952} & \textbf{0.0960} & 0.0945 \\
+NDCG@20 & 0.0659 & 0.0793 & 0.0787 & 0.0699 & 0.0866 & 0.0886 & \underline{0.1000} & \textbf{0.1009} & \textbf{0.1009} \\
+NDCG@50 & 0.0757 & 0.0850 & 0.0865 & 0.0799 & 0.0960 & 0.0985 & \underline{0.1071} & 0.1070 & \textbf{0.1118} \\
 \midrule
 Selected ckpt & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-495} & \texttt{checkpoint-1665} & \texttt{checkpoint-2997} & \texttt{checkpoint-1665} \\
 \bottomrule
@@ -291,7 +291,7 @@ Selected ckpt & \texttt{checkpoint-1665} & \texttt{checkpoint-1665} & \texttt{ch
 \label{tab:genrec-only-rq3-loss-design-instruments}
 \end{table}
 
-当前 full-sequence 列已经接入 \texttt{results/Instruments-grec-genrec-fixed-full-sequence-sft-from-sft}；当前共同步到 \texttt{7} 个 checkpoint，这一版表格不再让三列各自挑 best，而是统一读取 \texttt{Prefix SFT + suffix-only GRPO} 当前选中的 \texttt{checkpoint-1665}。 对应 launcher：\texttt{hope/Instruments-genrec/rl\_fixed\_full\_sequence\_sft.sh}；已完成的 prefix-SFT 列这里使用 \texttt{CE=0.005} 作为代表性 fixed+CE readout。
+当前 full-sequence 列已经接入 \texttt{results/Instruments-grec-genrec-fixed-full-sequence-sft-from-sft}；当前共同步到 \texttt{9} 个 checkpoint，这一版表格不再让三列各自挑 best，而是统一读取 \texttt{Prefix SFT + suffix-only GRPO} 当前选中的 \texttt{checkpoint-1665}。 对应 launcher：\texttt{hope/Instruments-genrec/rl\_fixed\_full\_sequence\_sft.sh}；已完成的 prefix-SFT 列这里使用 \texttt{CE=0.005} 作为代表性 fixed+CE readout。
 
 回到完整 2 epoch 的 best-checkpoint 口径后，\texttt{prefix SFT + suffix-only GRPO} 仍然是最稳的一条线：它拿到最高的 \texttt{HR@1 / HR@50} 与全部 \texttt{NDCG} 指标。\texttt{suffix-only GRPO} 只在 \texttt{HR@5 / HR@10 / HR@20} 上保有优势，\texttt{full-sequence SFT + GRPO} 则整体落后于前两者。因此在当前结果里，最有性价比的 loss design 仍然是 prefix-SFT 这一条。
 

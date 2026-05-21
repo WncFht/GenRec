@@ -1,0 +1,2 @@
+path	HR@1	HR@3	HR@5	HR@10	HR@20	HR@50	NDCG@1	NDCG@3	NDCG@5	NDCG@10	NDCG@20	NDCG@50
+Instruments-grec-genrec-fixed-full-sequence-sft-from-sft/checkpoint-2664	0.0737	0.0919	0.101	0.119	0.1453	0.1958	0.0737	0.0844	0.0882	0.094	0.1005	0.1105
