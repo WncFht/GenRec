@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-20T06:07:48+00:00",
+  "generated_at": "2026-05-21T10:28:06+00:00",
   "results_root": "/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/results",
   "models": [
     {
@@ -77,6 +77,21 @@
       "wandb_entity": null,
       "wandb_run_id": "eval-402cdeb5f49ca1c82e9d",
       "wandb_run_name": "Arts-grec-genrec-fixed-from-sft-eval"
+    },
+    {
+      "model_dir": "Arts-grec-genrec-fixed-full-sequence-sft-from-sft",
+      "dataset": "Arts_grec_genrec_fixed_full_sequence",
+      "cb_setting": "none",
+      "eval_split": "test",
+      "seed": 42,
+      "num_beams": 50,
+      "sid_levels": -1,
+      "num_train_epochs": null,
+      "wandb_group": null,
+      "wandb_project": "MIMIGenRec-Eval",
+      "wandb_entity": null,
+      "wandb_run_id": "eval-8bd338d1aa1182a6cbc1",
+      "wandb_run_name": "Arts-grec-genrec-fixed-full-sequence-sft-from-sft-eval"
     },
     {
       "model_dir": "Arts-grec-genrec-ndcg-from-sft",

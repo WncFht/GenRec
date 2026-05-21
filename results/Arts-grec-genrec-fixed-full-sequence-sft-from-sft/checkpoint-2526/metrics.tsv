@@ -1,0 +1,2 @@
+path	HR@1	HR@3	HR@5	HR@10	HR@20	HR@50	NDCG@1	NDCG@3	NDCG@5	NDCG@10	NDCG@20	NDCG@50
+Arts-grec-genrec-fixed-full-sequence-sft-from-sft/checkpoint-2526	0.0699	0.09	0.1028	0.124	0.1528	0.1986	0.0699	0.0815	0.0867	0.0936	0.1008	0.1099
