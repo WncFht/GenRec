@@ -19,7 +19,7 @@
 
 \section{RQ1: Overall Performance}
 
-这一节沿用当前默认口径：每个变体都在其全部已同步 checkpoint 中按 \texttt{NDCG@10} 选出唯一 best checkpoint。 在保留 GenRec 主线的同时，overall 里额外补入 \texttt{Caser / GRU4Rec / BERT4Rec / SASRec / TIGER}； 其中缺失结果仍保留为空列，已同步结果直接读取当前 \texttt{results/} 里的 best readout。 GenRec 侧只保留 \texttt{MiniOnerec}、\texttt{LC-Rec}、\texttt{GenRec(rule)} 和 \texttt{GenRec(fixed + ce0.005)}，从而把 overall frontier 压到一张更紧凑的对照表里。
+这一节沿用当前默认口径：每个变体都在其全部已同步 checkpoint 中按 \texttt{NDCG@10} 选出唯一 best checkpoint。 在保留 GenRec 主线的同时，overall 里额外补入 \texttt{Caser / GRU4Rec / BERT4Rec / SASRec / TIGER}； 其中缺失结果仍保留为空列，已同步结果直接读取当前 \texttt{results/} 里的 best readout。 GenRec 侧只保留 \texttt{MiniOnerec}、\texttt{LC-Rec}、\texttt{GenRec(rule)}、\texttt{GenRec(fixed)} 和 \texttt{GenRec(fixed + ce0.005)}，从而把 overall frontier 压到一张更紧凑的对照表里。
 
 \subsection{Instruments}
 
@@ -29,21 +29,21 @@
 \setlength{\tabcolsep}{4pt}
 \renewcommand{\arraystretch}{1.08}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{lccccccccc}
+\begin{tabular}{lcccccccccc}
 \toprule
-Metric & Caser & GRU4Rec & BERT4Rec & SASRec & TIGER & LC-Rec & MiniOnerec & GenRec(rule) & GenRec(fixed + ce0.005) \\
+Metric & Caser & GRU4Rec & BERT4Rec & SASRec & TIGER & LC-Rec & MiniOnerec & GenRec(rule) & GenRec(fixed) & GenRec(fixed + ce0.005) \\
 \midrule
-HR@1 & 0.0422 & 0.0671 & 0.0578 & 0.0436 & 0.0628 & 0.0588 & \textbf{0.0808} & \underline{0.0788} & 0.0764 \\
-HR@5 & 0.0645 & 0.0793 & 0.0790 & 0.0684 & 0.0871 & 0.0932 & 0.1002 & \textbf{0.1027} & \underline{0.1009} \\
-HR@10 & 0.0825 & 0.0880 & 0.0937 & 0.0869 & 0.1021 & 0.1094 & 0.1145 & \underline{0.1179} & \textbf{0.1180} \\
-HR@20 & 0.1097 & 0.1000 & 0.1141 & 0.1155 & 0.1279 & 0.1344 & 0.1337 & \underline{0.1373} & \textbf{0.1435} \\
-HR@50 & 0.1593 & 0.1291 & 0.1541 & 0.1657 & 0.1755 & \underline{0.1844} & 0.1696 & 0.1681 & \textbf{0.1985} \\
-NDCG@5 & 0.0533 & 0.0735 & 0.0689 & 0.0568 & 0.0754 & 0.0771 & \underline{0.0906} & \textbf{0.0911} & 0.0890 \\
-NDCG@10 & 0.0591 & 0.0763 & 0.0735 & 0.0628 & 0.0801 & 0.0823 & \underline{0.0952} & \textbf{0.0960} & 0.0945 \\
-NDCG@20 & 0.0659 & 0.0793 & 0.0787 & 0.0699 & 0.0866 & 0.0886 & \underline{0.1000} & \textbf{0.1009} & \textbf{0.1009} \\
-NDCG@50 & 0.0757 & 0.0850 & 0.0865 & 0.0799 & 0.0960 & 0.0985 & \underline{0.1071} & 0.1070 & \textbf{0.1118} \\
+HR@1 & 0.0422 & 0.0671 & 0.0578 & 0.0436 & 0.0664 & 0.0588 & \textbf{0.0808} & \underline{0.0788} & 0.0722 & 0.0764 \\
+HR@5 & 0.0645 & 0.0793 & 0.0790 & 0.0684 & 0.0872 & 0.0932 & 0.1002 & \textbf{0.1027} & \underline{0.1014} & 0.1009 \\
+HR@10 & 0.0825 & 0.0880 & 0.0937 & 0.0869 & 0.1044 & 0.1094 & 0.1145 & 0.1179 & \textbf{0.1189} & \underline{0.1180} \\
+HR@20 & 0.1097 & 0.1000 & 0.1141 & 0.1155 & 0.1281 & 0.1344 & 0.1337 & 0.1373 & \textbf{0.1447} & \underline{0.1435} \\
+HR@50 & 0.1593 & 0.1291 & 0.1541 & 0.1657 & 0.1763 & 0.1844 & 0.1696 & 0.1681 & \underline{0.1941} & \textbf{0.1985} \\
+NDCG@5 & 0.0533 & 0.0735 & 0.0689 & 0.0568 & 0.0771 & 0.0771 & \underline{0.0906} & \textbf{0.0911} & 0.0875 & 0.0890 \\
+NDCG@10 & 0.0591 & 0.0763 & 0.0735 & 0.0628 & 0.0825 & 0.0823 & \underline{0.0952} & \textbf{0.0960} & 0.0931 & 0.0945 \\
+NDCG@20 & 0.0659 & 0.0793 & 0.0787 & 0.0699 & 0.0884 & 0.0886 & \underline{0.1000} & \textbf{0.1009} & 0.0995 & \textbf{0.1009} \\
+NDCG@50 & 0.0757 & 0.0850 & 0.0865 & 0.0799 & 0.0980 & 0.0985 & 0.1071 & 0.1070 & \underline{0.1094} & \textbf{0.1118} \\
 \midrule
-Selected ckpt & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-495} & \texttt{checkpoint-1665} & \texttt{checkpoint-2997} & \texttt{checkpoint-1665} \\
+Selected ckpt & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-495} & \texttt{checkpoint-1665} & \texttt{checkpoint-2997} & \texttt{checkpoint-2997} & \texttt{checkpoint-1665} \\
 \bottomrule
 \end{tabular}%
 }
@@ -59,21 +59,21 @@ Selected ckpt & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{ch
 \setlength{\tabcolsep}{4pt}
 \renewcommand{\arraystretch}{1.08}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{lccccccccc}
+\begin{tabular}{lcccccccccc}
 \toprule
-Metric & Caser & GRU4Rec & BERT4Rec & SASRec & TIGER & LC-Rec & MiniOnerec & GenRec(rule) & GenRec(fixed + ce0.005) \\
+Metric & Caser & GRU4Rec & BERT4Rec & SASRec & TIGER & LC-Rec & MiniOnerec & GenRec(rule) & GenRec(fixed) & GenRec(fixed + ce0.005) \\
 \midrule
-HR@1 & 0.0102 & 0.0107 & 0.0149 & 0.0097 & \textemdash & 0.0168 & 0.0203 & \underline{0.0206} & \textbf{0.0210} \\
-HR@5 & 0.0334 & 0.0358 & 0.0465 & 0.0340 & \textemdash & 0.0503 & 0.0541 & \underline{0.0544} & \textbf{0.0558} \\
-HR@10 & 0.0546 & 0.0574 & 0.0723 & 0.0556 & \textemdash & 0.0804 & 0.0802 & \underline{0.0825} & \textbf{0.0857} \\
-HR@20 & 0.0876 & 0.0920 & 0.1116 & 0.0880 & \textemdash & \underline{0.1215} & 0.1167 & 0.1186 & \textbf{0.1278} \\
-HR@50 & 0.1517 & 0.1621 & 0.1875 & 0.1571 & \textemdash & \underline{0.1998} & 0.1804 & 0.1815 & \textbf{0.2012} \\
-NDCG@5 & 0.0218 & 0.0232 & 0.0304 & 0.0218 & \textemdash & 0.0336 & 0.0374 & \underline{0.0377} & \textbf{0.0385} \\
-NDCG@10 & 0.0286 & 0.0301 & 0.0387 & 0.0287 & \textemdash & 0.0433 & 0.0458 & \underline{0.0467} & \textbf{0.0480} \\
-NDCG@20 & 0.0369 & 0.0388 & 0.0486 & 0.0369 & \textemdash & 0.0536 & 0.0550 & \underline{0.0558} & \textbf{0.0586} \\
-NDCG@50 & 0.0496 & 0.0526 & 0.0636 & 0.0505 & \textemdash & \underline{0.0691} & 0.0676 & 0.0683 & \textbf{0.0732} \\
+HR@1 & 0.0102 & 0.0107 & 0.0149 & 0.0097 & 0.0148 & 0.0168 & 0.0203 & \underline{0.0206} & \textbf{0.0210} & \textbf{0.0210} \\
+HR@5 & 0.0334 & 0.0358 & 0.0465 & 0.0340 & 0.0489 & 0.0503 & 0.0541 & 0.0544 & \underline{0.0555} & \textbf{0.0558} \\
+HR@10 & 0.0546 & 0.0574 & 0.0723 & 0.0556 & 0.0806 & 0.0804 & 0.0802 & \underline{0.0825} & \textbf{0.0857} & \textbf{0.0857} \\
+HR@20 & 0.0876 & 0.0920 & 0.1116 & 0.0880 & \textbf{0.1282} & 0.1215 & 0.1167 & 0.1186 & 0.1273 & \underline{0.1278} \\
+HR@50 & 0.1517 & 0.1621 & 0.1875 & 0.1571 & \textbf{0.2118} & 0.1998 & 0.1804 & 0.1815 & 0.1972 & \underline{0.2012} \\
+NDCG@5 & 0.0218 & 0.0232 & 0.0304 & 0.0218 & 0.0318 & 0.0336 & 0.0374 & 0.0377 & \underline{0.0383} & \textbf{0.0385} \\
+NDCG@10 & 0.0286 & 0.0301 & 0.0387 & 0.0287 & 0.0419 & 0.0433 & 0.0458 & \underline{0.0467} & \textbf{0.0480} & \textbf{0.0480} \\
+NDCG@20 & 0.0369 & 0.0388 & 0.0486 & 0.0369 & 0.0538 & 0.0536 & 0.0550 & 0.0558 & \underline{0.0584} & \textbf{0.0586} \\
+NDCG@50 & 0.0496 & 0.0526 & 0.0636 & 0.0505 & 0.0704 & 0.0691 & 0.0676 & 0.0683 & \underline{0.0723} & \textbf{0.0732} \\
 \midrule
-Selected ckpt & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \textemdash & \texttt{checkpoint-768} & \texttt{checkpoint-3504} & \texttt{checkpoint-8752} & \texttt{checkpoint-3504} \\
+Selected ckpt & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-768} & \texttt{checkpoint-3504} & \texttt{checkpoint-8752} & \texttt{checkpoint-8752} & \texttt{checkpoint-3504} \\
 \bottomrule
 \end{tabular}%
 }
@@ -89,21 +89,21 @@ Selected ckpt & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{ch
 \setlength{\tabcolsep}{4pt}
 \renewcommand{\arraystretch}{1.08}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{lccccccccc}
+\begin{tabular}{lcccccccccc}
 \toprule
-Metric & Caser & GRU4Rec & BERT4Rec & SASRec & TIGER & LC-Rec & MiniOnerec & GenRec(rule) & GenRec(fixed + ce0.005) \\
+Metric & Caser & GRU4Rec & BERT4Rec & SASRec & TIGER & LC-Rec & MiniOnerec & GenRec(rule) & GenRec(fixed) & GenRec(fixed + ce0.005) \\
 \midrule
-HR@1 & 0.0274 & 0.0508 & 0.0353 & 0.0233 & 0.0516 & 0.0643 & \underline{0.0728} & \textbf{0.0743} & 0.0720 \\
-HR@5 & 0.0421 & 0.0682 & 0.0563 & 0.0593 & 0.0897 & 0.0949 & 0.1018 & \underline{0.1031} & \textbf{0.1048} \\
-HR@10 & 0.0547 & 0.0812 & 0.0734 & 0.0814 & 0.1170 & 0.1164 & 0.1189 & \underline{0.1215} & \textbf{0.1257} \\
-HR@20 & 0.0745 & 0.1011 & 0.0966 & 0.1094 & \textbf{0.1524} & 0.1433 & 0.1412 & 0.1454 & \underline{0.1518} \\
-HR@50 & 0.1103 & 0.1428 & 0.1431 & 0.1627 & \textbf{0.2128} & 0.1941 & 0.1839 & 0.1906 & \underline{0.2006} \\
-NDCG@5 & 0.0347 & 0.0598 & 0.0461 & 0.0426 & 0.0711 & 0.0801 & 0.0876 & \textbf{0.0893} & \underline{0.0889} \\
-NDCG@10 & 0.0387 & 0.0640 & 0.0516 & 0.0498 & 0.0799 & 0.0870 & 0.0931 & \underline{0.0952} & \textbf{0.0956} \\
-NDCG@20 & 0.0437 & 0.0690 & 0.0574 & 0.0568 & 0.0889 & 0.0938 & 0.0987 & \underline{0.1012} & \textbf{0.1021} \\
-NDCG@50 & 0.0508 & 0.0772 & 0.0666 & 0.0673 & 0.1009 & 0.1038 & 0.1071 & \underline{0.1102} & \textbf{0.1118} \\
+HR@1 & 0.0274 & 0.0508 & 0.0353 & 0.0233 & 0.0532 & 0.0643 & 0.0728 & \textbf{0.0743} & \underline{0.0730} & 0.0720 \\
+HR@5 & 0.0421 & 0.0682 & 0.0563 & 0.0593 & 0.0905 & 0.0949 & 0.1018 & 0.1031 & \underline{0.1041} & \textbf{0.1048} \\
+HR@10 & 0.0547 & 0.0812 & 0.0734 & 0.0814 & 0.1154 & 0.1164 & 0.1189 & 0.1215 & \underline{0.1248} & \textbf{0.1257} \\
+HR@20 & 0.0745 & 0.1011 & 0.0966 & 0.1094 & 0.1483 & 0.1433 & 0.1412 & 0.1454 & \underline{0.1504} & \textbf{0.1518} \\
+HR@50 & 0.1103 & 0.1428 & 0.1431 & 0.1627 & \textbf{0.2076} & 0.1941 & 0.1839 & 0.1906 & \underline{0.2007} & 0.2006 \\
+NDCG@5 & 0.0347 & 0.0598 & 0.0461 & 0.0426 & 0.0725 & 0.0801 & 0.0876 & \textbf{0.0893} & \underline{0.0890} & 0.0889 \\
+NDCG@10 & 0.0387 & 0.0640 & 0.0516 & 0.0498 & 0.0805 & 0.0870 & 0.0931 & \underline{0.0952} & \textbf{0.0956} & \textbf{0.0956} \\
+NDCG@20 & 0.0437 & 0.0690 & 0.0574 & 0.0568 & 0.0888 & 0.0938 & 0.0987 & \underline{0.1012} & \textbf{0.1021} & \textbf{0.1021} \\
+NDCG@50 & 0.0508 & 0.0772 & 0.0666 & 0.0673 & 0.1006 & 0.1038 & 0.1071 & 0.1102 & \textbf{0.1120} & \underline{0.1118} \\
 \midrule
-Selected ckpt & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-522} & \texttt{checkpoint-1684} & \texttt{checkpoint-2105} & \texttt{checkpoint-2105} \\
+Selected ckpt & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{checkpoint-522} & \texttt{checkpoint-1684} & \texttt{checkpoint-2105} & \texttt{checkpoint-3368} & \texttt{checkpoint-2105} \\
 \bottomrule
 \end{tabular}%
 }
@@ -149,71 +149,130 @@ Selected ckpt & \texttt{checkpoint-495} & \texttt{checkpoint-2997} & \texttt{che
 
 \subsection{Hint Strategy Comparison}
 
-这里把对照收缩为三条主线：\texttt{Ours(fixed hint)}、\texttt{dynamic hint} 与 \texttt{dynamic hint max1}。对应的目标是回答两个问题：fixed 是否优于 dynamic，以及 dynamic 在线索收缩到 max1 后会不会更强。
+这里把对照收缩为两条主线：\texttt{Ours(fixed hint)} 与 \texttt{dynamic hint}。对应的目标很直接：在同一套 prefix-hint 训练框架里，fixed 是否稳定优于 dynamic。
 
 \begin{table}[H]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{4pt}
 \renewcommand{\arraystretch}{1.08}
-\begin{tabular}{lccc}
+\begin{tabular}{lcc}
 \toprule
-Metric & Ours (fixed hint) & Dynamic hint & Dynamic hint max1 \\
+Metric & Ours (fixed hint) & Dynamic hint \\
 \midrule
-HR@1 & 0.0722 & \underline{0.0760} & \textbf{0.0761} \\
-HR@5 & \textbf{0.1014} & \underline{0.0997} & 0.0992 \\
-HR@10 & \textbf{0.1189} & \underline{0.1169} & 0.1158 \\
-HR@20 & \textbf{0.1447} & 0.1394 & \underline{0.1402} \\
-HR@50 & \textbf{0.1941} & 0.1855 & \underline{0.1905} \\
-NDCG@5 & 0.0875 & \underline{0.0880} & \textbf{0.0881} \\
-NDCG@10 & 0.0931 & \textbf{0.0936} & \underline{0.0934} \\
-NDCG@20 & \textbf{0.0995} & \underline{0.0992} & \textbf{0.0995} \\
-NDCG@50 & \underline{0.1094} & 0.1083 & \textbf{0.1095} \\
+HR@1 & \underline{0.0722} & \textbf{0.0760} \\
+HR@5 & \textbf{0.1014} & \underline{0.0997} \\
+HR@10 & \textbf{0.1189} & \underline{0.1169} \\
+HR@20 & \textbf{0.1447} & \underline{0.1394} \\
+HR@50 & \textbf{0.1941} & \underline{0.1855} \\
+NDCG@5 & \underline{0.0875} & \textbf{0.0880} \\
+NDCG@10 & \underline{0.0931} & \textbf{0.0936} \\
+NDCG@20 & \textbf{0.0995} & \underline{0.0992} \\
+NDCG@50 & \textbf{0.1094} & \underline{0.1083} \\
 \midrule
-Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-2997} & \texttt{checkpoint-1332} \\
+Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-2997} \\
 \bottomrule
 \end{tabular}
-\caption{Instruments 上 \texttt{Ours(fixed hint)}、\texttt{dynamic hint} 与 \texttt{dynamic hint max1} 的对比。}
+\caption{Instruments 上 \texttt{Ours(fixed hint)} 与 \texttt{dynamic hint} 的对比。}
 \label{tab:genrec-only-instruments-hint-comparison}
 \end{table}
 
-在完整 2 epoch 口径下，\texttt{Ours(fixed hint)} 仍然保住最高的 \texttt{HR@5 / HR@10 / HR@20 / HR@50}，\texttt{dynamic hint max1} 则拿到最高的 \texttt{HR@1 / NDCG@5 / NDCG@10 / NDCG@20 / NDCG@50}。\texttt{dynamic hint} 主线整体落在这两条线之后，说明真正有竞争力的 dynamic 版本来自 max1 收缩，而不是 full-hint dynamic 本身。
-
-如果不让每条线各自挑 peak，而是统一读取 \texttt{2 epoch} 末尾的 checkpoint，那么对比会更偏向 long-run stability。下表保留原表不动，额外补一张固定读取终点 ckpt 的 readout。
-
 \begin{table}[H]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{4pt}
 \renewcommand{\arraystretch}{1.08}
-\begin{tabular}{lccc}
+\begin{tabular}{lcc}
 \toprule
-Metric & Ours (fixed hint) & Dynamic hint & Dynamic hint max1 \\
+Metric & Ours (fixed hint) & Dynamic hint \\
 \midrule
-HR@1 & 0.0722 & \textbf{0.0761} & \underline{0.0759} \\
-HR@5 & \textbf{0.1009} & \underline{0.0993} & 0.0980 \\
-HR@10 & \textbf{0.1186} & \underline{0.1166} & 0.1123 \\
-HR@20 & \textbf{0.1449} & \underline{0.1391} & 0.1357 \\
-HR@50 & \textbf{0.1938} & \underline{0.1855} & 0.1777 \\
-NDCG@5 & \underline{0.0872} & \textbf{0.0879} & \underline{0.0872} \\
-NDCG@10 & \underline{0.0929} & \textbf{0.0935} & 0.0918 \\
-NDCG@20 & \textbf{0.0995} & \underline{0.0991} & 0.0976 \\
-NDCG@50 & \textbf{0.1092} & \underline{0.1083} & 0.1059 \\
+HR@1 & \underline{0.0722} & \textbf{0.0761} \\
+HR@5 & \textbf{0.1009} & \underline{0.0993} \\
+HR@10 & \textbf{0.1186} & \underline{0.1166} \\
+HR@20 & \textbf{0.1449} & \underline{0.1391} \\
+HR@50 & \textbf{0.1938} & \underline{0.1855} \\
+NDCG@5 & \underline{0.0872} & \textbf{0.0879} \\
+NDCG@10 & \underline{0.0929} & \textbf{0.0935} \\
+NDCG@20 & \textbf{0.0995} & \underline{0.0991} \\
+NDCG@50 & \textbf{0.1092} & \underline{0.1083} \\
 \midrule
-Selected ckpt & \texttt{checkpoint-3326} & \texttt{checkpoint-3326} & \texttt{checkpoint-3326} \\
+Selected ckpt & \texttt{checkpoint-3326} & \texttt{checkpoint-3326} \\
 \bottomrule
 \end{tabular}
-\caption{Instruments 上 \texttt{Ours(fixed hint)}、\texttt{dynamic hint} 与 \texttt{dynamic hint max1} 在 2 epoch 末尾 checkpoint 的对比。}
+\caption{Instruments 上 \texttt{Ours(fixed hint)} 与 \texttt{dynamic hint} 在 2 epoch 末尾 checkpoint 的对比。}
 \label{tab:genrec-only-instruments-hint-comparison-final-epoch}
 \end{table}
 
-固定到终点 checkpoint 后，\texttt{dynamic hint max1} 的领先基本消失；\texttt{dynamic hint} 主线只保住 \texttt{HR@1 / NDCG@5 / NDCG@10}，而 \texttt{Ours(fixed hint)} 仍然稳住其余 coverage 指标。这说明 max1 的优势更像 early peak，而不是 2 epoch 末尾仍然稳定存在的优势。
+Instruments 上，两条线在各自 best checkpoint 处已经很接近，但 \texttt{Ours(fixed hint)} 仍然保住更高的 \texttt{HR@5 / HR@10 / HR@20 / HR@50}，\texttt{dynamic hint} 只在 \texttt{HR@1 / NDCG@5 / NDCG@10} 上略占优。
+
+固定读取 \texttt{2 epoch} 末尾 checkpoint 后，这个分工基本不变：\texttt{dynamic hint} 继续只保住更前面的 top-heavy 指标，而 \texttt{Ours(fixed hint)} 仍然稳住 coverage 指标。
 
 \begin{figure}[p]
 \centering
 \includegraphics[width=\textwidth]{assets/genrec-only-instruments-hint-comparison-curves.png}
-\caption{Instruments 上 \texttt{Ours(fixed hint)}、\texttt{dynamic hint}、\texttt{dynamic hint max1} 的完整曲线对比。图中统一展示 9 个指标；横轴统一使用 epoch，其中 full hint / dynamic 主线按 \texttt{3326 step = 2 epoch} 归一化，\texttt{dynamic hint max1} 也按 \texttt{3326 step = 2 epoch} 归一化。}
+\caption{Instruments 上 \texttt{Ours(fixed hint)} 与 \texttt{dynamic hint} 的完整曲线对比。图中统一展示 9 个指标；横轴统一使用 epoch，并按 \texttt{3326 step = 2 epoch} 归一化。}
 \label{fig:genrec-only-instruments-hint-comparison-curves}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular}{lcc}
+\toprule
+Metric & Ours (fixed hint) & Dynamic hint \\
+\midrule
+HR@1 & \textbf{0.0210} & \underline{0.0202} \\
+HR@5 & \textbf{0.0555} & \underline{0.0543} \\
+HR@10 & \textbf{0.0857} & \underline{0.0823} \\
+HR@20 & \textbf{0.1273} & \underline{0.1234} \\
+HR@50 & \underline{0.1972} & \textbf{0.1980} \\
+NDCG@5 & \textbf{0.0383} & \underline{0.0374} \\
+NDCG@10 & \textbf{0.0480} & \underline{0.0464} \\
+NDCG@20 & \textbf{0.0584} & \underline{0.0567} \\
+NDCG@50 & \textbf{0.0723} & \underline{0.0716} \\
+\midrule
+Selected ckpt & \texttt{checkpoint-8752} & \texttt{checkpoint-4380} \\
+\bottomrule
+\end{tabular}
+\caption{Games 上 \texttt{Ours(fixed hint)} 与 \texttt{dynamic hint} 的对比。}
+\label{tab:genrec-only-games-hint-comparison}
+\end{table}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular}{lcc}
+\toprule
+Metric & Ours (fixed hint) & Dynamic hint \\
+\midrule
+HR@1 & \textbf{0.0210} & \underline{0.0197} \\
+HR@5 & \textbf{0.0555} & \underline{0.0533} \\
+HR@10 & \textbf{0.0857} & \underline{0.0819} \\
+HR@20 & \textbf{0.1273} & \underline{0.1222} \\
+HR@50 & \textbf{0.1972} & \underline{0.1911} \\
+NDCG@5 & \textbf{0.0383} & \underline{0.0367} \\
+NDCG@10 & \textbf{0.0480} & \underline{0.0459} \\
+NDCG@20 & \textbf{0.0584} & \underline{0.0560} \\
+NDCG@50 & \textbf{0.0723} & \underline{0.0697} \\
+\midrule
+Selected ckpt & \texttt{checkpoint-8752} & \texttt{checkpoint-8752} \\
+\bottomrule
+\end{tabular}
+\caption{Games 上 \texttt{Ours(fixed hint)} 与 \texttt{dynamic hint} 在 2 epoch 末尾 checkpoint 的对比。}
+\label{tab:genrec-only-games-hint-comparison-final-epoch}
+\end{table}
+
+Games 上，\texttt{Ours(fixed hint)} 在 best checkpoint 和 2 epoch 末尾 checkpoint 两个口径下都整体领先。\texttt{dynamic hint} 没有拿到任何一个 headline metric 的最优值，说明这个数据集上 fixed prefix 的优势更稳定，也更直接。
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=\textwidth]{assets/genrec-only-games-hint-comparison-curves.png}
+\caption{Games 上 \texttt{Ours(fixed hint)} 与 \texttt{dynamic hint} 的完整曲线对比。图中统一展示 9 个指标；横轴统一使用 epoch，并按 \texttt{8752 step = 2 epoch} 归一化。}
+\label{fig:genrec-only-games-hint-comparison-curves}
 \end{figure}
 
 \section{RQ3: Ablation Study}
@@ -233,29 +292,29 @@ Selected ckpt & \texttt{checkpoint-3326} & \texttt{checkpoint-3326} & \texttt{ch
 \toprule
 Metric & Fixed(taskfix) & Fixed(sid-only) & Fixed(sid+title+desc) \\
 \midrule
-HR@1 & 0.0722 & \underline{0.0743} & \textbf{0.0758} \\
-HR@5 & \underline{0.1014} & \textbf{0.1017} & 0.1001 \\
-HR@10 & \underline{0.1189} & \textbf{0.1205} & 0.1169 \\
-HR@20 & \underline{0.1447} & \textbf{0.1456} & 0.1416 \\
-HR@50 & \textbf{0.1941} & \underline{0.1935} & 0.1905 \\
-NDCG@5 & \underline{0.0875} & \textbf{0.0885} & \textbf{0.0885} \\
-NDCG@10 & 0.0931 & \textbf{0.0945} & \underline{0.0939} \\
-NDCG@20 & 0.0995 & \textbf{0.1008} & \underline{0.1001} \\
-NDCG@50 & 0.1094 & \textbf{0.1103} & \underline{0.1098} \\
+HR@1 & \underline{0.0764} & \textbf{0.0771} & 0.0758 \\
+HR@5 & \textbf{0.1009} & \underline{0.1002} & 0.1001 \\
+HR@10 & \textbf{0.1180} & 0.1168 & \underline{0.1169} \\
+HR@20 & \textbf{0.1435} & \underline{0.1419} & 0.1416 \\
+HR@50 & \textbf{0.1985} & \underline{0.1919} & 0.1905 \\
+NDCG@5 & \textbf{0.0890} & \textbf{0.0890} & \underline{0.0885} \\
+NDCG@10 & \textbf{0.0945} & \underline{0.0943} & 0.0939 \\
+NDCG@20 & \textbf{0.1009} & \underline{0.1007} & 0.1001 \\
+NDCG@50 & \textbf{0.1118} & \underline{0.1106} & 0.1098 \\
 \midrule
-Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-2652} & \texttt{checkpoint-3012} \\
+Selected ckpt & \texttt{checkpoint-1665} & \texttt{checkpoint-2664} & \texttt{checkpoint-3012} \\
 \bottomrule
 \end{tabular}
 \caption{Instruments 上训练任务范围的 three-way ablation。}
 \label{tab:genrec-only-rq3-task-scope}
 \end{table}
 
-回到完整 2 epoch 的 best-checkpoint 口径后，\texttt{sid-only} 重新成为最强主线：它拿到最高的 \texttt{HR@5 / HR@10 / HR@20} 与全部 \texttt{NDCG} 指标。\texttt{taskfix} 只在 \texttt{HR@50} 上略占优，\texttt{sid-title-desc} 则只保留 \texttt{HR@1} 的领先。也就是说，长程训练结束后，最稳的 task scope 仍然是更窄、更聚焦的 \texttt{sid-only}。
+回到完整 2 epoch 的 best-checkpoint 口径后，默认 \texttt{taskfix} 重新成为最强主线：它拿到最高的 \texttt{HR@5 / HR@10 / HR@20 / HR@50}，并在 \texttt{NDCG@5} 上与 \texttt{sid-only} 持平，同时保住 \texttt{NDCG@10 / NDCG@20 / NDCG@50} 的最高值。\texttt{sid-only} 只保留 \texttt{HR@1} 的领先，\texttt{sid-title-desc} 则整体落在另外两条线之后。也就是说，在当前这组三线 readout 下，更完整的 all-task scope 反而更稳。
 
 \begin{figure}[p]
 \centering
 \includegraphics[width=\textwidth]{assets/genrec-only-instruments-fixed-task-variants-curves.png}
-\caption{Instruments 上三个 fixed-hint taskfix 变体的完整 checkpoint 曲线。图中统一展示 9 个指标：\texttt{HR@1/5/10/20/50} 与 \texttt{NDCG@5/10/20/50}；横轴统一使用 epoch，并分别按 \texttt{3326 / 2652 / 3012 step = 2 epoch} 归一化；虚线表示 \texttt{GenRec(sft)} 的整体 best（\texttt{checkpoint-495}）。}
+\caption{Instruments 上三个 fixed-hint taskfix 变体的完整 checkpoint 曲线。图中统一展示 9 个指标：\texttt{HR@1/5/10/20/50} 与 \texttt{NDCG@5/10/20/50}；横轴统一使用 epoch，并分别按各自训练目录的总步数归一化到 \texttt{2 epoch}；虚线表示 \texttt{GenRec(sft)} 的整体 best（\texttt{checkpoint-495}）。}
 \label{fig:genrec-only-instruments-fixed-task-variants-curves}
 \end{figure}
 
@@ -291,7 +350,7 @@ Selected ckpt & \texttt{checkpoint-1665} & \texttt{checkpoint-1665} & \texttt{ch
 \label{tab:genrec-only-rq3-loss-design-instruments}
 \end{table}
 
-当前 full-sequence 列已经接入 \texttt{results/Instruments-grec-genrec-fixed-full-sequence-sft-from-sft}；当前共同步到 \texttt{9} 个 checkpoint，这一版表格不再让三列各自挑 best，而是统一读取 \texttt{Prefix SFT + suffix-only GRPO} 当前选中的 \texttt{checkpoint-1665}。 对应 launcher：\texttt{hope/Instruments-genrec/rl\_fixed\_full\_sequence\_sft.sh}；已完成的 prefix-SFT 列这里使用 \texttt{CE=0.005} 作为代表性 fixed+CE readout。
+当前 full-sequence 列已经接入 \texttt{results/Instruments-grec-genrec-fixed-full-sequence-sft-from-sft}；当前共同步到 \texttt{10} 个 checkpoint，这一版表格不再让三列各自挑 best，而是统一读取 \texttt{Prefix SFT + suffix-only GRPO} 当前选中的 \texttt{checkpoint-1665}。 对应 launcher：\texttt{hope/Instruments-genrec/rl\_fixed\_full\_sequence\_sft.sh}；已完成的 prefix-SFT 列这里使用 \texttt{CE=0.005} 作为代表性 fixed+CE readout。
 
 回到完整 2 epoch 的 best-checkpoint 口径后，\texttt{prefix SFT + suffix-only GRPO} 仍然是最稳的一条线：它拿到最高的 \texttt{HR@1 / HR@50} 与全部 \texttt{NDCG} 指标。\texttt{suffix-only GRPO} 只在 \texttt{HR@5 / HR@10 / HR@20} 上保有优势，\texttt{full-sequence SFT + GRPO} 则整体落后于前两者。因此在当前结果里，最有性价比的 loss design 仍然是 prefix-SFT 这一条。
 

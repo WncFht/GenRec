@@ -1,0 +1,5 @@
+run_id,label,run_name,num_points,first_step,first_value,last_step,last_value
+qgk78yho,rule,instruments_grec_rl_rule_only_rerun_quietlog_qwen2_5_3b_qwen4b_4_256_from_ckpt495,3334,1,0.640625,3326,0.734375
+n6t4546p,fixed,instruments_grec_rl_rule_only_fixed_hint_taskfix_b16_ckpt495,3334,1,0.03125,3326,0.125
+f6hjlks4,fixed_ce,instruments_grec_rl_rule_only_fixed_hint_taskfix_b16_hint_ce-3_ckpt495,3336,1,0.03125,3326,0.140625
+ckvc0130,dynamic,instruments_grec_rl_rule_only_dynamic_hint_cascade_reward_gather_fix_qwen2_5_3b_qwen4b_4_256_from_ckpt495,3332,1,0.03125,3326,0.03125

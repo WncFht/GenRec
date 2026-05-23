@@ -319,6 +319,12 @@ OVERALL_GENREC_VARIANTS = {
             first_epoch_max_step=1663,
         ),
         VariantSpec(
+            "GenRec(fixed)",
+            "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
+            is_rl=True,
+            first_epoch_max_step=1663,
+        ),
+        VariantSpec(
             "GenRec(fixed + ce0.005)",
             "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-3-sft495",
             is_rl=True,
@@ -340,6 +346,12 @@ OVERALL_GENREC_VARIANTS = {
             first_epoch_max_step=4376,
         ),
         VariantSpec(
+            "GenRec(fixed)",
+            "Games-grec-grpo-rule-only-fixedhint-taskfix-b16-sft896",
+            is_rl=True,
+            first_epoch_max_step=4376,
+        ),
+        VariantSpec(
             "GenRec(fixed + ce0.005)",
             "Games-grec-genrec-fixed-ce-from-sft",
             is_rl=True,
@@ -357,6 +369,12 @@ OVERALL_GENREC_VARIANTS = {
         VariantSpec(
             "GenRec(rule)",
             "Arts-grec-genrec-rule-from-sft",
+            is_rl=True,
+            first_epoch_max_step=2103,
+        ),
+        VariantSpec(
+            "GenRec(fixed)",
+            "Arts-grec-genrec-fixed-from-sft",
             is_rl=True,
             first_epoch_max_step=2103,
         ),
@@ -388,7 +406,6 @@ VARIANT_STYLES = {
     "Fixed hint max1": {"color": "#E15759", "marker": "D"},
     "Adaptive first-token hint": {"color": "#76B7B2", "marker": "s"},
     "Adaptive hinting max1": {"color": "#F28E2B", "marker": "P"},
-    "Dynamic hint max1": {"color": "#F28E2B", "marker": "P"},
     "Fixed(no CE)": {"color": "#9C755F", "marker": "s"},
     "CE=0.001": {"color": "#4E79A7", "marker": "o"},
     "CE=0.005": {"color": "#E15759", "marker": "D"},
@@ -402,17 +419,17 @@ VARIANT_STYLES = {
 FIXED_HINT_TASK_VARIANTS = (
     VariantSpec(
         "Fixed(taskfix)",
-        "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
+        "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-3-sft495",
         is_rl=True,
-        first_epoch_max_step=1663,
+        first_epoch_max_step=1665,
         curve_total_max_step=3326,
     ),
     VariantSpec(
         "Fixed(sid-only)",
-        "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-only-sft495",
+        "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-hint-only-mixed-hintce005-sft495",
         is_rl=True,
-        first_epoch_max_step=1326,
-        curve_total_max_step=2652,
+        first_epoch_max_step=1665,
+        curve_total_max_step=3326,
     ),
     VariantSpec(
         "Fixed(sid+title+desc)",
@@ -457,46 +474,69 @@ PREFIX_HINT_SIGNAL_VARIANTS = (
     ),
 )
 
-PREFIX_HINT_2X2_SPEC = CurveGroupSpec(
-    dataset="Instruments",
-    title="Instruments hint comparison",
-    asset_name="genrec-only-instruments-hint-comparison-curves.png",
-    figure_label="fig:genrec-only-instruments-hint-comparison-curves",
-    caption=(
-        r"Instruments 上 \texttt{Ours(fixed hint)}、\texttt{dynamic hint}、"
-        r"\texttt{dynamic hint max1} 的完整曲线对比。"
-        r"图中统一展示 9 个指标；横轴统一使用 epoch，其中"
-        r" full hint / dynamic 主线按 \texttt{3326 step = 2 epoch} 归一化，"
-        r"\texttt{dynamic hint max1} 也按 \texttt{3326 step = 2 epoch} 归一化。"
+PREFIX_HINT_COMPARISON_SPECS = (
+    CurveGroupSpec(
+        dataset="Instruments",
+        title="Instruments hint comparison",
+        asset_name="genrec-only-instruments-hint-comparison-curves.png",
+        figure_label="fig:genrec-only-instruments-hint-comparison-curves",
+        caption=(
+            r"Instruments 上 \texttt{Ours(fixed hint)} 与 \texttt{dynamic hint} 的完整曲线对比。"
+            r"图中统一展示 9 个指标；横轴统一使用 epoch，并按 \texttt{3326 step = 2 epoch} 归一化。"
+        ),
+        table_caption=r"Instruments 上 \texttt{Ours(fixed hint)} 与 \texttt{dynamic hint} 的对比。",
+        table_label="tab:genrec-only-instruments-hint-comparison",
+        sft_model_dir="Instruments-grec-sft-qwen4B-4-256-dsz0",
+        total_max_step=3326,
+        variants=(
+            VariantSpec(
+                "Ours (fixed hint)",
+                "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
+                is_rl=True,
+                first_epoch_max_step=1663,
+                curve_total_max_step=3326,
+            ),
+            VariantSpec(
+                "Dynamic hint",
+                "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495",
+                is_rl=True,
+                first_epoch_max_step=1663,
+                curve_total_max_step=3326,
+            ),
+        ),
+        curve_metrics=tuple(METRICS),
     ),
-    table_caption=r"Instruments 上 \texttt{Ours(fixed hint)}、\texttt{dynamic hint} 与 \texttt{dynamic hint max1} 的对比。",
-    table_label="tab:genrec-only-instruments-hint-comparison",
-    sft_model_dir="Instruments-grec-sft-qwen4B-4-256-dsz0",
-    total_max_step=3326,
-    variants=(
-        VariantSpec(
-            "Ours (fixed hint)",
-            "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sft495",
-            is_rl=True,
-            first_epoch_max_step=1663,
-            curve_total_max_step=3326,
+    CurveGroupSpec(
+        dataset="Games",
+        title="Games hint comparison",
+        asset_name="genrec-only-games-hint-comparison-curves.png",
+        figure_label="fig:genrec-only-games-hint-comparison-curves",
+        caption=(
+            r"Games 上 \texttt{Ours(fixed hint)} 与 \texttt{dynamic hint} 的完整曲线对比。"
+            r"图中统一展示 9 个指标；横轴统一使用 epoch，并按 \texttt{8752 step = 2 epoch} 归一化。"
         ),
-        VariantSpec(
-            "Dynamic hint",
-            "Instruments-grec-grpo-rule-only-dynamic-hint-cascade-reward-gather-fix-qwen2.5-3b-qwen4B-4-256-from-sft495",
-            is_rl=True,
-            first_epoch_max_step=1663,
-            curve_total_max_step=3326,
+        table_caption=r"Games 上 \texttt{Ours(fixed hint)} 与 \texttt{dynamic hint} 的对比。",
+        table_label="tab:genrec-only-games-hint-comparison",
+        sft_model_dir="Games-grec-sft-qwen4B-4-256-dsz0",
+        total_max_step=8752,
+        variants=(
+            VariantSpec(
+                "Ours (fixed hint)",
+                "Games-grec-grpo-rule-only-fixedhint-taskfix-b16-sft896",
+                is_rl=True,
+                first_epoch_max_step=4376,
+                curve_total_max_step=8752,
+            ),
+            VariantSpec(
+                "Dynamic hint",
+                "Games-grec-grpo-rule-only-dynamic-hint-cascade-qwen2.5-3b-qwen4B-4-256-from-sft896",
+                is_rl=True,
+                first_epoch_max_step=4376,
+                curve_total_max_step=8752,
+            ),
         ),
-        VariantSpec(
-            "Dynamic hint max1",
-            "Instruments-grec-grpo-rule-only-dynamic-hint-max1-qwen2.5-3b-qwen4B-4-256-from-sft495",
-            is_rl=True,
-            first_epoch_max_step=1663,
-            curve_total_max_step=3326,
-        ),
+        curve_metrics=tuple(METRICS),
     ),
-    curve_metrics=tuple(METRICS),
 )
 
 LOSS_DESIGN_SPECS = (
@@ -1687,59 +1727,62 @@ def build_rq2_section(rq2_assets: dict[str, Path]) -> list[str]:
     parts.append(render_heading("subsection", "Hint Strategy Comparison"))
     parts.append("")
     parts.append(
-        r"这里把对照收缩为三条主线：\texttt{Ours(fixed hint)}、"
-        r"\texttt{dynamic hint} 与 \texttt{dynamic hint max1}。"
-        r"对应的目标是回答两个问题：fixed 是否优于 dynamic，以及 dynamic 在线索收缩到 max1 后会不会更强。"
+        r"这里把对照收缩为两条主线：\texttt{Ours(fixed hint)} 与 \texttt{dynamic hint}。"
+        r"对应的目标很直接：在同一套 prefix-hint 训练框架里，fixed 是否稳定优于 dynamic。"
     )
     parts.append("")
-    prefix_variants = resolve_variants(PREFIX_HINT_2X2_SPEC.variants)
-    if prefix_variants:
-        parts.append(
-            render_results_table(
-                prefix_variants,
-                caption=PREFIX_HINT_2X2_SPEC.table_caption,
-                label=PREFIX_HINT_2X2_SPEC.table_label,
+    for spec in PREFIX_HINT_COMPARISON_SPECS:
+        prefix_variants = resolve_variants(spec.variants)
+        if prefix_variants:
+            parts.append(
+                render_results_table(
+                    prefix_variants,
+                    caption=spec.table_caption,
+                    label=spec.table_label,
+                )
             )
+
+        prefix_last_variants = resolve_variants_at_target_step(
+            spec.variants,
+            target_step=spec.total_max_step,
         )
-    parts.append(
-        r"在完整 2 epoch 口径下，\texttt{Ours(fixed hint)} 仍然保住最高的"
-        r" \texttt{HR@5 / HR@10 / HR@20 / HR@50}，"
-        r"\texttt{dynamic hint max1} 则拿到最高的"
-        r" \texttt{HR@1 / NDCG@5 / NDCG@10 / NDCG@20 / NDCG@50}。"
-        r"\texttt{dynamic hint} 主线整体落在这两条线之后，说明真正有竞争力的 dynamic 版本来自 max1 收缩，而不是 full-hint dynamic 本身。"
-    )
-    parts.append("")
-    parts.append(
-        r"如果不让每条线各自挑 peak，而是统一读取 \texttt{2 epoch} 末尾的 checkpoint，"
-        r"那么对比会更偏向 long-run stability。"
-        r"下表保留原表不动，额外补一张固定读取终点 ckpt 的 readout。"
-    )
-    parts.append("")
-    prefix_last_variants = resolve_variants_at_target_step(
-        PREFIX_HINT_2X2_SPEC.variants,
-        target_step=PREFIX_HINT_2X2_SPEC.total_max_step,
-    )
-    if prefix_last_variants:
-        parts.append(
-            render_results_table(
-                prefix_last_variants,
-                caption=(
-                    r"Instruments 上 \texttt{Ours(fixed hint)}、\texttt{dynamic hint} 与 "
-                    r"\texttt{dynamic hint max1} 在 2 epoch 末尾 checkpoint 的对比。"
-                ),
-                label="tab:genrec-only-instruments-hint-comparison-final-epoch",
+        if prefix_last_variants:
+            parts.append(
+                render_results_table(
+                    prefix_last_variants,
+                    caption=(
+                        rf"{spec.dataset} 上 \texttt{{Ours(fixed hint)}} 与 \texttt{{dynamic hint}} "
+                        r"在 2 epoch 末尾 checkpoint 的对比。"
+                    ),
+                    label=f"tab:genrec-only-{spec.dataset.lower()}-hint-comparison-final-epoch",
+                )
             )
-        )
-    parts.append(
-        r"固定到终点 checkpoint 后，\texttt{dynamic hint max1} 的领先基本消失；"
-        r"\texttt{dynamic hint} 主线只保住 \texttt{HR@1 / NDCG@5 / NDCG@10}，"
-        r"而 \texttt{Ours(fixed hint)} 仍然稳住其余 coverage 指标。"
-        r"这说明 max1 的优势更像 early peak，而不是 2 epoch 末尾仍然稳定存在的优势。"
-    )
-    parts.append("")
-    prefix_asset = rq2_assets.get(PREFIX_HINT_2X2_SPEC.figure_label)
-    if prefix_asset is not None:
-        parts.append(render_curve_group_figure(PREFIX_HINT_2X2_SPEC, prefix_asset))
+
+        dataset_lower = spec.dataset.lower()
+        if dataset_lower == "instruments":
+            parts.append(
+                r"Instruments 上，两条线在各自 best checkpoint 处已经很接近，"
+                r"但 \texttt{Ours(fixed hint)} 仍然保住更高的"
+                r" \texttt{HR@5 / HR@10 / HR@20 / HR@50}，"
+                r"\texttt{dynamic hint} 只在 \texttt{HR@1 / NDCG@5 / NDCG@10} 上略占优。"
+            )
+            parts.append("")
+            parts.append(
+                r"固定读取 \texttt{2 epoch} 末尾 checkpoint 后，这个分工基本不变："
+                r"\texttt{dynamic hint} 继续只保住更前面的 top-heavy 指标，"
+                r"而 \texttt{Ours(fixed hint)} 仍然稳住 coverage 指标。"
+            )
+        elif dataset_lower == "games":
+            parts.append(
+                r"Games 上，\texttt{Ours(fixed hint)} 在 best checkpoint 和 2 epoch 末尾 checkpoint 两个口径下都整体领先。"
+                r"\texttt{dynamic hint} 没有拿到任何一个 headline metric 的最优值，"
+                r"说明这个数据集上 fixed prefix 的优势更稳定，也更直接。"
+            )
+        parts.append("")
+
+        prefix_asset = rq2_assets.get(spec.figure_label)
+        if prefix_asset is not None:
+            parts.append(render_curve_group_figure(spec, prefix_asset))
     return parts
 
 
@@ -1852,11 +1895,13 @@ def build_rq3_section(fixed_hint_task_asset: Path | None, loss_design_assets: di
             )
         )
     parts.append(
-        r"回到完整 2 epoch 的 best-checkpoint 口径后，\texttt{sid-only} 重新成为最强主线："
-        r"它拿到最高的 \texttt{HR@5 / HR@10 / HR@20} 与全部 \texttt{NDCG} 指标。"
-        r"\texttt{taskfix} 只在 \texttt{HR@50} 上略占优，"
-        r"\texttt{sid-title-desc} 则只保留 \texttt{HR@1} 的领先。"
-        r"也就是说，长程训练结束后，最稳的 task scope 仍然是更窄、更聚焦的 \texttt{sid-only}。"
+        r"回到完整 2 epoch 的 best-checkpoint 口径后，默认 \texttt{taskfix} 重新成为最强主线："
+        r"它拿到最高的 \texttt{HR@5 / HR@10 / HR@20 / HR@50}，"
+        r"并在 \texttt{NDCG@5} 上与 \texttt{sid-only} 持平，同时保住"
+        r" \texttt{NDCG@10 / NDCG@20 / NDCG@50} 的最高值。"
+        r"\texttt{sid-only} 只保留 \texttt{HR@1} 的领先，"
+        r"\texttt{sid-title-desc} 则整体落在另外两条线之后。"
+        r"也就是说，在当前这组三线 readout 下，更完整的 all-task scope 反而更稳。"
     )
     parts.append("")
     if fixed_hint_task_asset is not None:
@@ -1948,7 +1993,7 @@ def render_fixed_hint_task_figure(asset_path: Path) -> str:
         r"\caption{"
         r"Instruments 上三个 fixed-hint taskfix 变体的完整 checkpoint 曲线。"
         r"图中统一展示 9 个指标：\texttt{HR@1/5/10/20/50} 与 \texttt{NDCG@5/10/20/50}；"
-        r"横轴统一使用 epoch，并分别按 \texttt{3326 / 2652 / 3012 step = 2 epoch} 归一化；"
+        r"横轴统一使用 epoch，并分别按各自训练目录的总步数归一化到 \texttt{2 epoch}；"
         + rf"虚线表示 \texttt{{GenRec(sft)}} 的整体 best（\texttt{{{sft_checkpoint}}}）。"
         + r"}"
     )
@@ -2024,8 +2069,9 @@ def build_document(
             r" 在保留 GenRec 主线的同时，overall 里额外补入"
             r" \texttt{Caser / GRU4Rec / BERT4Rec / SASRec / TIGER}；"
             r" 其中缺失结果仍保留为空列，已同步结果直接读取当前 \texttt{results/} 里的 best readout。"
-            r" GenRec 侧只保留 \texttt{MiniOnerec}、\texttt{LC-Rec}、\texttt{GenRec(rule)}"
-            r" 和 \texttt{GenRec(fixed + ce0.005)}，从而把 overall frontier 压到一张更紧凑的对照表里。",
+            r" GenRec 侧只保留 \texttt{MiniOnerec}、\texttt{LC-Rec}、\texttt{GenRec(rule)}、"
+            r"\texttt{GenRec(fixed)} 和 \texttt{GenRec(fixed + ce0.005)}，"
+            r"从而把 overall frontier 压到一张更紧凑的对照表里。",
             rl_first_epoch_only=False,
             include_overall_baselines=True,
         )
@@ -2056,7 +2102,7 @@ def main() -> None:
     curve_assets = build_curve_assets()
     fixed_hint_task_asset = build_fixed_hint_task_curve_asset()
     ce_scaling_assets = build_ce_scaling_assets()
-    rq2_assets = build_optional_curve_group_assets(PREFIX_HINT_2X2_SPEC)
+    rq2_assets = build_optional_curve_group_assets(*PREFIX_HINT_COMPARISON_SPECS)
     rq3_assets = build_optional_curve_group_assets(*(spec.group_spec for spec in LOSS_DESIGN_SPECS))
     OUTPUT_TEX.write_text(
         build_document(curve_assets, fixed_hint_task_asset, ce_scaling_assets, rq2_assets, rq3_assets)

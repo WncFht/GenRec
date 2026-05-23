@@ -120,8 +120,15 @@ REWARD_MODE="${REWARD_MODE:-rule_only}"
 
 FIXED_HINT_ENABLED="${FIXED_HINT_ENABLED:-false}"
 FIXED_HINT_APPLY_TO_EVAL="${FIXED_HINT_APPLY_TO_EVAL:-false}"
+FIXED_HINT_TASK_NAMES="${FIXED_HINT_TASK_NAMES:-}"
 HINT_CE_LOSS_COEF="${HINT_CE_LOSS_COEF:-0.0}"
 FULL_SEQUENCE_SFT_LOSS_COEF="${FULL_SEQUENCE_SFT_LOSS_COEF:-0.0}"
+DYNAMIC_HINT_MAX_DEPTH="${DYNAMIC_HINT_MAX_DEPTH:-}"
+DYNAMIC_HINT_APPLY_TO_EVAL="${DYNAMIC_HINT_APPLY_TO_EVAL:-false}"
+DYNAMIC_HINT_TASK_NAMES="${DYNAMIC_HINT_TASK_NAMES:-}"
+TRAIN_TASK_NAMES="${TRAIN_TASK_NAMES:-}"
+EVAL_TASK_NAMES="${EVAL_TASK_NAMES:-}"
+ANALYSIS_TASK_NAMES="${ANALYSIS_TASK_NAMES:-}"
 FORCE_REANALYZE="${FORCE_REANALYZE:-false}"
 BEAM_SIZE="${BEAM_SIZE:-16}"
 UNSOLVED_DEPTH="${UNSOLVED_DEPTH:-3}"
@@ -166,6 +173,21 @@ if [[ -z "$MODEL_PATH" ]]; then
   exit 1
 fi
 
+DYNAMIC_HINT_ENABLED=0
+if [[ -n "$DYNAMIC_HINT_MAX_DEPTH" ]]; then
+  if [[ ! "$DYNAMIC_HINT_MAX_DEPTH" =~ ^-?[0-9]+$ ]]; then
+    echo "[ERROR] DYNAMIC_HINT_MAX_DEPTH must be an integer: $DYNAMIC_HINT_MAX_DEPTH"
+    exit 1
+  fi
+  if (( DYNAMIC_HINT_MAX_DEPTH > 0 )); then
+    DYNAMIC_HINT_ENABLED=1
+  fi
+fi
+if is_true "$FIXED_HINT_ENABLED" && [[ "$DYNAMIC_HINT_ENABLED" == "1" ]]; then
+  echo "[ERROR] FIXED_HINT_ENABLED and DYNAMIC_HINT_MAX_DEPTH cannot be enabled at the same time."
+  exit 1
+fi
+
 DATA_VARIANT_DIR="$(resolve_data_variant_dir "$REPO_ROOT" "$DATA_VARIANT_DEFAULT")"
 DATA_DIR="${DATA_DIR:-${DATA_VARIANT_DIR}/rl}"
 INDEX_PATH="${INDEX_PATH:-${DATA_VARIANT_DIR}/id2sid.json}"
@@ -177,7 +199,8 @@ fi
 
 RESOLVED_MODEL_PATH="$(resolve_model_payload_dir "$MODEL_PATH")"
 ANALYSIS_DATASET_ID="${ANALYSIS_DATASET_ID:-$(default_fixed_hint_dataset_id "$DATA_DIR")}"
-ANALYSIS_SCOPE_ID="${ANALYSIS_SCOPE_ID:-all}"
+DEFAULT_ANALYSIS_SCOPE_RAW="${ANALYSIS_TASK_NAMES:-${TRAIN_TASK_NAMES:-}}"
+ANALYSIS_SCOPE_ID="${ANALYSIS_SCOPE_ID:-$(default_fixed_hint_scope_id "$DEFAULT_ANALYSIS_SCOPE_RAW")}"
 ANALYSIS_MODEL_ID="${ANALYSIS_MODEL_ID:-$(default_fixed_hint_model_id "$RESOLVED_MODEL_PATH")}"
 
 init_fixed_hint_artifact_paths \
@@ -253,6 +276,12 @@ TRAIN_CMD=(
   "${TRAINING_ARGS[@]}"
   "${REWARD_ARGS[@]}"
 )
+if [[ -n "$TRAIN_TASK_NAMES" ]]; then
+  TRAIN_CMD+=(--train_task_names "$TRAIN_TASK_NAMES")
+fi
+if [[ -n "$EVAL_TASK_NAMES" ]]; then
+  TRAIN_CMD+=(--eval_task_names "$EVAL_TASK_NAMES")
+fi
 
 ANALYZE_CMD=()
 ANALYSIS_STATUS="disabled"
@@ -298,6 +327,9 @@ if is_true "$FIXED_HINT_ENABLED"; then
     --export-fixed-hint-beam-size "$BEAM_SIZE"
     --export-fixed-hint-unsolved-depth "$UNSOLVED_DEPTH"
   )
+  if [[ -n "$ANALYSIS_TASK_NAMES" ]]; then
+    ANALYZE_CMD+=(--task-names "$ANALYSIS_TASK_NAMES")
+  fi
   if [[ "$ANALYSIS_HAVE_SUMMARY" == "1" ]]; then
     ANALYZE_CMD+=(--reuse-summary-path "$ANALYSIS_SUMMARY_PATH")
   fi
@@ -311,10 +343,23 @@ if is_true "$FIXED_HINT_ENABLED"; then
     --hint_ce_loss_coef "$HINT_CE_LOSS_COEF"
     --full_sequence_sft_loss_coef "$FULL_SEQUENCE_SFT_LOSS_COEF"
   )
+  if [[ -n "$FIXED_HINT_TASK_NAMES" ]]; then
+    FIXED_HINT_ARGS+=(--fixed_hint_task_names "$FIXED_HINT_TASK_NAMES")
+  fi
   TRAIN_CMD+=("${FIXED_HINT_ARGS[@]}")
   if [[ -n "$CAP_DEPTH" ]]; then
     TRAIN_CMD+=(--fixed_hint_depth_cap "$CAP_DEPTH")
   fi
+elif [[ "$DYNAMIC_HINT_ENABLED" == "1" ]]; then
+  DYNAMIC_HINT_ARGS=(
+    --dynamic_hint_max_depth "$DYNAMIC_HINT_MAX_DEPTH"
+    --dynamic_hint_apply_to_eval "$DYNAMIC_HINT_APPLY_TO_EVAL"
+    --hint_ce_loss_coef "$HINT_CE_LOSS_COEF"
+  )
+  if [[ -n "$DYNAMIC_HINT_TASK_NAMES" ]]; then
+    DYNAMIC_HINT_ARGS+=(--dynamic_hint_task_names "$DYNAMIC_HINT_TASK_NAMES")
+  fi
+  TRAIN_CMD+=("${DYNAMIC_HINT_ARGS[@]}")
 fi
 
 TRAIN_CMD+=("${RUNTIME_ARGS[@]}")
@@ -367,6 +412,15 @@ if is_true "$FIXED_HINT_ENABLED"; then
   echo "[INFO] ANALYSIS_HAVE_DETAILS=${ANALYSIS_HAVE_DETAILS}"
   echo "[INFO] ANALYSIS_HAVE_MAP=${ANALYSIS_HAVE_MAP}"
   echo "[INFO] FORCE_REANALYZE=${FORCE_REANALYZE}"
+  echo "[INFO] TRAIN_TASK_NAMES=${TRAIN_TASK_NAMES}"
+  echo "[INFO] EVAL_TASK_NAMES=${EVAL_TASK_NAMES}"
+  echo "[INFO] ANALYSIS_TASK_NAMES=${ANALYSIS_TASK_NAMES}"
+  echo "[INFO] FIXED_HINT_TASK_NAMES=${FIXED_HINT_TASK_NAMES}"
+elif [[ "$DYNAMIC_HINT_ENABLED" == "1" ]]; then
+  echo "[INFO] DYNAMIC_HINT_MAX_DEPTH=${DYNAMIC_HINT_MAX_DEPTH}"
+  echo "[INFO] DYNAMIC_HINT_APPLY_TO_EVAL=${DYNAMIC_HINT_APPLY_TO_EVAL}"
+  echo "[INFO] DYNAMIC_HINT_TASK_NAMES=${DYNAMIC_HINT_TASK_NAMES}"
+  echo "[INFO] HINT_CE_LOSS_COEF=${HINT_CE_LOSS_COEF}"
 fi
 
 if [[ "${#ANALYZE_CMD[@]}" -gt 0 && "$ANALYSIS_STATUS" == "run" ]]; then
