@@ -1,0 +1,2 @@
+path	HR@1	HR@3	HR@5	HR@10	HR@20	HR@50	NDCG@1	NDCG@3	NDCG@5	NDCG@10	NDCG@20	NDCG@50
+Instruments-grec-genrec-fixed-ce-dual-from-sft/checkpoint-302	0.06	0.0813	0.0899	0.1075	0.1321	0.1778	0.06	0.0725	0.076	0.0816	0.0879	0.0969

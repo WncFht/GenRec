@@ -1,0 +1,2 @@
+path	HR@1	HR@3	HR@5	HR@10	HR@20	HR@50	NDCG@1	NDCG@3	NDCG@5	NDCG@10	NDCG@20	NDCG@50
+Instruments-grec-genrec-fixed-ce-01-from-sft/checkpoint-666	0.0726	0.0861	0.095	0.1103	0.1309	0.1809	0.0726	0.0804	0.084	0.0889	0.094	0.1038

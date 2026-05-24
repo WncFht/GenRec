@@ -4,11 +4,13 @@
 \usepackage{booktabs}
 \usepackage{float}
 \usepackage{graphicx}
+\usepackage{placeins}
 \usepackage[unicode,hidelinks,bookmarksopen,bookmarksdepth=2]{hyperref}
 
 \begin{document}
 
-\setcounter{secnumdepth}{2}
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{3}
 
 \section{GenRec-Only Tables}
 
@@ -20,6 +22,8 @@
 \section{RQ1: Overall Performance}
 
 这一节沿用当前默认口径：每个变体都在其全部已同步 checkpoint 中按 \texttt{NDCG@10} 选出唯一 best checkpoint。 在保留 GenRec 主线的同时，overall 里额外补入 \texttt{Caser / GRU4Rec / BERT4Rec / SASRec / TIGER}； 其中缺失结果仍保留为空列，已同步结果直接读取当前 \texttt{results/} 里的 best readout。 GenRec 侧只保留 \texttt{MiniOnerec}、\texttt{LC-Rec}、\texttt{GenRec(rule)}、\texttt{GenRec(fixed)} 和 \texttt{GenRec(fixed + ce0.005)}，从而把 overall frontier 压到一张更紧凑的对照表里。
+
+\FloatBarrier
 
 \subsection{Instruments}
 
@@ -51,6 +55,8 @@ Selected ckpt & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{ch
 \label{tab:genrec-only-instruments}
 \end{table}
 
+\FloatBarrier
+
 \subsection{Games}
 
 \begin{table}[H]
@@ -80,6 +86,8 @@ Selected ckpt & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{ch
 \caption{Games 上 overall 结果：补入 \texttt{Caser / GRU4Rec / BERT4Rec / SASRec / TIGER} 后的当前对照。}
 \label{tab:genrec-only-games}
 \end{table}
+
+\FloatBarrier
 
 \subsection{Arts}
 
@@ -111,45 +119,15 @@ Selected ckpt & \texttt{checkpoint-best} & \texttt{checkpoint-best} & \texttt{ch
 \label{tab:genrec-only-arts}
 \end{table}
 
+\FloatBarrier
+
 \section{RQ2: Deep Analysis for Prefix Hint}
 
-这一节聚焦两个问题：其一，hint-conditioned training signal 是否真的有效；其二，prefix hint strategy 在 fixed / adaptive 与 task-aware / first-token 两个轴上如何比较。
+这一节只保留 \texttt{Ours(fixed hint)} 与 \texttt{dynamic hint} 的主线对照，并按 \texttt{Instruments / Games / Arts} 三个数据集分别展开。
 
-\subsection{Hint-conditioned Training Signal}
+\FloatBarrier
 
-先把问题压缩到最核心的四条线：\texttt{GenRec(sft)}、\texttt{Rule-only baseline}、\texttt{Adaptive hinting} 和 \texttt{Ours(3-task)}。
-
-\begin{table}[H]
-\centering
-\scriptsize
-\setlength{\tabcolsep}{4pt}
-\renewcommand{\arraystretch}{1.08}
-\begin{tabular}{lcccc}
-\toprule
-Metric & GenRec(sft) & Rule-only baseline & Adaptive hinting & Ours (3-task) \\
-\midrule
-HR@1 & 0.0588 & \textbf{0.0788} & \underline{0.0760} & 0.0722 \\
-HR@5 & 0.0932 & \textbf{0.1027} & 0.0997 & \underline{0.1014} \\
-HR@10 & 0.1094 & \underline{0.1179} & 0.1169 & \textbf{0.1189} \\
-HR@20 & 0.1344 & 0.1373 & \underline{0.1394} & \textbf{0.1447} \\
-HR@50 & 0.1844 & 0.1681 & \underline{0.1855} & \textbf{0.1941} \\
-NDCG@5 & 0.0771 & \textbf{0.0911} & \underline{0.0880} & 0.0875 \\
-NDCG@10 & 0.0823 & \textbf{0.0960} & \underline{0.0936} & 0.0931 \\
-NDCG@20 & 0.0886 & \textbf{0.1009} & 0.0992 & \underline{0.0995} \\
-NDCG@50 & 0.0985 & 0.1070 & \underline{0.1083} & \textbf{0.1094} \\
-\midrule
-Selected ckpt & \texttt{checkpoint-495} & \texttt{checkpoint-2997} & \texttt{checkpoint-2997} & \texttt{checkpoint-2997} \\
-\bottomrule
-\end{tabular}
-\caption{Instruments 上 hint-conditioned training signal 的第一层证据。}
-\label{tab:genrec-only-instruments-prefix-hint-signal}
-\end{table}
-
-\texttt{Rule-only baseline} 继续提供最高的无 hint top-10，但 \texttt{Adaptive hinting} 和 \texttt{Ours(3-task)} 都把 coverage 拉回到了 SFT 以上；这说明 prefix hint 的训练信号不是表面装饰，而是会真实改变 RL frontier 的形状。
-
-\subsection{Hint Strategy Comparison}
-
-这里把对照收缩为两条主线：\texttt{Ours(fixed hint)} 与 \texttt{dynamic hint}。对应的目标很直接：在同一套 prefix-hint 训练框架里，fixed 是否稳定优于 dynamic。
+\subsection{Instruments}
 
 \begin{table}[H]
 \centering
@@ -207,12 +185,16 @@ Instruments 上，两条线在各自 best checkpoint 处已经很接近，但 \t
 
 固定读取 \texttt{2 epoch} 末尾 checkpoint 后，这个分工基本不变：\texttt{dynamic hint} 继续只保住更前面的 top-heavy 指标，而 \texttt{Ours(fixed hint)} 仍然稳住 coverage 指标。
 
-\begin{figure}[p]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=\textwidth]{assets/genrec-only-instruments-hint-comparison-curves.png}
 \caption{Instruments 上 \texttt{Ours(fixed hint)} 与 \texttt{dynamic hint} 的完整曲线对比。图中统一展示 9 个指标；横轴统一使用 epoch，并按 \texttt{3326 step = 2 epoch} 归一化。}
 \label{fig:genrec-only-instruments-hint-comparison-curves}
 \end{figure}
+
+\FloatBarrier
+
+\subsection{Games}
 
 \begin{table}[H]
 \centering
@@ -268,16 +250,85 @@ Selected ckpt & \texttt{checkpoint-8752} & \texttt{checkpoint-8752} \\
 
 Games 上，\texttt{Ours(fixed hint)} 在 best checkpoint 和 2 epoch 末尾 checkpoint 两个口径下都整体领先。\texttt{dynamic hint} 没有拿到任何一个 headline metric 的最优值，说明这个数据集上 fixed prefix 的优势更稳定，也更直接。
 
-\begin{figure}[p]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=\textwidth]{assets/genrec-only-games-hint-comparison-curves.png}
 \caption{Games 上 \texttt{Ours(fixed hint)} 与 \texttt{dynamic hint} 的完整曲线对比。图中统一展示 9 个指标；横轴统一使用 epoch，并按 \texttt{8752 step = 2 epoch} 归一化。}
 \label{fig:genrec-only-games-hint-comparison-curves}
 \end{figure}
 
+\FloatBarrier
+
+\subsection{Arts}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular}{lcc}
+\toprule
+Metric & Ours (fixed hint) & Dynamic hint \\
+\midrule
+HR@1 & \textbf{0.0730} & \underline{0.0720} \\
+HR@5 & \textbf{0.1041} & \underline{0.1016} \\
+HR@10 & \textbf{0.1248} & \underline{0.1231} \\
+HR@20 & \underline{0.1504} & \textbf{0.1514} \\
+HR@50 & \textbf{0.2007} & \underline{0.1990} \\
+NDCG@5 & \textbf{0.0890} & \underline{0.0873} \\
+NDCG@10 & \textbf{0.0956} & \underline{0.0942} \\
+NDCG@20 & \textbf{0.1021} & \underline{0.1014} \\
+NDCG@50 & \textbf{0.1120} & \underline{0.1108} \\
+\midrule
+Selected ckpt & \texttt{checkpoint-3368} & \texttt{checkpoint-2105} \\
+\bottomrule
+\end{tabular}
+\caption{Arts 上 \texttt{Ours(fixed hint)} 与 \texttt{dynamic hint} 的对比。}
+\label{tab:genrec-only-arts-hint-comparison}
+\end{table}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular}{lcc}
+\toprule
+Metric & Ours (fixed hint) & Dynamic hint \\
+\midrule
+HR@1 & \textbf{0.0729} & \underline{0.0720} \\
+HR@5 & \textbf{0.1042} & \underline{0.1016} \\
+HR@10 & \textbf{0.1245} & \underline{0.1231} \\
+HR@20 & \underline{0.1503} & \textbf{0.1514} \\
+HR@50 & \textbf{0.2004} & \underline{0.1990} \\
+NDCG@5 & \textbf{0.0890} & \underline{0.0873} \\
+NDCG@10 & \textbf{0.0955} & \underline{0.0942} \\
+NDCG@20 & \textbf{0.1020} & \underline{0.1014} \\
+NDCG@50 & \textbf{0.1119} & \underline{0.1108} \\
+\midrule
+Selected ckpt & \texttt{checkpoint-4206} & \texttt{checkpoint-2105} \\
+\bottomrule
+\end{tabular}
+\caption{Arts 上 \texttt{Ours(fixed hint)} 与 \texttt{dynamic hint} 的终点 readout 对比：\texttt{Ours(fixed hint)} 读取 2 epoch 末尾 checkpoint，\texttt{dynamic hint} 读取当前最后 checkpoint。}
+\label{tab:genrec-only-arts-hint-comparison-final-epoch}
+\end{table}
+
+Arts 上，两条线的差距比 Games 更小，但 \texttt{Ours(fixed hint)} 仍然在 \texttt{HR@1 / HR@5 / HR@10 / NDCG@5 / NDCG@10 / NDCG@20 / NDCG@50} 上领先。\texttt{dynamic hint} 只在 \texttt{HR@20 / HR@50} 上略高，说明它更像是 coverage 方向的小幅补偿，而不是整体更强的主线。需要注意的是，当前 dynamic 线只同步到 \texttt{checkpoint-2105}，因此第二张表展示的是它的当前终点，而不是完整 2 epoch 末尾。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\textwidth]{assets/genrec-only-arts-hint-comparison-curves.png}
+\caption{Arts 上 \texttt{Ours(fixed hint)} 与 \texttt{dynamic hint} 的完整曲线对比。图中统一展示 9 个指标；横轴统一使用 epoch，\texttt{Ours(fixed hint)} 按 \texttt{4206 step = 2 epoch} 归一化，\texttt{dynamic hint} 按其当前已同步的 \texttt{2105 step = 2 epoch} 归一化。}
+\label{fig:genrec-only-arts-hint-comparison-curves}
+\end{figure}
+
+\FloatBarrier
+
 \section{RQ3: Ablation Study}
 
 这一节把消融分成两层：训练任务范围，以及 loss 设计。前者只比较当前已经跑完的 three-way fixed prefix variants；后者则把 \texttt{fixed}、\texttt{fixed+CE} 和 full-sequence 线分别在 \texttt{Instruments / Arts} 两个数据集上并列到表格与曲线图里。
+
+\FloatBarrier
 
 \subsection{Training Task Scope}
 
@@ -292,17 +343,17 @@ Games 上，\texttt{Ours(fixed hint)} 在 best checkpoint 和 2 epoch 末尾 che
 \toprule
 Metric & Fixed(taskfix) & Fixed(sid-only) & Fixed(sid+title+desc) \\
 \midrule
-HR@1 & \underline{0.0764} & \textbf{0.0771} & 0.0758 \\
-HR@5 & \textbf{0.1009} & \underline{0.1002} & 0.1001 \\
-HR@10 & \textbf{0.1180} & 0.1168 & \underline{0.1169} \\
-HR@20 & \textbf{0.1435} & \underline{0.1419} & 0.1416 \\
-HR@50 & \textbf{0.1985} & \underline{0.1919} & 0.1905 \\
-NDCG@5 & \textbf{0.0890} & \textbf{0.0890} & \underline{0.0885} \\
-NDCG@10 & \textbf{0.0945} & \underline{0.0943} & 0.0939 \\
-NDCG@20 & \textbf{0.1009} & \underline{0.1007} & 0.1001 \\
-NDCG@50 & \textbf{0.1118} & \underline{0.1106} & 0.1098 \\
+HR@1 & 0.0764 & \textbf{0.0771} & \underline{0.0766} \\
+HR@5 & \textbf{0.1009} & 0.1002 & \underline{0.1003} \\
+HR@10 & \underline{0.1180} & 0.1168 & \textbf{0.1199} \\
+HR@20 & \underline{0.1435} & 0.1419 & \textbf{0.1452} \\
+HR@50 & \textbf{0.1985} & 0.1919 & \underline{0.1926} \\
+NDCG@5 & \textbf{0.0890} & \textbf{0.0890} & \underline{0.0888} \\
+NDCG@10 & \underline{0.0945} & 0.0943 & \textbf{0.0950} \\
+NDCG@20 & \underline{0.1009} & 0.1007 & \textbf{0.1014} \\
+NDCG@50 & \textbf{0.1118} & 0.1106 & \underline{0.1108} \\
 \midrule
-Selected ckpt & \texttt{checkpoint-1665} & \texttt{checkpoint-2664} & \texttt{checkpoint-3012} \\
+Selected ckpt & \texttt{checkpoint-1665} & \texttt{checkpoint-2664} & \texttt{checkpoint-2416} \\
 \bottomrule
 \end{tabular}
 \caption{Instruments 上训练任务范围的 three-way ablation。}
@@ -311,18 +362,22 @@ Selected ckpt & \texttt{checkpoint-1665} & \texttt{checkpoint-2664} & \texttt{ch
 
 回到完整 2 epoch 的 best-checkpoint 口径后，默认 \texttt{taskfix} 重新成为最强主线：它拿到最高的 \texttt{HR@5 / HR@10 / HR@20 / HR@50}，并在 \texttt{NDCG@5} 上与 \texttt{sid-only} 持平，同时保住 \texttt{NDCG@10 / NDCG@20 / NDCG@50} 的最高值。\texttt{sid-only} 只保留 \texttt{HR@1} 的领先，\texttt{sid-title-desc} 则整体落在另外两条线之后。也就是说，在当前这组三线 readout 下，更完整的 all-task scope 反而更稳。
 
-\begin{figure}[p]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=\textwidth]{assets/genrec-only-instruments-fixed-task-variants-curves.png}
 \caption{Instruments 上三个 fixed-hint taskfix 变体的完整 checkpoint 曲线。图中统一展示 9 个指标：\texttt{HR@1/5/10/20/50} 与 \texttt{NDCG@5/10/20/50}；横轴统一使用 epoch，并分别按各自训练目录的总步数归一化到 \texttt{2 epoch}；虚线表示 \texttt{GenRec(sft)} 的整体 best（\texttt{checkpoint-495}）。}
 \label{fig:genrec-only-instruments-fixed-task-variants-curves}
 \end{figure}
 
+\FloatBarrier
+
 \subsection{Loss Design}
 
-这一小节也回到完整 2 epoch 里按 \texttt{NDCG@10} 选 best 的默认口径。loss 层面的比较只保留三种口径：\texttt{suffix-only GRPO}、\texttt{prefix SFT + suffix-only GRPO}、以及 \texttt{Full-sequence SFT + GRPO}。下面保留 Instruments 原表，同时把 Arts 的对应结果和曲线一并补进来。
+这一小节也回到完整 2 epoch 里按 \texttt{NDCG@10} 选 best 的默认口径。loss 层面的比较只保留三种口径：\texttt{suffix-only GRPO}、\texttt{prefix SFT + suffix-only GRPO}、以及 \texttt{Full-sequence SFT + GRPO}。下面按数据集分别展开当前已完成的 loss-design 对照。
 
-\paragraph{Instruments}
+\FloatBarrier
+
+\subsubsection{Instruments}
 
 \begin{table}[H]
 \centering
@@ -354,14 +409,16 @@ Selected ckpt & \texttt{checkpoint-1665} & \texttt{checkpoint-1665} & \texttt{ch
 
 回到完整 2 epoch 的 best-checkpoint 口径后，\texttt{prefix SFT + suffix-only GRPO} 仍然是最稳的一条线：它拿到最高的 \texttt{HR@1 / HR@50} 与全部 \texttt{NDCG} 指标。\texttt{suffix-only GRPO} 只在 \texttt{HR@5 / HR@10 / HR@20} 上保有优势，\texttt{full-sequence SFT + GRPO} 则整体落后于前两者。因此在当前结果里，最有性价比的 loss design 仍然是 prefix-SFT 这一条。
 
-\begin{figure}[p]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=\textwidth]{assets/genrec-only-instruments-loss-design-curves.png}
 \caption{Instruments 上 loss design 对比曲线。图中同时比较 \texttt{suffix-only GRPO}、\texttt{prefix SFT + suffix-only GRPO} 与 \texttt{full-sequence SFT + GRPO}；横轴按 \texttt{3326 step = 2 epoch} 归一化；虚线表示 \texttt{GenRec(sft)} 的整体 best，竖向点线表示第一个 epoch 的 cutoff。如果某条线当前只同步到少量 checkpoint，则图中会表现为短线或单点。}
 \label{fig:genrec-only-instruments-loss-design-curves}
 \end{figure}
 
-\paragraph{Arts}
+\FloatBarrier
+
+\subsubsection{Arts}
 
 \begin{table}[H]
 \centering
@@ -372,37 +429,41 @@ Selected ckpt & \texttt{checkpoint-1665} & \texttt{checkpoint-1665} & \texttt{ch
 \toprule
 Metric & Suffix-only GRPO & Prefix SFT + suffix-only GRPO & Full-sequence SFT + GRPO \\
 \midrule
-HR@1 & \textbf{0.0730} & \underline{0.0720} & 0.0715 \\
-HR@5 & \underline{0.1041} & \textbf{0.1048} & 0.1033 \\
-HR@10 & \underline{0.1248} & \textbf{0.1257} & 0.1243 \\
-HR@20 & 0.1504 & \underline{0.1518} & \textbf{0.1524} \\
-HR@50 & \textbf{0.2007} & \underline{0.2006} & 0.1987 \\
-NDCG@5 & \textbf{0.0890} & \underline{0.0889} & 0.0877 \\
-NDCG@10 & \textbf{0.0956} & \textbf{0.0956} & \underline{0.0945} \\
-NDCG@20 & \textbf{0.1021} & \textbf{0.1021} & \underline{0.1015} \\
-NDCG@50 & \textbf{0.1120} & \underline{0.1118} & 0.1107 \\
+HR@1 & \textbf{0.0730} & \underline{0.0720} & 0.0719 \\
+HR@5 & 0.1041 & \textbf{0.1048} & \underline{0.1044} \\
+HR@10 & \underline{0.1248} & \textbf{0.1257} & 0.1247 \\
+HR@20 & 0.1504 & \textbf{0.1518} & \underline{0.1514} \\
+HR@50 & \textbf{0.2007} & \underline{0.2006} & 0.1999 \\
+NDCG@5 & \textbf{0.0890} & \underline{0.0889} & 0.0884 \\
+NDCG@10 & \textbf{0.0956} & \textbf{0.0956} & \underline{0.0949} \\
+NDCG@20 & \textbf{0.1021} & \textbf{0.1021} & \underline{0.1016} \\
+NDCG@50 & \textbf{0.1120} & \underline{0.1118} & 0.1112 \\
 \midrule
-Selected ckpt & \texttt{checkpoint-3368} & \texttt{checkpoint-2105} & \texttt{checkpoint-2947} \\
+Selected ckpt & \texttt{checkpoint-3368} & \texttt{checkpoint-2105} & \texttt{checkpoint-4206} \\
 \bottomrule
 \end{tabular}
 \caption{RQ3 中 Arts loss design 的当前状态表。}
 \label{tab:genrec-only-rq3-loss-design-arts}
 \end{table}
 
-当前 full-sequence 列已经接入 \texttt{results/Arts-grec-genrec-fixed-full-sequence-sft-from-sft}；当前共同步到 \texttt{7} 个 checkpoint，按 \texttt{NDCG@10} 选出的 readout 是 \texttt{checkpoint-2947}。 对应 launcher：\texttt{hope/Arts-genrec/rl\_fixed\_full\_sequence\_sft.sh}；已完成的 prefix-SFT 列这里使用 \texttt{CE=0.005} 作为代表性 fixed+CE readout。
+当前 full-sequence 列已经接入 \texttt{results/Arts-grec-genrec-fixed-full-sequence-sft-from-sft}；当前共同步到 \texttt{10} 个 checkpoint，按 \texttt{NDCG@10} 选出的 readout 是 \texttt{checkpoint-4206}。 对应 launcher：\texttt{hope/Arts-genrec/rl\_fixed\_full\_sequence\_sft.sh}；已完成的 prefix-SFT 列这里使用 \texttt{CE=0.005} 作为代表性 fixed+CE readout。
 
 Arts 上的 loss design 没有出现 Instruments 那种单边压制：\texttt{prefix SFT + suffix-only GRPO} 拿到最高的 \texttt{HR@5 / HR@10 / HR@20}，\texttt{suffix-only GRPO} 则保住 \texttt{HR@1 / HR@50 / NDCG@50}，两者在 \texttt{NDCG@10 / NDCG@20} 上打平。\texttt{full-sequence SFT + GRPO} 目前仍明显落后，说明 Arts 这边最值得比较的仍然是 no-CE 与 prefix-SFT 两条线。
 
-\begin{figure}[p]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=\textwidth]{assets/genrec-only-arts-loss-design-curves.png}
 \caption{Arts 上 loss design 对比曲线。图中同时比较 \texttt{suffix-only GRPO}、\texttt{prefix SFT + suffix-only GRPO} 与 \texttt{full-sequence SFT + GRPO}；横轴按 \texttt{4206 step = 2 epoch} 归一化；虚线表示 \texttt{GenRec(sft)} 的整体 best，竖向点线表示第一个 epoch 的 cutoff。如果某条线当前只同步到少量 checkpoint，则图中会表现为短线或单点。}
 \label{fig:genrec-only-arts-loss-design-curves}
 \end{figure}
 
+\FloatBarrier
+
 \section{RQ4: CE Loss Influence}
 
-这一节专门分析 fixed CE coefficient 对后训练结果的影响。正文只保留 \texttt{Instruments} 和 \texttt{Arts} 两个数据集上的 CE sweep；其中 \texttt{Arts} 额外补入 \texttt{CE=0.1}。
+这一节专门分析 fixed CE coefficient 对后训练结果的影响。正文只保留 \texttt{Instruments} 和 \texttt{Arts} 两个数据集上的 CE sweep；当前两个数据集都额外补入 \texttt{CE=0.1}。
+
+\FloatBarrier
 
 \subsection{Arts}
 
@@ -434,12 +495,14 @@ Selected ckpt & \texttt{checkpoint-3368} & \texttt{checkpoint-4206} & \texttt{ch
 \label{tab:genrec-only-arts-fixed-ce-coefficients}
 \end{table}
 
-\begin{figure}[p]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=\textwidth]{assets/genrec-only-arts-fixed-ce-coefficients-curves.png}
 \caption{Arts 上 fixed CE 系数对比曲线。图中同时保留 \texttt{Fixed(no CE)} 基线，另外四条 CE 线分别对应 \texttt{CE=0.001 / 0.005 / 0.01 / 0.1}；横轴按 \texttt{4206 step = 2 epoch} 归一化；虚线表示 \texttt{GenRec(sft)} 的整体 best，竖向点线表示第一个 epoch 的 cutoff。}
 \label{fig:genrec-only-arts-fixed-ce-coefficients-curves}
 \end{figure}
+
+\FloatBarrier
 
 \subsection{Instruments}
 
@@ -448,33 +511,37 @@ Selected ckpt & \texttt{checkpoint-3368} & \texttt{checkpoint-4206} & \texttt{ch
 \scriptsize
 \setlength{\tabcolsep}{4pt}
 \renewcommand{\arraystretch}{1.08}
-\begin{tabular}{lcccc}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccc}
 \toprule
-Metric & Fixed(no CE) & CE=0.001 & CE=0.005 & CE=0.01 \\
+Metric & Fixed(no CE) & CE=0.001 & CE=0.005 & CE=0.01 & CE=0.1 \\
 \midrule
-HR@1 & 0.0722 & 0.0747 & \textbf{0.0764} & \underline{0.0761} \\
-HR@5 & \underline{0.1014} & 0.0993 & 0.1009 & \textbf{0.1016} \\
-HR@10 & \underline{0.1189} & 0.1168 & 0.1180 & \textbf{0.1204} \\
-HR@20 & 0.1447 & \underline{0.1449} & 0.1435 & \textbf{0.1456} \\
-HR@50 & 0.1941 & \underline{0.1951} & \textbf{0.1985} & 0.1943 \\
-NDCG@5 & 0.0875 & 0.0875 & \underline{0.0890} & \textbf{0.0893} \\
-NDCG@10 & 0.0931 & 0.0931 & \underline{0.0945} & \textbf{0.0953} \\
-NDCG@20 & 0.0995 & 0.1002 & \underline{0.1009} & \textbf{0.1016} \\
-NDCG@50 & 0.1094 & 0.1102 & \textbf{0.1118} & \underline{0.1113} \\
+HR@1 & 0.0722 & 0.0747 & \textbf{0.0764} & \underline{0.0761} & 0.0739 \\
+HR@5 & \underline{0.1014} & 0.0993 & 0.1009 & \textbf{0.1016} & 0.0962 \\
+HR@10 & \underline{0.1189} & 0.1168 & 0.1180 & \textbf{0.1204} & 0.1137 \\
+HR@20 & 0.1447 & \underline{0.1449} & 0.1435 & \textbf{0.1456} & 0.1339 \\
+HR@50 & 0.1941 & \underline{0.1951} & \textbf{0.1985} & 0.1943 & 0.1754 \\
+NDCG@5 & 0.0875 & 0.0875 & \underline{0.0890} & \textbf{0.0893} & 0.0856 \\
+NDCG@10 & 0.0931 & 0.0931 & \underline{0.0945} & \textbf{0.0953} & 0.0912 \\
+NDCG@20 & 0.0995 & 0.1002 & \underline{0.1009} & \textbf{0.1016} & 0.0962 \\
+NDCG@50 & 0.1094 & 0.1102 & \textbf{0.1118} & \underline{0.1113} & 0.1045 \\
 \midrule
-Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-2664} & \texttt{checkpoint-1665} & \texttt{checkpoint-2997} \\
+Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-2664} & \texttt{checkpoint-1665} & \texttt{checkpoint-2997} & \texttt{checkpoint-1998} \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \caption{Instruments 上 fixed-hint CE 系数对比（含无 CE baseline）。}
 \label{tab:genrec-only-instruments-fixed-ce-coefficients}
 \end{table}
 
-\begin{figure}[p]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=\textwidth]{assets/genrec-only-instruments-fixed-ce-coefficients-curves.png}
-\caption{Instruments 上 fixed-hint CE 系数对比曲线。图中同时保留 \texttt{Fixed(no CE)} 基线，另外三条线分别对应 \texttt{CE=0.001 / 0.005 / 0.01}；横轴按 \texttt{3326 step = 2 epoch} 归一化；虚线表示 \texttt{GenRec(sft)} 的整体 best，竖向点线表示第一个 epoch 的 cutoff。}
+\caption{Instruments 上 fixed-hint CE 系数对比曲线。图中同时保留 \texttt{Fixed(no CE)} 基线，另外四条线分别对应 \texttt{CE=0.001 / 0.005 / 0.01 / 0.1}；横轴按 \texttt{3326 step = 2 epoch} 归一化；虚线表示 \texttt{GenRec(sft)} 的整体 best，竖向点线表示第一个 epoch 的 cutoff。}
 \label{fig:genrec-only-instruments-fixed-ce-coefficients-curves}
 \end{figure}
+
+\FloatBarrier
 
 \subsection{Cross-Dataset Summary}
 
@@ -487,7 +554,7 @@ Selected ckpt & \texttt{checkpoint-2997} & \texttt{checkpoint-2664} & \texttt{ch
 \toprule
 Dataset & Best top-10 coefficient & Best coverage coefficient & Reading \\
 \midrule
-Instruments & \texttt{CE=0.01} & \texttt{CE=0.005} & 大系数继续抬高 long-run top-10，但 coverage 峰值仍出现在中档系数 \\
+Instruments & \texttt{CE=0.01} & \texttt{CE=0.005} & 大系数继续抬高 long-run top-10，但 \texttt{CE=0.1} 明显退化，coverage 峰值仍出现在中档系数 \\
 Arts & \texttt{CE=0.005} / no-CE tie & \texttt{CE=0.001} & 小系数更像 mild coverage regularizer，\texttt{CE=0.1} 则在 top-10 与 coverage 上都明显退化 \\
 \bottomrule
 \end{tabular}
@@ -498,31 +565,39 @@ Arts & \texttt{CE=0.005} / no-CE tie & \texttt{CE=0.001} & 小系数更像 mild 
 \clearpage
 \appendix
 
+\FloatBarrier
+
 \section{Supplementary Full Curves}
 
 这一节保留完整 checkpoint 曲线，作为 RQ1--RQ4 正文之外的补充证据。 Instruments、Games 与 Arts 都保留 RL 全轨迹并标出 first-epoch 边界； 各图中的虚线统一表示 \texttt{GenRec(sft)} 的整体 best。
 
+\FloatBarrier
+
 \subsection{Instruments}
 
-\begin{figure}[p]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=\textwidth]{assets/genrec-only-instruments-curves.png}
 \caption{Instruments 上 GenRec RL 变体的完整 checkpoint 曲线。图中统一展示 9 个指标：\texttt{HR@1/5/10/20/50} 与 \texttt{NDCG@5/10/20/50}；横轴按 Instruments RL 主线的 \texttt{3326 step = 2 epoch} 归一化；虚线表示 \texttt{GenRec(sft)} 的整体 best，竖向点线表示第一个 epoch 的 cutoff（\texttt{step <= 1663}）。}
 \label{fig:genrec-only-instruments-curves}
 \end{figure}
 
+\FloatBarrier
+
 \subsection{Games}
 
-\begin{figure}[p]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=\textwidth]{assets/genrec-only-games-curves.png}
 \caption{Games 上 GenRec RL 变体的完整 checkpoint 曲线。图中统一展示 9 个指标：\texttt{HR@1/5/10/20/50} 与 \texttt{NDCG@5/10/20/50}；横轴按 Games RL 主线的 \texttt{8752 step = 2 epoch} 归一化；虚线表示 \texttt{GenRec(sft)} 的整体 best，竖向点线表示第一个 epoch 的 cutoff（\texttt{step <= 4376}）。}
 \label{fig:genrec-only-games-curves}
 \end{figure}
 
+\FloatBarrier
+
 \subsection{Arts}
 
-\begin{figure}[p]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=\textwidth]{assets/genrec-only-arts-curves.png}
 \caption{Arts 上 GenRec RL 变体的完整 checkpoint 曲线。图中统一展示 9 个指标：\texttt{HR@1/5/10/20/50} 与 \texttt{NDCG@5/10/20/50}；横轴按 Arts RL 主线的 \texttt{4206 step = 2 epoch} 归一化；虚线表示 \texttt{GenRec(sft)} 的整体 best，竖向点线表示第一个 epoch 的 cutoff（\texttt{step <= 2103}）。}
@@ -532,6 +607,8 @@ Arts & \texttt{CE=0.005} / no-CE tie & \texttt{CE=0.001} & 小系数更像 mild 
 \section{RL First-Epoch Best}
 
 这一节只对 RL 变体收紧选点范围： Instruments 的 RL 列只在 \texttt{checkpoint step <= 1663} 内选 best； Games 的 RL 列只在 \texttt{checkpoint step <= 4376} 内选 best； Arts 的 RL 列只在 \texttt{checkpoint step <= 2103} 内选 best； 非 RL 的 \texttt{GenRec(sft)} 仍保持其整体 best。 每个变体一旦按 \texttt{NDCG@10} 选出 checkpoint，整行指标与最后一行列出的 \texttt{ckpt} 都固定来自这个同一个 checkpoint。
+
+\FloatBarrier
 
 \subsection{Instruments}
 
@@ -563,6 +640,8 @@ Selected ckpt & \texttt{checkpoint-495} & \texttt{checkpoint-1332} & \texttt{che
 \label{tab:genrec-only-instruments-rl-first-epoch}
 \end{table}
 
+\FloatBarrier
+
 \subsection{Games}
 
 \begin{table}[H]
@@ -592,6 +671,8 @@ Selected ckpt & \texttt{checkpoint-768} & \texttt{checkpoint-3504} & \texttt{che
 \caption{Games 上当前已测到的 GenRec 系列结果。（RL 列仅在第一个 epoch 内按 \texttt{NDCG@10} 选 best）。}
 \label{tab:genrec-only-games-rl-first-epoch}
 \end{table}
+
+\FloatBarrier
 
 \subsection{Arts}
 

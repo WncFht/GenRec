@@ -433,9 +433,9 @@ FIXED_HINT_TASK_VARIANTS = (
     ),
     VariantSpec(
         "Fixed(sid+title+desc)",
-        "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-sid-title-desc-sft495",
+        "Instruments-grec-genrec-fixed-ce-dual-from-sft",
         is_rl=True,
-        first_epoch_max_step=1506,
+        first_epoch_max_step=1508,
         curve_total_max_step=3012,
     ),
 )
@@ -533,6 +533,39 @@ PREFIX_HINT_COMPARISON_SPECS = (
                 is_rl=True,
                 first_epoch_max_step=4376,
                 curve_total_max_step=8752,
+            ),
+        ),
+        curve_metrics=tuple(METRICS),
+    ),
+    CurveGroupSpec(
+        dataset="Arts",
+        title="Arts hint comparison",
+        asset_name="genrec-only-arts-hint-comparison-curves.png",
+        figure_label="fig:genrec-only-arts-hint-comparison-curves",
+        caption=(
+            r"Arts 上 \texttt{Ours(fixed hint)} 与 \texttt{dynamic hint} 的完整曲线对比。"
+            r"图中统一展示 9 个指标；横轴统一使用 epoch，"
+            r"\texttt{Ours(fixed hint)} 按 \texttt{4206 step = 2 epoch} 归一化，"
+            r"\texttt{dynamic hint} 按其当前已同步的 \texttt{2105 step = 2 epoch} 归一化。"
+        ),
+        table_caption=r"Arts 上 \texttt{Ours(fixed hint)} 与 \texttt{dynamic hint} 的对比。",
+        table_label="tab:genrec-only-arts-hint-comparison",
+        sft_model_dir="Arts-grec-sft-qwen4B-4-256-dsz0",
+        total_max_step=4206,
+        variants=(
+            VariantSpec(
+                "Ours (fixed hint)",
+                "Arts-grec-genrec-fixed-from-sft",
+                is_rl=True,
+                first_epoch_max_step=2103,
+                curve_total_max_step=4206,
+            ),
+            VariantSpec(
+                "Dynamic hint",
+                "Arts-grec-genrec-dynamic-hint-from-sft",
+                is_rl=True,
+                first_epoch_max_step=2103,
+                curve_total_max_step=2105,
             ),
         ),
         curve_metrics=tuple(METRICS),
@@ -683,7 +716,7 @@ CE_SCALING_GROUP_SPECS = (
         figure_label="fig:genrec-only-instruments-fixed-ce-coefficients-curves",
         caption=(
             r"Instruments 上 fixed-hint CE 系数对比曲线。图中同时保留 \texttt{Fixed(no CE)} 基线，"
-            r"另外三条线分别对应 \texttt{CE=0.001 / 0.005 / 0.01}；"
+            r"另外四条线分别对应 \texttt{CE=0.001 / 0.005 / 0.01 / 0.1}；"
             r"横轴按 \texttt{3326 step = 2 epoch} 归一化；"
             r"虚线表示 \texttt{GenRec(sft)} 的整体 best，竖向点线表示第一个 epoch 的 cutoff。"
         ),
@@ -710,6 +743,11 @@ CE_SCALING_GROUP_SPECS = (
             VariantSpec(
                 "CE=0.01",
                 "Instruments-grec-grpo-rule-only-fixedhint-taskfix-b16-hintce-4-sft495",
+                is_rl=True,
+            ),
+            VariantSpec(
+                "CE=0.1",
+                "Instruments-grec-genrec-fixed-ce-01-from-sft",
                 is_rl=True,
             ),
         ),
@@ -1509,6 +1547,14 @@ def render_heading(level: str, title: str) -> str:
     return rf"\{level}{{{title}}}"
 
 
+def append_heading(parts: list[str], level: str, title: str, *, barrier: bool = True) -> None:
+    if barrier:
+        parts.append(r"\FloatBarrier")
+        parts.append("")
+    parts.append(render_heading(level, title))
+    parts.append("")
+
+
 def render_dataset_table(
     spec: DatasetSpec,
     resolved_variants: list[tuple[VariantSpec, str | None, dict[str, float]]],
@@ -1534,8 +1580,7 @@ def build_section(
     include_overall_baselines: bool = False,
 ) -> list[str]:
     parts: list[str] = []
-    parts.append(render_heading("section", title))
-    parts.append("")
+    append_heading(parts, "section", title, barrier=False)
     parts.append(intro)
     parts.append("")
 
@@ -1562,8 +1607,7 @@ def build_section(
             )
             caption_override = None
         if has_any_measured_variant(resolved_variants):
-            parts.append(render_heading("subsection", spec.dataset))
-            parts.append("")
+            append_heading(parts, "subsection", spec.dataset)
             parts.append(
                 render_dataset_table(
                     spec,
@@ -1595,7 +1639,7 @@ def render_curve_figure(spec: DatasetSpec, asset_path: Path) -> str:
     relative_asset_path = asset_path.relative_to(TABLE_DIR).as_posix()
 
     parts: list[str] = []
-    parts.append(r"\begin{figure}[p]")
+    parts.append(r"\begin{figure}[!htbp]")
     parts.append(r"\centering")
     parts.append(r"\includegraphics[width=\textwidth]{" + relative_asset_path + r"}")
     if spec.curve_mode == "sft_only":
@@ -1631,8 +1675,7 @@ def render_curve_figure(spec: DatasetSpec, asset_path: Path) -> str:
 
 def build_curve_section(curve_assets: dict[str, Path]) -> list[str]:
     parts: list[str] = []
-    parts.append(render_heading("section", "Supplementary Full Curves"))
-    parts.append("")
+    append_heading(parts, "section", "Supplementary Full Curves")
     parts.append(
         r"这一节保留完整 checkpoint 曲线，作为 RQ1--RQ4 正文之外的补充证据。"
         r" Instruments、Games 与 Arts 都保留 RL 全轨迹并标出 first-epoch 边界；"
@@ -1643,8 +1686,7 @@ def build_curve_section(curve_assets: dict[str, Path]) -> list[str]:
     for spec in DATASET_SPECS:
         asset_path = curve_assets.get(spec.dataset)
         if asset_path is not None:
-            parts.append(render_heading("subsection", spec.dataset))
-            parts.append("")
+            append_heading(parts, "subsection", spec.dataset)
             parts.append(render_curve_figure(spec, asset_path))
 
     return parts
@@ -1654,7 +1696,7 @@ def render_curve_group_figure(spec: CurveGroupSpec, asset_path: Path) -> str:
     relative_asset_path = asset_path.relative_to(TABLE_DIR).as_posix()
 
     parts: list[str] = []
-    parts.append(r"\begin{figure}[p]")
+    parts.append(r"\begin{figure}[!htbp]")
     parts.append(r"\centering")
     parts.append(r"\includegraphics[width=\textwidth]{" + relative_asset_path + r"}")
     parts.append(r"\caption{" + spec.caption + r"}")
@@ -1666,16 +1708,14 @@ def render_curve_group_figure(spec: CurveGroupSpec, asset_path: Path) -> str:
 
 def build_ce_scaling_section(ce_scaling_assets: dict[str, Path]) -> list[str]:
     parts: list[str] = []
-    parts.append(render_heading("section", CE_SCALING_SECTION_TITLE))
-    parts.append("")
+    append_heading(parts, "section", CE_SCALING_SECTION_TITLE)
     parts.append(CE_SCALING_SECTION_INTRO)
     parts.append("")
 
     for spec in CE_SCALING_GROUP_SPECS:
         resolved_variants = resolve_variants(spec.variants)
         if resolved_variants:
-            parts.append(render_heading("subsection", spec.dataset))
-            parts.append("")
+            append_heading(parts, "subsection", spec.dataset)
             parts.append(
                 render_results_table(
                     resolved_variants,
@@ -1692,46 +1732,14 @@ def build_ce_scaling_section(ce_scaling_assets: dict[str, Path]) -> list[str]:
 
 def build_rq2_section(rq2_assets: dict[str, Path]) -> list[str]:
     parts: list[str] = []
-    parts.append(render_heading("section", "RQ2: Deep Analysis for Prefix Hint"))
-    parts.append("")
+    append_heading(parts, "section", "RQ2: Deep Analysis for Prefix Hint")
     parts.append(
-        r"这一节聚焦两个问题：其一，hint-conditioned training signal 是否真的有效；"
-        r"其二，prefix hint strategy 在 fixed / adaptive 与 task-aware / first-token 两个轴上如何比较。"
-    )
-    parts.append("")
-
-    parts.append(render_heading("subsection", "Hint-conditioned Training Signal"))
-    parts.append("")
-    parts.append(
-        r"先把问题压缩到最核心的四条线："
-        r"\texttt{GenRec(sft)}、\texttt{Rule-only baseline}、"
-        r"\texttt{Adaptive hinting} 和 \texttt{Ours(3-task)}。"
-    )
-    parts.append("")
-    signal_variants = resolve_variants(PREFIX_HINT_SIGNAL_VARIANTS)
-    if signal_variants:
-        parts.append(
-            render_results_table(
-                signal_variants,
-                caption=r"Instruments 上 hint-conditioned training signal 的第一层证据。",
-                label="tab:genrec-only-instruments-prefix-hint-signal",
-            )
-        )
-    parts.append(
-        r"\texttt{Rule-only baseline} 继续提供最高的无 hint top-10，"
-        r"但 \texttt{Adaptive hinting} 和 \texttt{Ours(3-task)} 都把 coverage 拉回到了 SFT 以上；"
-        r"这说明 prefix hint 的训练信号不是表面装饰，而是会真实改变 RL frontier 的形状。"
-    )
-    parts.append("")
-
-    parts.append(render_heading("subsection", "Hint Strategy Comparison"))
-    parts.append("")
-    parts.append(
-        r"这里把对照收缩为两条主线：\texttt{Ours(fixed hint)} 与 \texttt{dynamic hint}。"
-        r"对应的目标很直接：在同一套 prefix-hint 训练框架里，fixed 是否稳定优于 dynamic。"
+        r"这一节只保留 \texttt{Ours(fixed hint)} 与 \texttt{dynamic hint} 的主线对照，"
+        r"并按 \texttt{Instruments / Games / Arts} 三个数据集分别展开。"
     )
     parts.append("")
     for spec in PREFIX_HINT_COMPARISON_SPECS:
+        append_heading(parts, "subsection", spec.dataset)
         prefix_variants = resolve_variants(spec.variants)
         if prefix_variants:
             parts.append(
@@ -1747,13 +1755,20 @@ def build_rq2_section(rq2_assets: dict[str, Path]) -> list[str]:
             target_step=spec.total_max_step,
         )
         if prefix_last_variants:
+            final_caption = (
+                rf"{spec.dataset} 上 \texttt{{Ours(fixed hint)}} 与 \texttt{{dynamic hint}} "
+                r"在 2 epoch 末尾 checkpoint 的对比。"
+            )
+            if spec.dataset == "Arts":
+                final_caption = (
+                    r"Arts 上 \texttt{Ours(fixed hint)} 与 \texttt{dynamic hint} 的终点 readout 对比："
+                    r"\texttt{Ours(fixed hint)} 读取 2 epoch 末尾 checkpoint，"
+                    r"\texttt{dynamic hint} 读取当前最后 checkpoint。"
+                )
             parts.append(
                 render_results_table(
                     prefix_last_variants,
-                    caption=(
-                        rf"{spec.dataset} 上 \texttt{{Ours(fixed hint)}} 与 \texttt{{dynamic hint}} "
-                        r"在 2 epoch 末尾 checkpoint 的对比。"
-                    ),
+                    caption=final_caption,
                     label=f"tab:genrec-only-{spec.dataset.lower()}-hint-comparison-final-epoch",
                 )
             )
@@ -1777,6 +1792,15 @@ def build_rq2_section(rq2_assets: dict[str, Path]) -> list[str]:
                 r"Games 上，\texttt{Ours(fixed hint)} 在 best checkpoint 和 2 epoch 末尾 checkpoint 两个口径下都整体领先。"
                 r"\texttt{dynamic hint} 没有拿到任何一个 headline metric 的最优值，"
                 r"说明这个数据集上 fixed prefix 的优势更稳定，也更直接。"
+            )
+        elif dataset_lower == "arts":
+            parts.append(
+                r"Arts 上，两条线的差距比 Games 更小，但 \texttt{Ours(fixed hint)} 仍然在"
+                r" \texttt{HR@1 / HR@5 / HR@10 / NDCG@5 / NDCG@10 / NDCG@20 / NDCG@50} 上领先。"
+                r"\texttt{dynamic hint} 只在 \texttt{HR@20 / HR@50} 上略高，"
+                r"说明它更像是 coverage 方向的小幅补偿，而不是整体更强的主线。"
+                r"需要注意的是，当前 dynamic 线只同步到 \texttt{checkpoint-2105}，"
+                r"因此第二张表展示的是它的当前终点，而不是完整 2 epoch 末尾。"
             )
         parts.append("")
 
@@ -1810,8 +1834,7 @@ def render_loss_ablation_block(
     else:
         resolved_variants = resolve_variants(spec.variants)
     parts: list[str] = []
-    parts.append(render_heading("paragraph", spec.dataset))
-    parts.append("")
+    append_heading(parts, "subsubsection", spec.dataset)
     if resolved_variants:
         parts.append(
             render_results_table(
@@ -1867,8 +1890,7 @@ def render_loss_ablation_block(
 
 def build_rq3_section(fixed_hint_task_asset: Path | None, loss_design_assets: dict[str, Path]) -> list[str]:
     parts: list[str] = []
-    parts.append(render_heading("section", "RQ3: Ablation Study"))
-    parts.append("")
+    append_heading(parts, "section", "RQ3: Ablation Study")
     parts.append(
         r"这一节把消融分成两层：训练任务范围，以及 loss 设计。"
         r"前者只比较当前已经跑完的 three-way fixed prefix variants；"
@@ -1877,8 +1899,7 @@ def build_rq3_section(fixed_hint_task_asset: Path | None, loss_design_assets: di
     )
     parts.append("")
 
-    parts.append(render_heading("subsection", "Training Task Scope"))
-    parts.append("")
+    append_heading(parts, "subsection", "Training Task Scope")
     parts.append(
         r"这一小节回到完整 2 epoch 里按 \texttt{NDCG@10} 选 best 的默认口径。"
         r"当前已经落地的三档训练任务范围是：默认 \texttt{taskfix}、"
@@ -1907,14 +1928,13 @@ def build_rq3_section(fixed_hint_task_asset: Path | None, loss_design_assets: di
     if fixed_hint_task_asset is not None:
         parts.append(render_fixed_hint_task_figure(fixed_hint_task_asset))
 
-    parts.append(render_heading("subsection", "Loss Design"))
-    parts.append("")
+    append_heading(parts, "subsection", "Loss Design")
     parts.append(
         r"这一小节也回到完整 2 epoch 里按 \texttt{NDCG@10} 选 best 的默认口径。"
         r"loss 层面的比较只保留三种口径："
         r"\texttt{suffix-only GRPO}、\texttt{prefix SFT + suffix-only GRPO}、"
         r"以及 \texttt{Full-sequence SFT + GRPO}。"
-        r"下面保留 Instruments 原表，同时把 Arts 的对应结果和曲线一并补进来。"
+        r"下面按数据集分别展开当前已完成的 loss-design 对照。"
     )
     parts.append("")
     for loss_design_spec in LOSS_DESIGN_SPECS:
@@ -1929,20 +1949,18 @@ def build_rq3_section(fixed_hint_task_asset: Path | None, loss_design_assets: di
 
 def build_rq4_section(ce_scaling_assets: dict[str, Path]) -> list[str]:
     parts: list[str] = []
-    parts.append(render_heading("section", "RQ4: CE Loss Influence"))
-    parts.append("")
+    append_heading(parts, "section", "RQ4: CE Loss Influence")
     parts.append(
         r"这一节专门分析 fixed CE coefficient 对后训练结果的影响。"
         r"正文只保留 \texttt{Instruments} 和 \texttt{Arts} 两个数据集上的"
-        r" CE sweep；其中 \texttt{Arts} 额外补入 \texttt{CE=0.1}。"
+        r" CE sweep；当前两个数据集都额外补入 \texttt{CE=0.1}。"
     )
     parts.append("")
 
     for spec in CE_SCALING_GROUP_SPECS:
         resolved_variants = resolve_variants(spec.variants)
         if resolved_variants:
-            parts.append(render_heading("subsection", spec.dataset))
-            parts.append("")
+            append_heading(parts, "subsection", spec.dataset)
             parts.append(
                 render_results_table(
                     resolved_variants,
@@ -1954,8 +1972,7 @@ def build_rq4_section(ce_scaling_assets: dict[str, Path]) -> list[str]:
         if asset_path is not None:
             parts.append(render_curve_group_figure(spec, asset_path))
 
-    parts.append(render_heading("subsection", "Cross-Dataset Summary"))
-    parts.append("")
+    append_heading(parts, "subsection", "Cross-Dataset Summary")
     parts.append(r"\begin{table}[H]")
     parts.append(r"\centering")
     parts.append(r"\scriptsize")
@@ -1966,7 +1983,7 @@ def build_rq4_section(ce_scaling_assets: dict[str, Path]) -> list[str]:
     parts.append(r"Dataset & Best top-10 coefficient & Best coverage coefficient & Reading \\")
     parts.append(r"\midrule")
     parts.append(
-        r"Instruments & \texttt{CE=0.01} & \texttt{CE=0.005} & 大系数继续抬高 long-run top-10，但 coverage 峰值仍出现在中档系数 \\"
+        r"Instruments & \texttt{CE=0.01} & \texttt{CE=0.005} & 大系数继续抬高 long-run top-10，但 \texttt{CE=0.1} 明显退化，coverage 峰值仍出现在中档系数 \\"
     )
     parts.append(
         r"Arts & \texttt{CE=0.005} / no-CE tie & \texttt{CE=0.001} & 小系数更像 mild coverage regularizer，\texttt{CE=0.1} 则在 top-10 与 coverage 上都明显退化 \\"
@@ -1986,7 +2003,7 @@ def render_fixed_hint_task_figure(asset_path: Path) -> str:
     sft_checkpoint = sft_best[0] if sft_best is not None else "best"
 
     parts: list[str] = []
-    parts.append(r"\begin{figure}[p]")
+    parts.append(r"\begin{figure}[!htbp]")
     parts.append(r"\centering")
     parts.append(r"\includegraphics[width=\textwidth]{" + relative_asset_path + r"}")
     parts.append(
@@ -2005,15 +2022,13 @@ def render_fixed_hint_task_figure(asset_path: Path) -> str:
 
 def build_fixed_hint_task_section(asset_path: Path | None) -> list[str]:
     parts: list[str] = []
-    parts.append(render_heading("section", FIXED_HINT_TASK_SECTION_TITLE))
-    parts.append("")
+    append_heading(parts, "section", FIXED_HINT_TASK_SECTION_TITLE)
     parts.append(FIXED_HINT_TASK_SECTION_INTRO)
     parts.append("")
 
     resolved_variants = resolve_variants(FIXED_HINT_TASK_VARIANTS)
     if resolved_variants:
-        parts.append(render_heading("subsection", "Overall Best Table"))
-        parts.append("")
+        append_heading(parts, "subsection", "Overall Best Table")
         parts.append(
             render_results_table(
                 resolved_variants,
@@ -2023,8 +2038,7 @@ def build_fixed_hint_task_section(asset_path: Path | None) -> list[str]:
         )
 
     if asset_path is not None:
-        parts.append(render_heading("subsection", "Full Curves"))
-        parts.append("")
+        append_heading(parts, "subsection", "Full Curves")
         parts.append(render_fixed_hint_task_figure(asset_path))
 
     return parts
@@ -2044,11 +2058,13 @@ def build_document(
     parts.append(r"\usepackage{booktabs}")
     parts.append(r"\usepackage{float}")
     parts.append(r"\usepackage{graphicx}")
+    parts.append(r"\usepackage{placeins}")
     parts.append(r"\usepackage[unicode,hidelinks,bookmarksopen,bookmarksdepth=2]{hyperref}")
     parts.append("")
     parts.append(r"\begin{document}")
     parts.append("")
-    parts.append(r"\setcounter{secnumdepth}{2}")
+    parts.append(r"\setcounter{secnumdepth}{3}")
+    parts.append(r"\setcounter{tocdepth}{3}")
     parts.append("")
     parts.append(r"\section{GenRec-Only Tables}")
     parts.append("")

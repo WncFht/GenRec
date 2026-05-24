@@ -1,8 +1,23 @@
 {
   "version": 1,
-  "generated_at": "2026-05-22T08:23:28+00:00",
+  "generated_at": "2026-05-24T04:27:20+00:00",
   "results_root": "/mnt/dolphinfs/hdd_pool/docker/user/hadoop-hmart-poistar/fanghaotian/GenRec/results",
   "models": [
+    {
+      "model_dir": "Arts-grec-genrec-dynamic-hint-from-sft",
+      "dataset": "Arts_grec_genrec_dynamic_hint_from_sft",
+      "cb_setting": "none",
+      "eval_split": "test",
+      "seed": 42,
+      "num_beams": 50,
+      "sid_levels": -1,
+      "num_train_epochs": null,
+      "wandb_group": null,
+      "wandb_project": "MIMIGenRec-Eval",
+      "wandb_entity": null,
+      "wandb_run_id": "eval-99d09314037c72f4be50",
+      "wandb_run_name": "Arts-grec-genrec-dynamic-hint-from-sft-eval"
+    },
     {
       "model_dir": "Arts-grec-genrec-fixed-ce-0001-from-sft",
       "dataset": "Arts_grec_genrec_fixed_ce_0001_from_sft",
@@ -317,6 +332,36 @@
       "wandb_entity": null,
       "wandb_run_id": "eval-3b75717cf2e5262ab9db",
       "wandb_run_name": "Instruments-grec-genrec-aligned-sft-qwen4B-4-256-dsz3-8gpu-eval"
+    },
+    {
+      "model_dir": "Instruments-grec-genrec-fixed-ce-01-from-sft",
+      "dataset": "Instruments_grec_genrec_fixed_ce_01_from_sft",
+      "cb_setting": "none",
+      "eval_split": "test",
+      "seed": 42,
+      "num_beams": 50,
+      "sid_levels": -1,
+      "num_train_epochs": null,
+      "wandb_group": null,
+      "wandb_project": "MIMIGenRec-Eval",
+      "wandb_entity": null,
+      "wandb_run_id": "eval-a89f3a68cc213d4964e3",
+      "wandb_run_name": "Instruments-grec-genrec-fixed-ce-01-from-sft-eval"
+    },
+    {
+      "model_dir": "Instruments-grec-genrec-fixed-ce-dual-from-sft",
+      "dataset": "Instruments_grec_genrec_fixed_ce_dual_from_sft",
+      "cb_setting": "none",
+      "eval_split": "test",
+      "seed": 42,
+      "num_beams": 50,
+      "sid_levels": -1,
+      "num_train_epochs": null,
+      "wandb_group": null,
+      "wandb_project": "MIMIGenRec-Eval",
+      "wandb_entity": null,
+      "wandb_run_id": "eval-7921235d690c893a38f9",
+      "wandb_run_name": "Instruments-grec-genrec-fixed-ce-dual-from-sft-eval"
     },
     {
       "model_dir": "Instruments-grec-genrec-fixed-full-sequence-sft-from-sft",
